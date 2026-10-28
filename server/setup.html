@@ -104,7 +104,7 @@ const H = { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' };
 const fmt = ms => ms ? new Date(ms).toLocaleString() : '还没上报过';
 
 async function me() {
-  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; }
+  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) return location.replace(j.login + '?next=setup.html'); } if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; }
   catch (e) { $('who').textContent = '没有登录，或服务器没有开'; }
 }
 async function list() {

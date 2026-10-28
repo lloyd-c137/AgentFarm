@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · Agent Farm</title>
+<style>
+:root { --bg: #241a3e; --card: #fffaf0; --ink: #2b2238; --muted: #6d6478; --line: #e2d6b8; --accent: #3f7a3a; --warn: #b2452d; }
+@media (prefers-color-scheme: dark) { :root { --card: #251d36; --ink: #f1e9d6; --muted: #a99fb8; --line: #3a2f52; --accent: #6fb562; --warn: #ff8a6b; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg) radial-gradient(circle at 50% 120%, #4b3a2a 0, transparent 60%); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+form { width: 100%; max-width: 360px; background: var(--card); border-radius: 12px; padding: 28px 24px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
+h1 { margin: 0 0 4px; font-size: 22px; } p { margin: 0 0 18px; color: var(--muted); }
+label { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--muted); }
+input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font: inherit; }
+button { width: 100%; margin-top: 20px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.err { color: var(--warn); min-height: 1.6em; margin: 10px 0 0; }
+</style>
+</head>
+<body>
+<form id="f">
+  <h1>Agent Farm</h1>
+  <p>用邮箱和团队密码进入你的农场</p>
+  <label for="email">邮箱</label>
+  <input id="email" type="email" autocomplete="email" required>
+  <label for="pw">团队密码</label>
+  <input id="pw" type="password" autocomplete="current-password" required>
+  <button type="submit">进入农场</button>
+  <p class="err" id="err" role="alert"></p>
+</form>
+<script>
+document.getElementById('f').addEventListener('submit', async e => {
+  e.preventDefault(); const err = document.getElementById('err'); err.textContent = '';
+  try {
+    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('pw').value }) });
+    if (r.ok) { const next = new URLSearchParams(location.search).get('next'); location.replace(next === 'setup.html' ? 'setup.html' : './'); return; }
+    const j = await r.json().catch(() => ({}));
+    err.textContent = j.error === 'bad_password' ? '密码不对' : j.error === 'bad_email' ? '邮箱格式不对' : '登录失败，稍后再试';
+  } catch (x) { err.textContent = '连不上服务器'; }
+});
+try { const k = localStorage.getItem('af-email'); if (k) document.getElementById('email').value = k; } catch (e) {}
+document.getElementById('email').addEventListener('change', e => { try { localStorage.setItem('af-email', e.target.value); } catch (x) {} });
+</script>
+</body>
+</html>

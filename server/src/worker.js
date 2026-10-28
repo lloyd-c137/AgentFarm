@@ -55,9 +55,33 @@ async function verifyAccessJwt(token, env) {
   if (!aud.includes(env.ACCESS_AUD) || claims.exp * 1000 < Date.now() || claims.iss !== `https://${env.ACCESS_TEAM_DOMAIN}`) return null;
   return claims;
 }
+/* team-password login, used until Cloudflare Access is switched on: the cookie is the email plus an HMAC of it */
+const COOKIE = 'af_session';
+async function hmac(secret, msg) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return b64url(new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg))));
+}
+function cookieOf(req, name) { const m = (req.headers.get('Cookie') || '').match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)')); return m ? decodeURIComponent(m[1]) : null; }
+async function sessionEmail(req, env) {
+  const c = cookieOf(req, COOKIE); if (!c) return null;
+  const i = c.lastIndexOf('.'); if (i < 0) return null;
+  const email = c.slice(0, i);
+  return (await hmac(env.SITE_PASSWORD, 'session|' + email)) === c.slice(i + 1) ? email : null;
+}
+async function login(req, env) {
+  const b = await req.json().catch(() => ({}));
+  const email = clip(b.email, 120).toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'bad_email' }, 400);
+  // compare via HMAC so the check takes the same time whatever was typed
+  if ((await hmac(env.SITE_PASSWORD, 'pw|' + String(b.password || ''))) !== (await hmac(env.SITE_PASSWORD, 'pw|' + env.SITE_PASSWORD))) return json({ error: 'bad_password' }, 403);
+  const v = encodeURIComponent(email + '.' + await hmac(env.SITE_PASSWORD, 'session|' + email));
+  return json({ email }, 200, { 'Set-Cookie': `${COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000` });
+}
+
 async function userEmail(req, env) {
   if (env.DEV_USER) return String(env.DEV_USER).toLowerCase();
   const jwt = req.headers.get('Cf-Access-Jwt-Assertion');
+  if ((!jwt || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) && env.SITE_PASSWORD) return sessionEmail(req, env);
   if (!jwt || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;
   const claims = await verifyAccessJwt(jwt, env).catch(() => null);
   return claims && claims.email ? String(claims.email).toLowerCase() : null;
@@ -72,8 +96,10 @@ const bump = (env, farmKey) => env.DB.prepare('UPDATE farms SET version = versio
 
 /* ---------- /api: the farm page ---------- */
 async function api(req, env, url) {
+  if (url.pathname === '/api/login' && req.method === 'POST') return env.SITE_PASSWORD ? login(req, env) : json({ error: 'password_login_off' }, 404);
+  if (url.pathname === '/api/logout' && req.method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` });
   const email = await userEmail(req, env);
-  if (!email) return json({ error: 'not_signed_in' }, 401);
+  if (!email) return json({ error: 'not_signed_in', login: env.SITE_PASSWORD ? 'login.html' : null }, 401);
   const farm = await farmOf(env, email), path = url.pathname, m = req.method;
   // writes need our own header: a cross-site form or script can't add it without a CORS preflight we never allow
   if (m !== 'GET' && req.headers.get('X-Agent-Farm') !== '1') return json({ error: 'missing_header' }, 403);

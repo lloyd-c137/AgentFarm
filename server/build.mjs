@@ -3,4 +3,5 @@ import { mkdirSync, copyFileSync } from 'node:fs';
 mkdirSync('public', { recursive: true });
 copyFileSync('../index.html', 'public/index.html');
 copyFileSync('setup.html', 'public/setup.html');
+copyFileSync('login.html', 'public/login.html');
 console.log('public/ ready');

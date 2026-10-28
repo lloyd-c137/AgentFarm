@@ -13,7 +13,7 @@
       "binding": "DB",
       "database_name": "agent-farm",
       // replace with the id printed by: npx wrangler d1 create agent-farm
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "ef88b806-1b40-4fdd-b7b4-a00f3c94af0c",
       "migrations_dir": "migrations"
     }
   ],

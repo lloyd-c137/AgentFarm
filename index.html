@@ -1259,7 +1259,7 @@ async function pollFarm() {
 }
 async function goLive() {
   if (!/^https?:$/.test(location.protocol) || new URLSearchParams(location.search).has('demo')) return false;
-  try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (!r.ok) return false; await r.json(); } catch (e) { return false; }
+  try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) { location.replace(j.login); return true; } } if (!r.ok) return false; await r.json(); } catch (e) { return false; }
   live.on = true; tasks = []; shipped = []; harvestToday = 0; harvestWeek = 0;
   await new Promise(r => document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', r) : r());
   const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '连接设备'; document.body.appendChild(a);
