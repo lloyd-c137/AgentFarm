@@ -966,8 +966,6 @@ function buildWorld() {
     }
     for (let i = 0; i < 18; i++) { const x = hx - hw + 10 + ((i * 53) % (hw * 2 - 20)), y = top + 10 + ((i * 29) % 30); if ((x - hx) * (x - hx) / (hw * hw) + 0 < 0.8) { R(g, GR[5], x, y, 1, 2); R(g, GR[5], x + 2, y + 1, 1, 2); } }
   }
-  // a little wooden sign at the head of each row; the source names are written on them by the UI layer
-  for (let r = 0; r < FROWS.length; r++) { const sx = PLOT_X0 - 24, sy = PLOT_Y0 + r * ROW_H - 2; R(g, P.OL, sx + 6, sy + 6, 4, 14); R(g, P.WD[2], sx + 7, sy + 6, 2, 13); R(g, P.OL, sx, sy, 16, 9); R(g, P.WD[3], sx + 1, sy + 1, 14, 7); R(g, P.WD[4], sx + 1, sy + 1, 14, 1); for (let q = 0; q < 3; q++) R(g, P.WD[1], sx + 3 + q * 4, sy + 4, 2, 1); }
   // tilled field
   for (let y = DIRT.y; y < DIRT.y + DIRT.h; y += 16) for (let x = DIRT.x; x < DIRT.x + DIRT.w; x += 16) g.drawImage(SPR.soilDry, x, y);
   R(g, P.SD[4], DIRT.x + 1, DIRT.y - 1, DIRT.w - 2, 1);
@@ -1706,8 +1704,6 @@ function renderFarm(now) {
       let pop = 0; if (t.popT && now - t.popT < 500) pop = Math.round((1 - (now - t.popT) / 500) * 8);
       const by = (t.state === 'stalled' ? top - 8 : top) - 15 + bob + pop;
       ctx.drawImage(t.state === 'error' || t.state === 'stalled' ? SPR.bang : SPR.drop, tx + 2, by);
-    } else if (t.state === 'working') {
-      for (let i = 0; i < 3; i++) { const on = anim ? Math.floor(now / 260) % 3 === i : i === 1; R(ctx, P.OL, tx + 1 + i * 5, top - 7, 3, 3); R(ctx, on ? P.Y[4] : P.CR[1], tx + 2 + i * 5, top - 6, 1, 1); }
     }
     if (hover && hover.id === t.id && Math.floor(now / 400) % 2 === 0) {
       const x0 = tx - 3, y0 = top - 19, x1 = tx + 18, y1 = ty + 16, c = P.Y[4];
@@ -1816,17 +1812,6 @@ function drawBoard() {
   }
   uiPanels.push({ x, y, w, h: h + 4 });
 }
-function drawFieldSigns() {
-  if (scene !== 'farm' || modal()) return;
-  const k = UW / VW;
-  FROWS.forEach((name, r) => {
-    const wx = PLOT_X0 - 28, wy = PLOT_Y0 + r * ROW_H + 1, w = textW(name, 12) + 22, h = 24, x = Math.round((wx + OX) * k - w), y = Math.round((wy + OY) * k - h / 2);
-    if (x + w < 0 || x > UW || y + h < 0 || y > UH) return;
-    const n = tasks.filter(t => Math.floor(t.slot / COLS) === r).length;
-    UR(P.OL, x, y, w, h); UR(P.WD[3], x + 2, y + 2, w - 4, h - 4); UR(P.WD[4], x + 2, y + 2, w - 4, 2); UR(P.WD[2], x + 2, y + h - 4, w - 4, 2);
-    text(name, x + w / 2, y + 5, 12, n ? P.CREAM : '#c8b090', { align: 'center', shadow: P.WD[0] });
-  });
-}
 function drawOffscreen(now) {
   if (scene !== 'farm' || modal() || placing) return;
   const k = UW / VW, m = 30, edge = {};
@@ -1872,8 +1857,10 @@ function drawTooltip(t) {
   title.forEach(l => { text(l, x + 14, cy, 12, P.INK); cy += 18; });
   text(STATUS[t.state] + (t.since ? ` · ${t.since}` : ''), x + 14, cy, 12, NEEDS.has(t.state) ? P.ALERT : '#3f6e33'); cy += 18;
   msg.forEach(l => { text(l, x + 14, cy, 12, P.INK_MUTED); cy += 18; });
-  text(`${t.src} · 第 ${t.round} 轮 · 点击查看`, x + 14, cy, 12, P.INK_MUTED);
+  text(`第 ${t.round} 轮 · 点击查看`, x + 14, cy, 12, P.INK_MUTED);
 }
+// a crop shows its details by itself only when it is fully grown or needs a human for the next step; otherwise it is just a crop
+const showsInfo = t => NEEDS.has(t.state) || cropSprite(t) === 's4';
 function nearestCrop() {
   let best = null;
   for (const t of tasks) { const { tx, ty } = slotPos(t.slot), d = Math.hypot(tx + 8 - farmer.x, ty + 22 - farmer.y); if (!best || d < best.d) best = { t, d }; }
@@ -1883,10 +1870,10 @@ function drawWorldTags() {
   if (modal() || placing) return;
   const ht = hover ? find(hover.id) : null;
   if (scene !== 'farm') { if (hoverTag) tagAt(hoverTag.wx, hoverTag.wy, hoverTag.s); return; }
-  if (ht) { drawTooltip(ht); return; }
+  if (ht && showsInfo(ht)) { drawTooltip(ht); return; }
   if (hoverTag) { tagAt(hoverTag.wx, hoverTag.wy, hoverTag.s); return; }
   const n = nearestCrop();
-  if (n && n.d < 24 && !farmer.moving) { const { tx } = slotPos(n.t.slot); tagAt(tx + 8, CROP_TOP_OF(n.t) - 16, n.t.name); }
+  if (n && n.d < 24 && !farmer.moving && showsInfo(n.t)) { const { tx } = slotPos(n.t.slot); tagAt(tx + 8, CROP_TOP_OF(n.t) - 16, n.t.name); }
 }
 function dim() { uctx.fillStyle = 'rgba(18, 12, 22, 0.55)'; uctx.fillRect(0, 0, UW, UH); }
 function drawDialog(now) {
@@ -1955,7 +1942,7 @@ function drawHelp() {
   dim(); const { x, y, w, h } = helpBox = box(640, 420);
   panel(x, y, w, h); plaque(x + w / 2 - 90, y + 12, 180, 28, '图例与操作');
   closeRect = closeBtn(x + w - 42, y + 12);
-  const legend = [['work', 'AI 在干活：湿土和跳动的小点'], ['drop', 'AI 等你回复或授权：冒水滴'], ['bang', '出错或失联：冒感叹号'], ['wither', '出错：作物枯萎'], ['crow', '失联：乌鸦停在作物上'], ['pumpkin', '完成：自动收进出货箱']];
+  const legend = [['work', 'AI 在干活：湿土，作物慢慢长大'], ['drop', 'AI 等你回复或授权：冒水滴'], ['bang', '出错或失联：冒感叹号'], ['wither', '出错：作物枯萎'], ['crow', '失联：乌鸦停在作物上'], ['pumpkin', '完成：自动收进出货箱']];
   text('看懂农场', x + 24, y + 54, 12, P.INK);
   legend.forEach(([k, s], i) => {
     const lx = x + 24, ly = y + 76 + i * 44;
@@ -1980,7 +1967,7 @@ function drawUI(now) {
   const calm = scene === 'cut' && cut && cut.kind === 'window' && now - cut.t0 > 5000 && performance.now() - wvMove > 2500;
   if (!calm) { drawClock(); drawBoard(); }
   if (scene === 'mine') drawMineHUD(now);
-  drawFieldSigns(); drawOffscreen(now);
+  drawOffscreen(now);
   if (scene === 'cut') drawCutUI(now);
   drawToasts(now);
   drawWorldTags();
