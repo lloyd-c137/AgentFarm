@@ -179,18 +179,21 @@ async function api(req, env, url) {
     if (v && v === farm.version) return empty(204);
     const now = Date.now(), tz = Math.max(-840, Math.min(840, Number(url.searchParams.get('tz') || 0)));
     const dayStart = Math.floor((now - tz * 60e3) / 864e5) * 864e5 + tz * 60e3, weekStart = now - 7 * 864e5;
-    const [live, today, week] = await env.DB.batch([
+    const [live, today, week, gRows, mRows] = await env.DB.batch([
       env.DB.prepare('SELECT id, source, name, title, state, round, slot, msg, cwd_name, url, need_since, last_event_at, created_at FROM tasks WHERE farm_key = ? AND harvested_at IS NULL ORDER BY slot').bind(farm.key),
       env.DB.prepare('SELECT name, quality FROM tasks WHERE farm_key = ? AND harvested_at >= ? ORDER BY harvested_at').bind(farm.key, dayStart),
-      env.DB.prepare('SELECT COUNT(*) AS n FROM tasks WHERE farm_key = ? AND harvested_at >= ?').bind(farm.key, weekStart)
+      env.DB.prepare('SELECT COUNT(*) AS n FROM tasks WHERE farm_key = ? AND harvested_at >= ?').bind(farm.key, weekStart),
+      ...goalQueries(env, farm.key)
     ]);
     return json({
       version: farm.version, now,
       tasks: live.results.map(t => ({ id: t.id, source: t.source, src: SOURCES[t.source] || t.source, name: t.name, full: t.title, state: t.state, round: t.round, slot: t.slot, msg: t.msg, cwd: t.cwd_name, url: t.url, needSince: t.need_since, lastEventAt: t.last_event_at, createdAt: t.created_at })),
       shipped: today.results.map(s => ({ name: s.name, q: s.quality || 'normal' })),
-      harvestToday: today.results.length, harvestWeek: week.results[0].n
+      harvestToday: today.results.length, harvestWeek: week.results[0].n,
+      goals: shapeGoals(gRows.results, mRows.results)
     });
   }
+  if (path.startsWith('/api/goals') || path.startsWith('/api/milestones')) return goalsApi(req, env, farm, path, m);
 
   const hm = path.match(/^\/api\/tasks\/([\w-]+)\/harvest$/);
   if (hm && m === 'POST') {
@@ -217,6 +220,105 @@ async function api(req, env, url) {
   if (dm && m === 'DELETE') {
     await env.DB.prepare('DELETE FROM devices WHERE id = ? AND farm_key = ?').bind(dm[1], farm.key).run();
     return json({ ok: true });
+  }
+  return json({ error: 'not_found' }, 404);
+}
+
+/* ---------- orchard: long-term goals, one fruit tree each, with 2–8 milestones ---------- */
+const FRUIT_KINDS = new Set(['apple', 'orange', 'peach', 'lemon', 'cherry', 'pear']);
+const ORCH_SLOTS = 6, MS_MIN = 2, MS_MAX = 8;
+const newGoalId = () => crypto.randomUUID().replace(/-/g, '').slice(0, 20);
+const chars = s => [...String(s)].length;
+const cleanTitle = (s, max) => { const t = clip(s, max * 4); return t && chars(t) <= max ? t : null; };
+const validDate = s => typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s + 'T00:00:00Z'));
+const goalQueries = (env, farmKey) => [
+  env.DB.prepare('SELECT * FROM goals WHERE farm_key = ? ORDER BY slot').bind(farmKey),
+  env.DB.prepare('SELECT m.* FROM milestones m JOIN goals g ON g.id = m.goal_id WHERE g.farm_key = ? ORDER BY m.goal_id, m.ord').bind(farmKey)
+];
+function shapeGoals(gRows, mRows) {
+  const byGoal = {};
+  for (const m of mRows) (byGoal[m.goal_id] = byGoal[m.goal_id] || []).push({ id: m.id, title: m.title, done: m.done_at != null });
+  return gRows.map(g => ({ id: g.id, slot: g.slot, title: g.title, why: g.why, fruit: g.fruit, due: g.due_date, status: g.status, createdAt: g.created_at, lastProgressAt: g.last_progress_at, doneAt: g.done_at, harvestedAt: g.harvested_at, milestones: byGoal[g.id] || [] }));
+}
+// done_at follows the milestones: set the moment the last one is ticked, cleared if one is unticked
+const recheckDone = (env, goalId, now) => env.DB.prepare('UPDATE goals SET done_at = CASE WHEN (SELECT COUNT(*) FROM milestones WHERE goal_id = ?1) > 0 AND (SELECT COUNT(*) FROM milestones WHERE goal_id = ?1 AND done_at IS NULL) = 0 THEN COALESCE(done_at, ?2) ELSE NULL END WHERE id = ?1').bind(goalId, now);
+async function goalsReply(env, farmKey, writes) {
+  const res = await env.DB.batch([...writes, bump(env, farmKey), env.DB.prepare('SELECT version FROM farms WHERE key = ?').bind(farmKey), ...goalQueries(env, farmKey)]);
+  const [ver, gRows, mRows] = res.slice(-3);
+  return json({ version: ver.results[0].version, goals: shapeGoals(gRows.results, mRows.results) });
+}
+async function goalsApi(req, env, farm, path, m) {
+  const body = m === 'GET' || m === 'DELETE' ? {} : await req.json().catch(() => null);
+  if (!body) return json({ error: 'bad_json' }, 400);
+  const now = Date.now(), fk = farm.key;
+  const ownGoal = id => env.DB.prepare('SELECT * FROM goals WHERE id = ? AND farm_key = ?').bind(id, fk).first();
+
+  if (path === '/api/goals' && m === 'POST') {
+    const title = cleanTitle(body.title, 20), why = clip(body.why, 240), slot = Number(body.slot);
+    const list = Array.isArray(body.milestones) ? body.milestones.map(t => cleanTitle(t, 40)).filter(Boolean) : [];
+    if (!title) return json({ error: 'bad_title' }, 400);
+    if (!Number.isInteger(slot) || slot < 0 || slot >= ORCH_SLOTS) return json({ error: 'bad_slot' }, 400);
+    if (!FRUIT_KINDS.has(body.fruit)) return json({ error: 'bad_fruit' }, 400);
+    if (!validDate(body.due)) return json({ error: 'due_required' }, 400);
+    if (list.length < MS_MIN || list.length > MS_MAX) return json({ error: 'milestones_2_to_8' }, 400);
+    if (await env.DB.prepare('SELECT 1 FROM goals WHERE farm_key = ? AND slot = ?').bind(fk, slot).first()) return json({ error: 'plot_taken' }, 409);
+    const id = newGoalId();
+    return goalsReply(env, fk, [
+      env.DB.prepare('INSERT INTO goals (id, farm_key, slot, title, why, fruit, due_date, created_at, last_progress_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').bind(id, fk, slot, title, chars(why) <= 60 ? why : [...why].slice(0, 60).join(''), body.fruit, body.due, now, now),
+      ...list.map((t, i) => env.DB.prepare('INSERT INTO milestones (id, goal_id, title, ord) VALUES (?, ?, ?, ?)').bind(newGoalId(), id, t, i))
+    ]);
+  }
+
+  let mm = path.match(/^\/api\/goals\/([\w]+)$/);
+  if (mm && (m === 'PATCH' || m === 'DELETE')) {
+    const g = await ownGoal(mm[1]); if (!g) return json({ error: 'not_found' }, 404);
+    if (m === 'DELETE') return goalsReply(env, fk, [env.DB.prepare('DELETE FROM milestones WHERE goal_id = ?').bind(g.id), env.DB.prepare('DELETE FROM goals WHERE id = ?').bind(g.id)]);
+    const sets = [], vals = [];
+    if (body.title !== undefined) { const t = cleanTitle(body.title, 20); if (!t) return json({ error: 'bad_title' }, 400); sets.push('title = ?'); vals.push(t); }
+    if (body.why !== undefined) { sets.push('why = ?'); vals.push([...clip(body.why, 240)].slice(0, 60).join('')); }
+    if (body.fruit !== undefined) { if (!FRUIT_KINDS.has(body.fruit)) return json({ error: 'bad_fruit' }, 400); sets.push('fruit = ?'); vals.push(body.fruit); }
+    if (body.due !== undefined) { if (!validDate(body.due)) return json({ error: 'due_required' }, 400); sets.push('due_date = ?'); vals.push(body.due); }
+    if (body.status !== undefined) { if (g.harvested_at) return json({ error: 'already_harvested' }, 409); if (!['growing', 'paused'].includes(body.status)) return json({ error: 'bad_status' }, 400); sets.push('status = ?'); vals.push(body.status); }
+    if (!sets.length) return json({ error: 'nothing_to_change' }, 400);
+    return goalsReply(env, fk, [env.DB.prepare(`UPDATE goals SET ${sets.join(', ')} WHERE id = ?`).bind(...vals, g.id)]);
+  }
+
+  mm = path.match(/^\/api\/goals\/([\w]+)\/milestones$/);
+  if (mm && m === 'POST') {
+    const g = await ownGoal(mm[1]); if (!g) return json({ error: 'not_found' }, 404);
+    if (g.harvested_at) return json({ error: 'already_harvested' }, 409);
+    const t = cleanTitle(body.title, 40); if (!t) return json({ error: 'bad_title' }, 400);
+    const c = await env.DB.prepare('SELECT COUNT(*) AS n, COALESCE(MAX(ord), -1) AS top FROM milestones WHERE goal_id = ?').bind(g.id).first();
+    if (c.n >= MS_MAX) return json({ error: 'milestones_2_to_8' }, 400);
+    return goalsReply(env, fk, [env.DB.prepare('INSERT INTO milestones (id, goal_id, title, ord) VALUES (?, ?, ?, ?)').bind(newGoalId(), g.id, t, c.top + 1), recheckDone(env, g.id, now)]);
+  }
+
+  mm = path.match(/^\/api\/goals\/([\w]+)\/harvest$/);
+  if (mm && m === 'POST') {
+    const g = await ownGoal(mm[1]); if (!g) return json({ error: 'not_found' }, 404);
+    if (g.harvested_at) return json({ error: 'already_harvested' }, 409);
+    if (!g.done_at) return json({ error: 'not_ripe' }, 409);
+    return goalsReply(env, fk, [env.DB.prepare('UPDATE goals SET harvested_at = ? WHERE id = ?').bind(now, g.id)]);
+  }
+
+  mm = path.match(/^\/api\/milestones\/([\w]+)$/);
+  if (mm && (m === 'PATCH' || m === 'DELETE')) {
+    const row = await env.DB.prepare('SELECT m.id, m.goal_id, g.harvested_at FROM milestones m JOIN goals g ON g.id = m.goal_id WHERE m.id = ? AND g.farm_key = ?').bind(mm[1], fk).first();
+    if (!row) return json({ error: 'not_found' }, 404);
+    if (row.harvested_at) return json({ error: 'already_harvested' }, 409);
+    if (m === 'DELETE') {
+      const c = await env.DB.prepare('SELECT COUNT(*) AS n FROM milestones WHERE goal_id = ?').bind(row.goal_id).first();
+      if (c.n <= 1) return json({ error: 'last_milestone' }, 400);
+      return goalsReply(env, fk, [env.DB.prepare('DELETE FROM milestones WHERE id = ?').bind(row.id), recheckDone(env, row.goal_id, now)]);
+    }
+    const writes = [];
+    if (body.title !== undefined) { const t = cleanTitle(body.title, 40); if (!t) return json({ error: 'bad_title' }, 400); writes.push(env.DB.prepare('UPDATE milestones SET title = ? WHERE id = ?').bind(t, row.id)); }
+    if (body.done !== undefined) {
+      writes.push(env.DB.prepare('UPDATE milestones SET done_at = ? WHERE id = ?').bind(body.done ? now : null, row.id));
+      if (body.done) writes.push(env.DB.prepare('UPDATE goals SET last_progress_at = ? WHERE id = ?').bind(now, row.goal_id));
+    }
+    if (!writes.length) return json({ error: 'nothing_to_change' }, 400);
+    return goalsReply(env, fk, [...writes, recheckDone(env, row.goal_id, now)]);
   }
   return json({ error: 'not_found' }, 404);
 }

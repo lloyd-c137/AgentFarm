@@ -25,6 +25,46 @@ body { background: #2a5634; color: var(--ink); font-family: var(--font-ui); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* loading intro: pixel sunrise, title, block progress bar, then a stepped iris that opens onto the farm */
+/* goal window: the game's paper-and-wood look, over the farm */
+.gu-back { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(20, 12, 24, .55); }
+.gu-card { width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: #f3dfb6; color: #3a2420; font: 12px/1.75 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; -webkit-font-smoothing: none;
+  box-shadow: inset 0 3px 0 #fbefd2, inset 0 -3px 0 #dcc193, 0 0 0 3px #5a2f28, 0 0 0 9px #ad7044, 0 0 0 12px #20141c, 0 12px 0 12px rgba(0,0,0,.3); }
+.gu-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; }
+.gu-title { flex: 1; margin: 0; font: 24px/1.25 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; font-weight: normal; word-break: break-all; }
+.gu-x { width: 28px; height: 28px; border: 0; background: #ad7044; color: #fbefd2; font: 16px/1 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 3px #20141c, inset 0 -3px 0 3px #5a2f28; }
+.gu-body { padding: 4px 16px 16px; }
+.gu-field { display: block; margin: 8px 0; }
+.gu-label { display: block; margin: 10px 0 3px; color: #6b4e3c; }
+.gu-note { display: block; color: #6b4e3c; }
+.gu-input { box-sizing: border-box; width: 100%; padding: 7px 9px 5px; border: 0; background: #fbefd2; color: #3a2420; font: 12px/1.5 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; outline: none; box-shadow: inset 0 0 0 3px #3a2420, inset 3px 3px 0 3px #dcc193; }
+.gu-input:focus { box-shadow: inset 0 0 0 3px #2a5634, inset 3px 3px 0 3px #b4d872; }
+.gu-fruits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gu-fruit { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 0; background: #dcc193; color: #3a2420; font: 12px/1.5 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 3px #5a2f28; }
+.gu-fruit i { width: 12px; height: 12px; display: inline-block; }
+.gu-fruit[aria-checked="true"] { background: #fbefd2; box-shadow: inset 0 0 0 3px #2a5634, inset 0 0 0 5px #b4d872; }
+.gu-ms-edit { margin: 0 0 6px; padding: 0; list-style: none; }
+.gu-ms-edit li, .gu-add { display: flex; gap: 6px; margin: 6px 0; }
+.gu-ms { margin: 6px 0; padding: 0; list-style: none; }
+.gu-ms li { display: flex; align-items: center; gap: 6px; padding: 5px 0; background-image: repeating-linear-gradient(90deg, #dcc193 0 6px, transparent 6px 12px); background-size: 100% 3px; background-repeat: no-repeat; background-position: bottom; }
+.gu-ms label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.gu-ms input { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 0; flex: none; background: #fbefd2; box-shadow: inset 0 0 0 3px #3a2420; cursor: pointer; }
+.gu-ms input:checked { background: #56943f; box-shadow: inset 0 0 0 3px #1d3a2b, inset 0 0 0 5px #b4d872; }
+.gu-done { color: #6b4e3c; text-decoration: line-through; }
+.gu-why { margin: 0 0 4px; color: #6b4e3c; }
+.gu-meta { margin: 0; }
+.gu-late { color: #b3302a; }
+.gu-bar { height: 12px; background: #dcc193; box-shadow: inset 0 0 0 3px #5a2f28; }
+.gu-bar i { display: block; height: 100%; background: #7fb450; box-shadow: inset 0 0 0 3px #5a2f28, inset 0 3px 0 3px #b4d872; }
+.gu-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.gu-btn { padding: 7px 14px 10px; border: 0; background: #56943f; color: #fbefd2; font: 12px/1.5 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; cursor: pointer; text-shadow: 0 2px 0 #1d3a2b; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #2a5634, inset 0 3px 0 3px #7fb450; }
+.gu-btn:active { padding: 10px 14px 7px; box-shadow: inset 0 0 0 3px #20141c, inset 0 5px 0 3px #2a5634; }
+.gu-btn:disabled { filter: saturate(.4); cursor: wait; }
+.gu-wood { background: #ad7044; text-shadow: 0 2px 0 #341b22; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #5a2f28, inset 0 3px 0 3px #d39c60; }
+.gu-gold { background: #e2a630; color: #3a2420; text-shadow: none; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #9a6524, inset 0 3px 0 3px #ffe58a; }
+.gu-danger { background: #c4553e; text-shadow: 0 2px 0 #4a1a14; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #7a2a22, inset 0 3px 0 3px #e98a63; }
+.gu-mini { flex: none; padding: 2px 8px 4px; border: 0; background: #dcc193; color: #6b4e3c; font: 12px/1.5 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 2px #5a2f28; }
+.gu-err { min-height: 1.5em; margin: 6px 0 0; color: #b3302a; }
+.gu-card button:focus-visible, .gu-card input:focus-visible { outline: 3px solid #f2c14e; outline-offset: 2px; }
 #setup-link { position: fixed; right: 12px; bottom: 12px; z-index: 20; padding: 6px 14px 9px; background: #ad7044; color: #fbefd2; font: 12px/1.5 "Fusion Pixel 12", monospace; text-decoration: none; text-shadow: 0 3px 0 #341b22; -webkit-font-smoothing: none; box-shadow: inset 0 0 0 3px #20141c, inset 0 -6px 0 3px #5a2f28, inset 0 3px 0 3px #d39c60; }
 #setup-link:hover { background: #d39c60; }
 #setup-link:active { padding: 9px 14px 6px; box-shadow: inset 0 0 0 3px #20141c, inset 0 6px 0 3px #5a2f28; }
@@ -889,9 +929,9 @@ SPR.soilWet = makeSoilTile(P.SW);
    home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
 const FW = 800, FH = 464;
 // the cabin stands against the field's north-west corner (its east wall a step from the fence); the coop sits just below the road
-const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 118], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [200, 74] };
+const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 130], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [40, 150] };
 const PETH = { x: 172, y: 168 };
-const SIGN = { x: 186, y: 108, w: 26, h: 28 };
+const SIGN = { x: 186, y: 128, w: 26, h: 28 };
 const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
 const DIRT = { x: 368, y: 184, w: 232, h: 172 };
 // the field: one row per source, eight plots a row, a wooden sign at the head of each
@@ -912,9 +952,9 @@ let bg = mk(FW, FH), BGX = 0, BGY = 0;
 let PROPS = [], TUFTS = [], CANOPIES = [];
 let fenceTop = null, fenceBot = null;
 
-const TREES = [[96, -40, 3], [20, 300, 91], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [96, 330, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
-const PINES = [[40, 4, 5], [130, 250, 37], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
-const BUSHES = [[92, 196], [60, 108], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186], [120, 40]];
+const TREES = [[20, 300, 91], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [96, 330, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
+const PINES = [[130, 250, 37], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
+const BUSHES = [[92, 196], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186]];
 const ROCKS = [[106, 268, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
 const MUSH = [[70, 280], [646, 258], [424, 444], [30, 196], [710, 150]];
 // paths: polylines with a half width; the gravel road runs west off the map toward the airport
@@ -962,19 +1002,6 @@ function buildWorld() {
     R(g, GR[1], x, y - 1, 1, 2); R(g, pc, x - 1, y - 3); R(g, pc, x + 1, y - 3); R(g, pc, x, y - 4); R(g, pc, x, y - 2); R(g, P.Y[3], x, y - 3);
   }
 
-  // the hill the mine is dug into: a grassy crown, then a face of layered rock that the entrance is cut into
-  { const hx = MX + 29, top = MY - 30, face = MY + 14, base = MY + 50, hw = 92, RK = ['#4a3c32', '#5e4c3e', '#76624e', '#8e7a62', '#a8937a'];
-    for (let x = hx - hw; x <= hx + hw; x++) {
-      const u = (x - hx) / hw, crown = Math.round(top + (1 - Math.sqrt(Math.max(0, 1 - u * u))) * 34 + Math.sin(x / 9) * 2), fy = Math.round(face + Math.abs(u) * 10 + Math.sin(x / 6) * 1.5), by = Math.round(base - Math.abs(u) * 18 + Math.sin(x / 7) * 2);
-      if (by <= crown) continue;
-      for (let y = crown; y < Math.min(fy, by); y++) { const k = (y - crown) / Math.max(1, fy - crown), b2 = bay(x, y); let col = k < 0.12 ? GR[4] : k < 0.7 ? (b2 > 0.75 ? GR[4] : GR[3]) : GR[2]; if (season === 'winter') col = mix(col, '#eef4f8', 0.7); R(g, col, x, y); }
-      R(g, GR[1], x, crown, 1, 1);
-      for (let y = fy; y < by; y++) { const k = (y - fy) / Math.max(1, by - fy), b2 = bay(x * 2, y * 2), band = Math.floor((y + Math.sin(x / 11) * 2) / 4) % 3; let col = RK[Math.max(0, Math.min(4, 3 - Math.round(k * 2.4) + (band === 0 ? 1 : 0) + (b2 > 0.85 ? 1 : b2 < 0.12 ? -1 : 0)))]; if (x % 13 === 0 && b2 > 0.5) col = RK[0]; R(g, col, x, y); }
-      if (fy < by) { R(g, GR[1], x, fy - 1, 1, 1); R(g, RK[4], x, fy, 1, 1); }
-      R(g, RK[0], x, by, 1, 1); R(g, 'rgba(20,30,20,0.35)', x, by + 1, 1, 2);
-    }
-    for (let i = 0; i < 18; i++) { const x = hx - hw + 10 + ((i * 53) % (hw * 2 - 20)), y = top + 10 + ((i * 29) % 30); if ((x - hx) * (x - hx) / (hw * hw) + 0 < 0.8) { R(g, GR[5], x, y, 1, 2); R(g, GR[5], x + 2, y + 1, 1, 2); } }
-  }
   // tilled field
   for (let y = DIRT.y; y < DIRT.y + DIRT.h; y += 16) for (let x = DIRT.x; x < DIRT.x + DIRT.w; x += 16) g.drawImage(SPR.soilDry, x, y);
   R(g, P.SD[4], DIRT.x + 1, DIRT.y - 1, DIRT.w - 2, 1);
@@ -1054,7 +1081,7 @@ function buildWorld() {
       else { const ramp = season === 'winter' ? null : leafRamps[Math.floor(mr() * leafRamps.length)]; prop(makeTree(Math.floor(mr() * 999) % 24, ramp, season === 'spring' && mr() < 0.5), x, y, [40, 8]); if (ramp) CANOPIES.push({ x: x + 6, y: y + 8, w: 38, h: 44, col: ramp }); }
     }
   }
-  BLOCK.push([MX - 62, MY - 30, 76, 74], [MX + 56, MY - 30, 66, 74], [MX - 6, MY - 30, 72, 32]); prop(makeMineEntrance(), MX, MY, [52, 6]); BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
+  prop(makeMineEntrance(), MX, MY, [52, 6]); // just the stone entrance, standing in the grass BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
   const mush = makeMushrooms(); MUSH.forEach(([x, y]) => prop(mush, x, y));
 
   // tall grass that sways and rustles when you walk through it
@@ -1068,6 +1095,7 @@ function buildWorld() {
   TUFT_IMG = [-1, 0, 1].map(l => makeTuft(l));
 
   fenceTop = mk(FW, FH); fenceBot = mk(FW, FH); drawFence(fenceTop[1], 'top'); drawFence(fenceBot[1], 'bottom');
+  buildOrchard();
   for (const [x, y, w, h] of houseWins.concat(coopWins)) lights.push([x + (w >> 1), y + (h >> 1), 30]);
   for (const [x, y] of lampGlass) lights.push([x + 2, y + 2, 42]);
   g.restore();
@@ -1114,7 +1142,7 @@ let coins = 675, decor = [];
 const SAVE_KEY = 'ai-farm-decor-v2';
 function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== LAYOUT && decor.length) { decorMoved = true; decorScaled = !(s.layout >= 2); } } } catch (e) { /* storage unavailable: start fresh */ } }
 // layout 2 = the bigger map; layout 3 = the homestead moved next to the field
-const LAYOUT = 3;
+const LAYOUT = 4; // 4 = the orchard took the top-left corner
 let decorMoved = false, decorScaled = false;
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: LAYOUT })); } catch (e) { /* storage unavailable */ } }
 // after a layout change, each decoration keeps its spot if it still fits there, otherwise moves to the nearest free one
@@ -1127,6 +1155,7 @@ function canPlace(type, x, y, skip) {
   const s = DSPR[type], it = item(type), f = footprint(type, x, y);
   if (x < 2 || y < 2 || x + s.width > FW - 2 || y + s.height > FH - 2) return false;
   if (BLOCK.some(b => hitR(f, b)) || FENCE.some(b => hitR(f, b))) return false;
+  if (hitR(f, ORCH_AREA)) return false;
   const inField = hitR(f, FIELD);
   if (inField && !it.field) return false;
   if (inField) for (let i = 0; i < NSLOT; i++) { const p = slotPos(i); if (hitR(f, [p.tx - 2, p.ty - 18, 20, 36])) return false; }
@@ -1170,7 +1199,7 @@ let mouse = { x: -1, y: -1 }, umouse = { x: -1, y: -1 };
 let hover = null, hoverTag = null, coinPop = 0, crowFly = null;
 let uiHits = [], uiPanels = [], shopRects = [], closeRect = null, decorRects = [];
 let boardOpen = true; try { boardOpen = localStorage.getItem('ai-farm-board') !== 'closed'; } catch (e) { /* default open */ }
-const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen || destOpen);
+const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen || destOpen || goalUI.open);
 const toasts = [];
 const TOAST_LIFE = 4500;
 function hint(s) { toasts.push({ s, t0: performance.now() }); while (toasts.length > 6) toasts.shift(); }
@@ -1229,12 +1258,13 @@ function applyFarm(d) {
   live.skew = d.now - Date.now();
   const incoming = new Map(d.tasks.map(s => [s.id, fromServer(s)]));
   if (live.first) { // the first load just lays the field out; no fanfare
-    live.first = false; tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
+    live.first = false; if (Array.isArray(d.goals)) setGoals(d.goals, false); tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
     for (const t of tasks) t.since = liveSince(t);
     announce(tasks.length ? '已连上你的农场' : '已连上你的农场，还没有任务');
     if (!tasks.length) setTimeout(() => hint('田里还空着 · 打开右下角「设备与账户」把 Claude Code / Codex 接进来'), 2500);
     return;
   }
+  if (Array.isArray(d.goals)) setGoals(d.goals, true);
   // gone from the field: harvested (the newest entries on today's shipping list say with what quality)
   const fresh = d.shipped.slice(shipped.length);
   for (const t of tasks.slice()) if (!incoming.has(t.id)) { const s = fresh.find(x => x.name === t.name); harvest(t.id, s ? s.q : 'normal'); }
@@ -1276,6 +1306,337 @@ async function goLive() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFarm(); });
   await pollFarm();
   return true;
+}
+
+/* ---------- orchard: long-term goals grow as fruit trees ----------
+   Six plots behind a low fence west of the cabin. Each goal is a tree: planted as a sapling, one fruit hangs on it
+   for every milestone done, and it is full of fruit when all of them are. Picking the fruit marks the goal achieved;
+   the tree then stays in the orchard for good. Goals live with the account on the server (live mode) or in this
+   browser (demo). The field stays the AI tasks' place; nothing here touches it. */
+const ORCH = { x0: 36, x1: 226, top: 6, bot: 116, gx0: 100, gx1: 128 };
+const ORCH_AREA = [ORCH.x0 - 2, ORCH.top, ORCH.x1 - ORCH.x0 + 12, ORCH.bot - ORCH.top + 14];
+const ORCH_N = 6, ORCH_COLS = [74, 131, 188], ORCH_ROWS = [62, 106];
+const plotPos = i => ({ cx: ORCH_COLS[i % 3], base: ORCH_ROWS[Math.floor(i / 3)] });
+const FRUITS = {
+  apple: { name: '苹果', c: ['#6e1a1a', '#c8322a', '#ff7a5a'] }, orange: { name: '橘子', c: ['#8a3a10', '#e8781e', '#ffb860'] },
+  peach: { name: '桃', c: ['#9a4054', '#f08a90', '#ffd2c4'] }, lemon: { name: '柠檬', c: ['#8a7410', '#e8cc30', '#fff6a0'] },
+  cherry: { name: '樱桃', c: ['#44081a', '#a01830', '#e85a6a'] }, pear: { name: '梨', c: ['#5a6a10', '#b8c840', '#eef2a8'] }
+};
+const FRUIT_KEYS = Object.keys(FRUITS);
+const MS_MIN = 2, MS_MAX = 8;
+let goals = [];
+const goalAt = i => goals.find(g => g.slot === i);
+const doneCount = g => g.milestones.filter(m => m.done).length;
+// sapling → young → grown → full, decided only by the share of milestones done
+const goalStage = g => { const n = g.milestones.length, d = doneCount(g); return d === 0 ? 0 : d >= n ? 3 : d / n < 0.5 ? 1 : 2; };
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const daysTo = iso => Math.round((Date.parse(iso + 'T00:00:00') - Date.parse(todayISO() + 'T00:00:00')) / 864e5);
+
+/* the fence: back part (top rail and sides) sorts behind what stands inside, the front rail (with the gate) in front */
+let orchBack = null, orchFront = null;
+function buildOrchard() {
+  const post = makePost(), F = ORCH, ox = F.x0 - 2, oy = F.top - 2, w = F.x1 - F.x0 + 14, h = F.bot - F.top + 20;
+  const railH = (g, x0, x1, y) => { R(g, P.OL, x0 - ox, y - 1 - oy, x1 - x0, 1); R(g, P.WD[4], x0 - ox, y - oy, x1 - x0, 1); R(g, P.WD[3], x0 - ox, y + 1 - oy, x1 - x0, 1); R(g, P.OL, x0 - ox, y + 2 - oy, x1 - x0, 1); };
+  const railV = (g, x, y0, y1) => { R(g, P.OL, x + 1 - ox, y0 - oy, 4, y1 - y0); R(g, P.WD[4], x + 2 - ox, y0 - oy, 1, y1 - y0); R(g, P.WD[3], x + 3 - ox, y0 - oy, 1, y1 - y0); };
+  orchBack = mk(w, h); orchFront = mk(w, h);
+  const b = orchBack[1], f = orchFront[1];
+  railV(b, F.x0, F.top + 14, F.bot + 4); railV(b, F.x1, F.top + 14, F.bot + 4);
+  for (let y = F.top + 16; y < F.bot; y += 16) { b.drawImage(post, F.x0 - ox, y - oy); b.drawImage(post, F.x1 - ox, y - oy); }
+  railH(b, F.x0 + 2, F.x1 + 8, F.top + 4); railH(b, F.x0 + 2, F.x1 + 8, F.top + 9);
+  for (let x = F.x0; x <= F.x1; x += 16) b.drawImage(post, x - ox, F.top - oy);
+  railH(f, F.x0 + 2, F.gx0, F.bot + 4); railH(f, F.x0 + 2, F.gx0, F.bot + 9); railH(f, F.gx1 + 6, F.x1 + 8, F.bot + 4); railH(f, F.gx1 + 6, F.x1 + 8, F.bot + 9);
+  for (let x = F.x0; x <= F.x1; x += 16) if (x + 6 <= F.gx0 || x >= F.gx1) f.drawImage(post, x - ox, F.bot - oy);
+  f.drawImage(post, F.gx0 - 6 - ox, F.bot - oy); f.drawImage(post, F.gx1 - ox, F.bot - oy);
+  BLOCK.push([F.x0 - 2, F.top + 4, F.x1 - F.x0 + 12, 10], [F.x0 - 2, F.bot + 2, F.gx0 - F.x0 + 2, 10], [F.gx1, F.bot + 2, F.x1 + 10 - F.gx1, 10],
+    [F.x0 - 2, F.top + 10, 10, F.bot - F.top], [F.x1 - 2, F.top + 10, 10, F.bot - F.top]);
+}
+
+/* tree sprites: four sizes, drawn once and shared; paused trees get a washed-out copy */
+const TREE_SPR = {};
+function makeFruitTree(stage) {
+  const [w, h] = [[14, 18], [24, 30], [34, 42], [40, 50]][stage], [c, g] = mk(w, h), mid = Math.floor(w / 2);
+  if (stage === 0) {
+    R(g, P.T[2], mid, 7, 1, h - 7); R(g, P.T[1], mid + 1, 9, 1, h - 9);
+    for (const [x, y, ww] of [[mid - 4, 6, 4], [mid - 5, 7, 5], [mid - 3, 8, 3], [mid + 1, 3, 4], [mid + 1, 4, 5], [mid + 2, 5, 3]]) R(g, y < 6 ? P.T[5] : P.T[4], x, y, ww, 1);
+    R(g, P.T[3], mid - 4, 8, 2, 1); R(g, P.T[3], mid + 4, 5, 2, 1);
+    return { img: outline(c, P.T[0]), cx: mid + 1, cy: 6, r: 4 };
+  }
+  const r = [0, 8, 13, 16][stage], cy = r + 2, tw = [0, 2, 4, 4][stage];
+  for (let y = cy; y < h; y++) for (let x = mid - tw / 2; x < mid + tw / 2; x++) R(g, x === mid - tw / 2 ? P.WD[4] : x >= mid + tw / 2 - 1 ? P.WD[1] : P.WD[3], x, y);
+  if (stage >= 2) { R(g, P.WD[2], mid - 3, h - 2, 2, 2); R(g, P.WD[2], mid + 2, h - 2, 2, 2); }
+  const rr = rng(40 + stage), blobs = [{ x: mid, y: cy, r }];
+  for (let i = 0; i < 6; i++) { const a = rr() * Math.PI * 2; blobs.push({ x: mid + Math.cos(a) * r * 0.55, y: cy + Math.sin(a) * r * 0.5, r: r * (0.45 + rr() * 0.2) }); }
+  for (const k of blobs) for (let y = Math.floor(k.y - k.r); y <= k.y + k.r; y++) for (let x = Math.floor(k.x - k.r); x <= k.x + k.r; x++) {
+    if (x < 0 || y < 0 || x >= w || y >= h - 4) continue;
+    const nx = (x - k.x) / k.r, ny = (y - k.y) / k.r, d2 = nx * nx + ny * ny; if (d2 > 1) continue;
+    let v = 0.58 + 0.38 * -(nx * 0.6 + ny * 0.8) - ((y - cy + r) / (2 * r)) * 0.2;
+    if (bay(x, y) > 0.9) v += 0.1; else if (bay(x + 1, y + 2) > 0.94) v -= 0.1;
+    R(g, P.T[Math.max(1, Math.min(5, Math.round(v * 5)))], x, y);
+  }
+  return { img: outline(c, P.T[0]), cx: mid + 1, cy: cy + 1, r };
+}
+function washed(img) {
+  const [c, g] = mk(img.width, img.height); g.drawImage(img, 0, 0);
+  const id = g.getImageData(0, 0, c.width, c.height), d = id.data;
+  for (let i = 0; i < d.length; i += 4) { const l = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; d[i] = Math.round(d[i] * 0.3 + l * 0.7); d[i + 1] = Math.round(d[i + 1] * 0.3 + l * 0.7); d[i + 2] = Math.round(d[i + 2] * 0.3 + l * 0.7 + 6); }
+  g.putImageData(id, 0, 0); return c;
+}
+function treeSprite(stage, paused) {
+  const k = stage + (paused ? 'p' : ''); if (TREE_SPR[k]) return TREE_SPR[k];
+  const base = TREE_SPR[stage] || (TREE_SPR[stage] = makeFruitTree(stage));
+  return paused ? (TREE_SPR[k] = { ...base, img: washed(base.img) }) : base;
+}
+const FRUIT_SPR = {};
+function fruitSprite(type) {
+  if (FRUIT_SPR[type]) return FRUIT_SPR[type];
+  const [dk, b, hi] = (FRUITS[type] || FRUITS.apple).c, [c, g] = mk(4, 5);
+  R(g, P.T[2], 2, 0, 1, 1);
+  const rows = ['.bb.', 'bhbb', 'bbbd', '.dd.'];
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(g, ch === 'h' ? hi : ch === 'd' ? dk : b, x, y + 1); }));
+  return (FRUIT_SPR[type] = outline(c, P.OL)); // a dark rim keeps pale fruit (lemon, pear) readable against the leaves
+}
+// where fruit hangs, as fractions of the canopy radius; the n-th milestone done always lands on the n-th spot
+const FRUIT_SPOTS = [[-0.5, 0.15], [0.45, 0.05], [-0.05, 0.5], [0.15, -0.4], [-0.6, -0.3], [0.62, 0.45], [0.3, 0.62], [-0.35, -0.62]];
+const PLAQUE = (() => { const [c, g] = mk(8, 7); R(g, P.WD[1], 3, 4, 2, 3); R(g, P.OL, 0, 0, 8, 5); R(g, P.WD[4], 1, 1, 6, 3); R(g, P.Y[2], 3, 1, 2, 3); R(g, P.Y[3], 3, 1, 1, 1); return c; })();
+
+function drawOrchardGround() {
+  for (let i = 0; i < ORCH_N; i++) {
+    const { cx, base } = plotPos(i), g = goalAt(i);
+    // a ring of turned earth round every plot; empty ones also get a little marker stake
+    R(ctx, P.SW[2], cx - 8, base - 3, 16, 4); R(ctx, P.SW[3], cx - 6, base - 4, 12, 1); R(ctx, P.SW[1], cx - 7, base + 1, 14, 1);
+    if (!g) { R(ctx, P.WD[3], cx + 7, base - 9, 2, 9); R(ctx, P.WD[4], cx + 7, base - 9, 1, 9); R(ctx, P.OL, cx + 6, base - 10, 4, 1); }
+  }
+}
+const fruitPop = {}; // goal id → [time each fruit appeared], for the little grow-in
+function orchardEnts(ents, now, anim) {
+  ents.push({ y: ORCH.top + 14, draw: () => ctx.drawImage(orchBack[0], ORCH.x0 - 2, ORCH.top - 2) });
+  ents.push({ y: ORCH.bot + 14, draw: () => ctx.drawImage(orchFront[0], ORCH.x0 - 2, ORCH.top - 2) });
+  for (const g of goals) {
+    if (g.slot < 0 || g.slot >= ORCH_N) continue;
+    const { cx, base } = plotPos(g.slot), harvested = !!g.harvestedAt, stage = harvested ? 3 : goalStage(g), t = treeSprite(stage, g.status === 'paused' && !harvested);
+    ents.push({ y: base, draw: () => {
+      const x0 = cx - t.cx, y0 = base - t.img.height + 1;
+      const sway = anim && stage > 0 && Math.sin(now / 900 + g.slot) > 0.8 ? 1 : 0;
+      ctx.drawImage(t.img, 0, 0, t.img.width, t.img.height - 10, x0 + sway, y0, t.img.width, t.img.height - 10);
+      ctx.drawImage(t.img, 0, t.img.height - 10, t.img.width, 10, x0, y0 + t.img.height - 10, t.img.width, 10);
+      if (!harvested && stage > 0) {
+        const n = Math.min(doneCount(g), FRUIT_SPOTS.length), fs = fruitSprite(g.fruit), pops = fruitPop[g.id] || [];
+        for (let i = 0; i < n; i++) {
+          const [fx_, fy_] = FRUIT_SPOTS[i], px = Math.round(x0 + t.cx + fx_ * t.r - 3) + sway, py = Math.round(y0 + t.cy + fy_ * t.r - 3);
+          const age = pops[i] ? now - pops[i] : 1e9;
+          if (age < 260) R(ctx, (FRUITS[g.fruit] || FRUITS.apple).c[1], px + 1, py + 2, 2, 2); else ctx.drawImage(fs, px, py);
+        }
+        if (stage === 3 && anim) for (let i = 0; i < 4; i++) { if ((Math.floor(now / 260) + i * 3) % 5) continue; const a = i * 1.7 + g.slot; R(ctx, P.Y[3], Math.round(x0 + t.cx + Math.cos(a) * (t.r + 3)), Math.round(y0 + t.cy + Math.sin(a) * (t.r + 1)), 1, 1); }
+      }
+      if (harvested) ctx.drawImage(PLAQUE, cx + 5, base - 6);
+    } });
+  }
+}
+function orchardTarget(i) {
+  const { cx, base } = plotPos(i), g = goalAt(i);
+  if (!g) return { kind: 'orchard', slot: i, name: '空地 · 种一棵目标树', rect: { x: cx - 10, y: base - 12, w: 20, h: 16 }, spot: { x: cx, y: base + 8 }, top: base - 14 };
+  const n = g.milestones.length, d = doneCount(g);
+  const name = g.harvestedAt ? `${g.title} · 已达成` : d >= n ? `${g.title} · 满树了，去摘果` : `${g.title} · ${d}/${n}`;
+  return { kind: 'orchard', slot: i, name, rect: { x: cx - 18, y: base - 50, w: 36, h: 54 }, spot: { x: cx, y: base + 8 }, top: base - 52 };
+}
+
+/* ---------- goals: one store, two back ends (the account's server in live mode, this browser in the demo) ---------- */
+const GOALS_KEY = 'ai-farm-goals-v1';
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/-/g, '').slice(0, 20);
+function setGoals(next, animate) {
+  const now = performance.now();
+  for (const g of next) {
+    const before = goals.find(x => x.id === g.id), was = before ? doneCount(before) : 0, is = doneCount(g);
+    const pops = (fruitPop[g.id] || []).slice(0, is);
+    if (animate && is > was) for (let i = was; i < is; i++) {
+      pops[i] = now + (i - was) * 140;
+      if (g.slot >= 0 && g.slot < ORCH_N) { const { cx, base } = plotPos(g.slot); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: cx + (Math.random() - 0.5) * 16, y: base - 30 + (Math.random() - 0.5) * 12, vx: (Math.random() - 0.5) * 1.4, vy: -Math.random() * 1.4, life: 24 }); }
+    }
+    fruitPop[g.id] = pops;
+  }
+  goals = next;
+}
+function saveLocalGoals() { try { localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); } catch (e) { /* storage unavailable */ } }
+function loadLocalGoals() {
+  let list = null; try { list = JSON.parse(localStorage.getItem(GOALS_KEY) || 'null'); } catch (e) { /* ignore */ }
+  if (!Array.isArray(list)) { // the demo starts with two trees so the orchard has something in it
+    const d = n => { const t = new Date(Date.now() + n * 864e5); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+    const ms = (titles, done) => titles.map((title, i) => ({ id: newId(), title, done: i < done }));
+    list = [
+      { id: newId(), slot: 0, title: '跑完一次半程马拉松', why: '想要更好的体能', fruit: 'peach', due: d(120), status: 'growing', createdAt: Date.now() - 30 * 864e5, lastProgressAt: Date.now() - 3 * 864e5, milestones: ms(['连续跑 5 公里', '连续跑 10 公里', '报名比赛', '跑 15 公里', '完赛'], 2) },
+      { id: newId(), slot: 1, title: 'Agent Farm 上线', why: '', fruit: 'apple', due: d(20), status: 'growing', createdAt: Date.now() - 12 * 864e5, lastProgressAt: Date.now() - 864e5, milestones: ms(['做出像素农场', '接入 Claude Code', '接入 Codex', '部署上线'], 3) }
+    ];
+  }
+  setGoals(list.filter(g => g && Array.isArray(g.milestones)), false);
+}
+function localGoalOp(op) {
+  const g = op.id ? goals.find(x => x.id === op.id) : null, now = Date.now();
+  const recheck = gg => { gg.doneAt = gg.milestones.length && gg.milestones.every(m => m.done) ? (gg.doneAt || now) : null; };
+  if (op.kind === 'plant') goals = goals.concat([{ id: newId(), slot: op.slot, title: op.title, why: op.why, fruit: op.fruit, due: op.due, status: 'growing', createdAt: now, lastProgressAt: now, doneAt: null, harvestedAt: null, milestones: op.milestones.map(title => ({ id: newId(), title, done: false })) }]);
+  else if (!g) return;
+  else if (op.kind === 'edit') Object.assign(g, op.patch);
+  else if (op.kind === 'addMs') { g.milestones.push({ id: newId(), title: op.title, done: false }); recheck(g); }
+  else if (op.kind === 'ms') { const m = g.milestones.find(x => x.id === op.mid); if (!m) return; if ('done' in op) { m.done = op.done; if (op.done) g.lastProgressAt = now; } if (op.title) m.title = op.title; recheck(g); }
+  else if (op.kind === 'delMs') { g.milestones = g.milestones.filter(x => x.id !== op.mid); recheck(g); }
+  else if (op.kind === 'harvest') g.harvestedAt = now;
+  else if (op.kind === 'remove') goals = goals.filter(x => x !== g);
+  saveLocalGoals();
+}
+// one entry point for every change: applied here at once (so the tree reacts immediately), then saved where goals live
+async function goalOp(op) {
+  const before = JSON.parse(JSON.stringify(goals));
+  const copy = JSON.parse(JSON.stringify(goals)); goals = copy; localGoalOp(op); const next = goals; goals = before; setGoals(next, true);
+  if (!live.on) { saveLocalGoals(); return true; }
+  const route = {
+    plant: ['POST', '/api/goals', { slot: op.slot, title: op.title, why: op.why, fruit: op.fruit, due: op.due, milestones: op.milestones }],
+    edit: ['PATCH', `/api/goals/${op.id}`, op.patch], addMs: ['POST', `/api/goals/${op.id}/milestones`, { title: op.title }],
+    ms: ['PATCH', `/api/milestones/${op.mid}`, { done: op.done, title: op.title }], delMs: ['DELETE', `/api/milestones/${op.mid}`],
+    harvest: ['POST', `/api/goals/${op.id}/harvest`, {}], remove: ['DELETE', `/api/goals/${op.id}`]
+  }[op.kind];
+  try {
+    const r = await fetch(route[1], { method: route[0], headers: { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' }, body: route[2] ? JSON.stringify(route[2]) : undefined, credentials: 'same-origin' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || r.status);
+    if (Array.isArray(j.goals)) setGoals(j.goals, false);
+    if (j.version) live.version = j.version;
+    return true;
+  } catch (e) {
+    setGoals(before, false); live.version = 0; hint('没保存上，已恢复原样，稍后再试'); return false;
+  }
+}
+
+/* ---------- the goal window: a pixel-style form over the game for planting a tree and looking after it ---------- */
+const goalUI = { open: false, el: null, slot: -1, mode: '' };
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function closeGoalUI() { if (!goalUI.open) return; goalUI.open = false; goalUI.el.remove(); goalUI.el = null; Sound.wood(); ucv.focus({ preventScroll: true }); }
+function goalShell(title) {
+  if (goalUI.el) goalUI.el.remove();
+  const back = el('div', 'gu-back'); back.setAttribute('role', 'dialog'); back.setAttribute('aria-modal', 'true'); back.setAttribute('aria-label', title);
+  back.addEventListener('mousedown', e => { if (e.target === back) closeGoalUI(); });
+  const card = el('div', 'gu-card'), head = el('div', 'gu-head'), h = el('h2', 'gu-title', title), x = el('button', 'gu-x', '×');
+  x.type = 'button'; x.setAttribute('aria-label', '关闭'); x.onclick = closeGoalUI;
+  head.append(h, x); card.append(head); back.append(card); document.body.append(back);
+  goalUI.el = back; goalUI.open = true; return card;
+}
+function fruitPicker(value) {
+  const wrap = el('div', 'gu-fruits'); wrap.setAttribute('role', 'radiogroup'); wrap.setAttribute('aria-label', '果树');
+  let cur = value;
+  const btns = FRUIT_KEYS.map(k => {
+    const b = el('button', 'gu-fruit'); b.type = 'button'; b.setAttribute('role', 'radio');
+    const dot = el('i'); dot.style.background = FRUITS[k].c[1]; dot.style.boxShadow = `inset -2px -2px 0 ${FRUITS[k].c[0]}, inset 2px 2px 0 ${FRUITS[k].c[2]}`;
+    b.append(dot, el('span', null, FRUITS[k].name));
+    b.onclick = () => { cur = k; btns.forEach((x, i) => x.setAttribute('aria-checked', FRUIT_KEYS[i] === k)); };
+    b.setAttribute('aria-checked', k === value); return b;
+  });
+  wrap.append(...btns); wrap.value = () => cur; return wrap;
+}
+function field(label, input, note) { const f = el('label', 'gu-field'); f.append(el('span', 'gu-label', label), input); if (note) f.append(el('span', 'gu-note', note)); return f; }
+function textInput(value, max, placeholder) { const i = el('input', 'gu-input'); i.type = 'text'; i.maxLength = max; i.value = value || ''; if (placeholder) i.placeholder = placeholder; return i; }
+
+function openGoalUI(slot) {
+  const g = goalAt(slot); Sound.paper();
+  if (!g) return openPlantForm(slot);
+  return openGoalCard(g.id);
+}
+function openPlantForm(slot) {
+  const card = goalShell('种一棵目标树'); goalUI.slot = slot; goalUI.mode = 'plant';
+  const title = textInput('', 20, '比如：跑完一次半程马拉松'), why = textInput('', 60, '一句话，写给以后的自己');
+  const due = el('input', 'gu-input'); due.type = 'date'; due.min = todayISO();
+  const fruit = fruitPicker(FRUIT_KEYS[slot % FRUIT_KEYS.length]);
+  const list = el('ol', 'gu-ms-edit'), err = el('p', 'gu-err'); err.setAttribute('role', 'alert');
+  const addRow = (v = '') => { if (list.children.length >= MS_MAX) return; const li = el('li'), i = textInput(v, 40, `里程碑 ${list.children.length + 1}`), rm = el('button', 'gu-mini', '删'); rm.type = 'button'; rm.setAttribute('aria-label', '删掉这个里程碑'); rm.onclick = () => { if (list.children.length > MS_MIN) li.remove(); }; li.append(i, rm); list.append(li); return i; };
+  addRow(); addRow(); addRow();
+  const add = el('button', 'gu-btn gu-wood', '+ 再加一个'); add.type = 'button'; add.onclick = () => { const i = addRow(); if (i) i.focus(); else err.textContent = `最多 ${MS_MAX} 个里程碑`; };
+  const plant = el('button', 'gu-btn', '种下'); plant.type = 'submit';
+  const form = el('form', 'gu-body'); form.noValidate = true;
+  form.append(field('目标', title), field('为什么（可选）', why), field('截止日期', due), field('果树', fruit), el('span', 'gu-label', `里程碑（${MS_MIN}–${MS_MAX} 个，每完成一个挂一颗果）`), list, add, err, el('div', 'gu-actions'));
+  form.lastChild.append(plant);
+  form.onsubmit = async e => {
+    e.preventDefault(); err.textContent = '';
+    const ms = [...list.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+    if (!title.value.trim()) { err.textContent = '先写下目标'; title.focus(); return; }
+    if (!due.value) { err.textContent = '选一个截止日期'; due.focus(); return; }
+    if (due.value < todayISO()) { err.textContent = '截止日期不能早于今天'; due.focus(); return; }
+    if (ms.length < MS_MIN) { err.textContent = `至少写 ${MS_MIN} 个里程碑`; return; }
+    plant.disabled = true;
+    const ok = await goalOp({ kind: 'plant', slot, title: title.value.trim(), why: why.value.trim(), due: due.value, fruit: fruit.value(), milestones: ms });
+    if (!ok) { plant.disabled = false; return; }
+    closeGoalUI(); Sound.plant();
+    const { cx, base } = plotPos(slot); for (let i = 0; i < 12; i++) fx.push({ kind: 'spark', x: cx, y: base - 6, vx: (Math.random() - 0.5) * 1.8, vy: -Math.random() * 1.8, life: 30 });
+    say(`种下了「${title.value.trim()}」，完成第一个里程碑就会挂果`);
+  };
+  card.append(form); title.focus();
+}
+function openGoalCard(id) {
+  const g = goals.find(x => x.id === id); if (!g) return closeGoalUI();
+  const card = goalShell(g.title); goalUI.mode = 'card'; goalUI.slot = g.slot;
+  const n = g.milestones.length, d = doneCount(g), left = daysTo(g.due), harvested = !!g.harvestedAt;
+  const body = el('div', 'gu-body');
+  if (g.why) body.append(el('p', 'gu-why', `「${g.why}」`));
+  const meta = el('p', 'gu-meta');
+  meta.textContent = harvested ? `${new Date(g.harvestedAt).toLocaleDateString()} 摘果 · 用时 ${Math.max(1, Math.round((g.harvestedAt - g.createdAt) / 864e5))} 天 · ${FRUITS[g.fruit] ? FRUITS[g.fruit].name : ''}树`
+    : `截止 ${g.due} · ${left > 0 ? `还有 ${left} 天` : left === 0 ? '就是今天' : `已过 ${-left} 天`} · ${FRUITS[g.fruit] ? FRUITS[g.fruit].name : ''}树${g.status === 'paused' ? ' · 休眠中' : ''}`;
+  if (!harvested && left < 0) meta.classList.add('gu-late');
+  const bar = el('div', 'gu-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', 0); bar.setAttribute('aria-valuemax', n); bar.setAttribute('aria-valuenow', d);
+  const fill = el('i'); fill.style.width = `${n ? (d / n) * 100 : 0}%`; bar.append(fill);
+  body.append(meta, el('p', 'gu-label', `里程碑 ${d} / ${n}`), bar);
+  const list = el('ul', 'gu-ms');
+  for (const m of g.milestones) {
+    const li = el('li'), lab = el('label'), cb = el('input');
+    cb.type = 'checkbox'; cb.checked = m.done; cb.disabled = harvested;
+    cb.onchange = async () => {
+      cb.disabled = true; const ok = await goalOp({ kind: 'ms', id: g.id, mid: m.id, done: cb.checked });
+      if (ok) { if (cb.checked) { coins += 20; coinPop = performance.now(); save(); Sound.ding(); } else { coins = Math.max(0, coins - 20); save(); } }
+      openGoalCard(g.id);
+      const gg = goals.find(x => x.id === g.id);
+      if (ok && cb.checked && gg && doneCount(gg) === gg.milestones.length) { Sound.coin(); say(`「${gg.title}」结满了果，去树下摘果吧`); }
+    };
+    lab.append(cb, el('span', m.done ? 'gu-done' : null, m.title)); li.append(lab);
+    if (!harvested && g.milestones.length > 1) { const rm = el('button', 'gu-mini', '删'); rm.type = 'button'; rm.setAttribute('aria-label', `删掉「${m.title}」`); rm.onclick = async () => { await goalOp({ kind: 'delMs', id: g.id, mid: m.id }); openGoalCard(g.id); }; li.append(rm); }
+    list.append(li);
+  }
+  body.append(list);
+  if (!harvested && n < MS_MAX) {
+    const row = el('form', 'gu-add'), i = textInput('', 40, '再加一个里程碑'), b = el('button', 'gu-btn gu-wood', '加'); b.type = 'submit';
+    row.onsubmit = async e => { e.preventDefault(); const v = i.value.trim(); if (!v) return; await goalOp({ kind: 'addMs', id: g.id, title: v }); openGoalCard(g.id); };
+    row.append(i, b); body.append(row);
+  }
+  const acts = el('div', 'gu-actions');
+  if (!harvested && d >= n) { const pick = el('button', 'gu-btn gu-gold', '摘果'); pick.type = 'button'; pick.onclick = () => harvestGoal(g.id); acts.append(pick); }
+  const edit = el('button', 'gu-btn gu-wood', '修改'); edit.type = 'button'; edit.onclick = () => openEditForm(g.id); acts.append(edit);
+  if (!harvested) { const pz = el('button', 'gu-btn gu-wood', g.status === 'paused' ? '唤醒' : '暂停'); pz.type = 'button'; pz.onclick = async () => { await goalOp({ kind: 'edit', id: g.id, patch: { status: g.status === 'paused' ? 'growing' : 'paused' } }); openGoalCard(g.id); }; acts.append(pz); }
+  const rm = el('button', 'gu-btn gu-danger', '移除这棵树'); rm.type = 'button';
+  rm.onclick = async () => { if (rm.dataset.sure !== '1') { rm.dataset.sure = '1'; rm.textContent = '确定移除？不能恢复'; return; } await goalOp({ kind: 'remove', id: g.id }); closeGoalUI(); say(`移除了「${g.title}」，那块地空出来了`); };
+  acts.append(rm);
+  body.append(acts); card.append(body);
+}
+function openEditForm(id) {
+  const g = goals.find(x => x.id === id); if (!g) return closeGoalUI();
+  const card = goalShell('修改目标'); goalUI.mode = 'edit';
+  const title = textInput(g.title, 20), why = textInput(g.why, 60), due = el('input', 'gu-input'); due.type = 'date'; due.value = g.due;
+  const fruit = fruitPicker(g.fruit), err = el('p', 'gu-err'), saveBtn = el('button', 'gu-btn', '保存'), back = el('button', 'gu-btn gu-wood', '返回');
+  saveBtn.type = 'submit'; back.type = 'button'; back.onclick = () => openGoalCard(id);
+  const form = el('form', 'gu-body'); form.noValidate = true;
+  form.append(field('目标', title), field('为什么（可选）', why), field('截止日期', due), field('果树', fruit), err, el('div', 'gu-actions'));
+  form.lastChild.append(back, saveBtn);
+  form.onsubmit = async e => {
+    e.preventDefault();
+    if (!title.value.trim()) { err.textContent = '目标不能为空'; return; }
+    if (!due.value) { err.textContent = '选一个截止日期'; return; }
+    await goalOp({ kind: 'edit', id, patch: { title: title.value.trim(), why: why.value.trim(), due: due.value, fruit: fruit.value() } }); openGoalCard(id);
+  };
+  card.append(form); title.focus();
+}
+async function harvestGoal(id) {
+  const g = goals.find(x => x.id === id); if (!g || g.harvestedAt) return;
+  closeGoalUI();
+  const { cx, base } = plotPos(g.slot), t = treeSprite(3, false), fs = fruitSprite(g.fruit), now = performance.now();
+  const n = Math.min(doneCount(g), FRUIT_SPOTS.length);
+  for (let i = 0; i < n; i++) { const [a, b] = FRUIT_SPOTS[i]; flights.push({ x0: cx + a * t.r, y0: base - t.img.height + t.cy + b * t.r, x1: SCENE.bin[0] + 12, y1: SCENE.bin[1] - 2, t0: now + i * 120, dur: 1000, img: fs }); }
+  const ok = await goalOp({ kind: 'harvest', id });
+  if (!ok) return;
+  coins += 200; coinPop = performance.now(); save(); Sound.coin();
+  say(`「${g.title}」达成了！果子装进了出货箱，+200 金币。这棵树会一直留在果园里`);
 }
 
 /* ---------- accessibility mirror ---------- */
@@ -1473,6 +1834,7 @@ function interactables() {
   const list = [];
   list.push({ kind: 'door', room: 'house', name: '小屋 · 进屋', rect: { x: HX + 40, y: HY + 46, w: 18, h: 34 }, spot: { x: HX + 49, y: HY + 90 }, top: HY + 44 });
   list.push({ kind: 'mine', name: '矿洞 · 进去挖矿', rect: { x: MX + 18, y: MY + 16, w: 22, h: 30 }, spot: { x: MX + 28, y: MY + 54 }, top: MY + 12 });
+  for (let i = 0; i < ORCH_N; i++) list.push(orchardTarget(i));
   list.push({ kind: 'truck', name: '小货车 · 开去机场', rect: { x: TRUCK_POS.x, y: TRUCK_POS.y, w: 44, h: 26 }, spot: { x: TRUCK_POS.x + 20, y: TRUCK_POS.y + 36 }, top: TRUCK_POS.y - 2 });
   list.push({ kind: 'pethouse', name: pet ? `${pet.name}的小屋` : '宠物屋 · 领养宠物', rect: { x: PETH.x, y: PETH.y, w: 32, h: 28 }, spot: { x: PETH.x + 16, y: PETH.y + 36 }, top: PETH.y - 2 });
   list.push({ kind: 'door', room: 'coop', name: '鸡舍 · 进去看看', rect: { x: CX + 19, y: CY + 24, w: 16, h: 18 }, spot: { x: CX + 26, y: CY + 50 }, top: CY + 22 });
@@ -1498,6 +1860,7 @@ function cropDialog(t) {
 function interact(p) {
   if (roomInteract(p)) return;
   const now = performance.now();
+  if (p.kind === 'orchard') { openGoalUI(p.slot); return; }
   if (p.kind === 'crop') { const t = find(p.id); if (!t) return; if (t.state === 'stalled') { t.crowHop = now; Sound.caw(); } openDialog(cropDialog(t)); }
   else if (p.kind === 'bin') { panelView = 'ship'; hover = null; Sound.paper(); }
   else if (p.kind === 'mail') {
@@ -1600,6 +1963,7 @@ function renderFarm(now) {
     if (item(d.type).ground) ctx.drawImage(s, d.x, d.y);
   });
   for (const t of tasks) if (t.state === 'working') { const { tx, ty } = slotPos(t.slot); ctx.drawImage(SPR.soilWet, tx, ty); }
+  drawOrchardGround();
 
   // pond life sits on the water, under everything else
   const [px, py] = SCENE.pond;
@@ -1619,6 +1983,7 @@ function renderFarm(now) {
   for (const p of PROPS) ents.push({ y: p.base, draw: () => ctx.drawImage(p.img, p.x, p.y) });
   ents.push({ y: FEN.top + 14, draw: () => ctx.drawImage(fenceTop[0], 0, 0) });
   ents.push({ y: FEN.bot + 14, draw: () => ctx.drawImage(fenceBot[0], 0, 0) });
+  orchardEnts(ents, now, anim);
   for (const t of TUFTS) ents.push({ y: t.y + 11, draw: () => {
     let lean = anim ? (Math.sin(now / 900 + t.p) > 0.6 ? 1 : 0) + (weather.kind === 'storm' ? 1 : 0) : 0;
     if (t.shake > 0) lean = Math.floor(t.shake / 4) % 2 ? -1 : 1;
@@ -1698,9 +2063,9 @@ function renderFarm(now) {
     else R(ctx, p.water ? (Math.floor(p.life) % 4 < 2 ? P.WT[5] : P.WT[4]) : (Math.floor(p.life) % 4 < 2 ? P.Y[4] : P.Y[2]), p.x, p.y, 1, 1);
   }
   for (let i = flights.length - 1; i >= 0; i--) {
-    const f = flights[i], k = Math.min(1, (now - f.t0) / f.dur);
+    const f = flights[i], k = Math.max(0, Math.min(1, (now - f.t0) / f.dur));
     const x = f.x0 + (f.x1 - f.x0) * k, y = f.y0 + (f.y1 - f.y0) * k - Math.sin(k * Math.PI) * 40;
-    ctx.drawImage(SPR.pumpkin, Math.round(x), Math.round(y));
+    ctx.drawImage(f.img || SPR.pumpkin, Math.round(x), Math.round(y));
     if (k >= 1) { flights.splice(i, 1); for (let j = 0; j < 8; j++) fx.push({ kind: 'spark', x: f.x1 + 6, y: f.y1, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.8, life: 26 }); }
   }
   for (const h of hearts) if (Math.floor(h.life) % 20 < 18) ctx.drawImage(SPR.heart, Math.round(h.x), Math.round(h.y));
@@ -2183,6 +2548,7 @@ const MOVE_KEYS = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right'
 window.addEventListener('keyup', e => { const k = MOVE_KEYS[e.key]; if (k) keys.delete(k); if (scene === 'mine') mineKey(e, false); });
 window.addEventListener('blur', () => keys.clear());
 window.addEventListener('keydown', e => {
+  if (goalUI.open) { if (e.key === 'Escape') { e.preventDefault(); closeGoalUI(); } return; } // typing in the goal form must not drive the game
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (sleep) { e.preventDefault(); wake(); return; }
   if (scene === 'cut') { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endCut(); } return; }
@@ -6207,7 +6573,7 @@ async function start() {
   announce('农场已载入');
   prebuildRooms();
   setTimeout(() => hint('点地面让农夫走过去 · 按 H 看图例和操作'), 1100);
-  if (!(await liveP)) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
+  if (!(await liveP)) { loadLocalGoals(); } if (!live.on) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
 }
 const fontsReady = document.fonts ? Promise.all([document.fonts.load(`12px ${FONT_CJK}`, '农场委托0123456789'), document.fonts.load(`24px ${FONT_CJK}`, '0123456789:?')]) : Promise.resolve();
 let started = false;
