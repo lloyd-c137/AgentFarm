@@ -32,7 +32,7 @@ npm run deploy                         # 得到 https://agent-farm.<你的子域
 
 ## 当前线上状态
 
-- 地址：https://agent-farm.lloyd666.workers.dev
+- 地址：https://agentfarm.lloydev.site （备用：https://agent-farm.lloyd666.workers.dev）
 - 登录：Cloudflare Access 还没开，暂时用"邮箱 + 团队密码"。密码存在 Worker 的 secret `SITE_PASSWORD` 里，修改命令：`npx wrangler secret put SITE_PASSWORD`。每个邮箱各自一个农场。
 
 ## 以后换成 Cloudflare Access（可选，50 人以内免费）

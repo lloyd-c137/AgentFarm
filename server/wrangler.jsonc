@@ -17,6 +17,8 @@
       "migrations_dir": "migrations"
     }
   ],
+  "routes": [{ "pattern": "agentfarm.lloydev.site", "custom_domain": true }],
+  "workers_dev": true,
   "triggers": { "crons": ["* * * * *"] },
   "vars": {
     "STALL_MINUTES": "30",
