@@ -25,6 +25,12 @@ emit('fonts/fusion-pixel-12-core.woff2', readFileSync('fonts/fusion-pixel-12-cor
 emit('fonts/fusion-pixel-12-ext.woff2', readFileSync('fonts/fusion-pixel-12-ext.woff2'));
 const fontFaces = `@font-face { font-family: "Fusion Pixel 12"; src: url(${assets['fonts/fusion-pixel-12-core.woff2']}) format("woff2"); font-display: block; }
 @font-face { font-family: "Fusion Pixel 12 Ext"; src: url(${assets['fonts/fusion-pixel-12-ext.woff2']}) format("woff2"); font-display: swap; }`;
+// favicons (tools/make_favicon.py draws them): fixed names at the root, where browsers look for /favicon.ico
+for (const f of ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png', 'icon-512.png']) writeFileSync(`public/${f}`, readFileSync(`icons/${f}`));
+const icons = `<link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<meta name="theme-color" content="#241c3e">`;
 const preload = `<link rel="preload" href="${assets['fonts/fusion-pixel-12-core.woff2']}" as="font" type="font/woff2" crossorigin>`;
 
 const css = readFileSync('px.css', 'utf8')
@@ -39,7 +45,7 @@ let game = readFileSync('../index.html', 'utf8');
 const before = game.length;
 game = game.replace(/@font-face \{ font-family: "Fusion Pixel 12"; src: url\(data:font\/woff2;base64,[A-Za-z0-9+/=]+\) format\("woff2"\);[^}]*\}/, fontFaces);
 if (game.length === before) throw new Error('font-face not found in index.html');
-game = game.replace('<meta charset="utf-8">', `<meta charset="utf-8">\n${preload}`);
+game = game.replace('<meta charset="utf-8">', `<meta charset="utf-8">\n${preload}\n${icons}`);
 const FONT = `'"Fusion Pixel 12", monospace'`;
 if (!game.includes(FONT)) throw new Error('canvas font string not found');
 game = game.split(FONT).join(`'"Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace'`);
@@ -54,13 +60,19 @@ writeFileSync('public/index.html', game);
 
 for (const page of ['login.html', 'setup.html']) {
   const html = readFileSync(page, 'utf8')
-    .replace(/<link rel="preload" href="fusion-pixel-12\.woff2"[^>]*>/, preload)
+    .replace(/<link rel="preload" href="fusion-pixel-12\.woff2"[^>]*>/, `${preload}\n${icons}`)
     .replace('href="px.css"', `href="${assets['px.css']}"`)
     .replace('src="farm-bg.js"', `src="${assets['farm-bg.js']}"`);
   writeFileSync(`public/${page}`, html);
 }
 
-writeFileSync('public/_headers', `/fonts/*
+writeFileSync('public/_headers', `/favicon.*
+  Cache-Control: public, max-age=86400
+/apple-touch-icon.png
+  Cache-Control: public, max-age=86400
+/icon-512.png
+  Cache-Control: public, max-age=86400
+/fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /px.*
   Cache-Control: public, max-age=31536000, immutable
