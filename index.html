@@ -821,6 +821,7 @@ const Sound = (() => {
   };
   return {
     setTheme() { /* themes now follow the scene on their own */ },
+    lick: () => play(t => { [[65, 0], [69, 0.12], [72, 0.24], [76, 0.36], [79, 0.6], [77, 0.72], [74, 0.84], [72, 1.08], [70, 1.2], [69, 1.44]].forEach(([n, d]) => { tone(midi(n), t + d, 0.32, 'triangle', 0.13, sfxE); tone(midi(n - 24), t + d, 0.2, 'sine', 0.05, sfx); }); [[53, [57, 60, 64]], [50, [54, 57, 60]]].forEach(([r0, ch], i) => { tone(midi(r0), t + i * 0.72, 0.6, 'triangle', 0.12, sfx); ch.forEach(n => tone(midi(n), t + i * 0.72 + 0.24, 0.3, 'sine', 0.04, sfx)); }); }),
     carol: () => play(t => { [76, 76, 76, 0, 76, 76, 76, 0, 76, 79, 72, 74, 76].forEach((n, i) => { if (n) { tone(midi(n), t + i * 0.16, 0.3, 'triangle', 0.18, sfx); tone(midi(n - 12), t + i * 0.16, 0.25, 'sine', 0.06, sfx); } }); }),
     get on() { return on; }, get wanted() { return wanted; },
     toggle() { if (performance.now() - autoAt < 400) return on; setOn(!on); return on; },
@@ -2566,8 +2567,8 @@ function stepRoom() {
     if (Sound.on && Math.random() < 0.02) notes.push({ x: 112 + Math.random() * 8, y: 176, life: 120, p: Math.random() * 6 });
   }
   if (scene === 'nyc') {
-    if (Sound.on && Math.random() < 0.014) notes.push({ x: 346 + Math.random() * 6, y: 192, life: 120, p: Math.random() * 6 });
-    if (Math.random() < 0.01) steam.push({ x: 96 + Math.random() * 4, y: 64, life: 40 });
+    const nf = ROOMS.nyc.fx; if (Sound.on && Math.random() < 0.014) notes.push({ x: nf.notes[0] - 4 + Math.random() * 8, y: nf.notes[1], life: 120, p: Math.random() * 6 });
+    if (Math.random() < 0.01) steam.push({ x: nf.steam[0] + Math.random() * 4, y: nf.steam[1], life: 40 });
   }
   if (scene === 'salem') {
     if (Math.random() < (performance.now() - fireBoost < 2500 ? 0.3 : 0.07)) embers.push({ x: 112 + Math.random() * 48, y: 88, vx: (Math.random() - 0.5) * 0.15, life: 30 + Math.random() * 30 });
@@ -4706,181 +4707,191 @@ function airportOverlay(now, anim, ents) {
   ents.push({ y: b.y + b.img.height + 0.5, draw: () => { DEST_ORDER.forEach((id, i) => { const on = !anim || (Math.floor(now / 520) + i) % 3 !== 0; R(ctx, on ? '#5aff8a' : '#1e4a2a', b.x + 69, b.y + 18 + i * 12, 3, 3); }); } });
 }
 
-/* ---- New York: a loft high over Midtown. Exposed brick and an open kitchen on the left, a wall of glass over Times Square on the right,
-   the front door down by the kitchen. Laid out differently from London on purpose: glass right, kitchen left, door bottom-left ---- */
-const NYC = { wall: ['#1a1c26', '#24263a', '#2e3146', '#3a3e56', '#4a4f6a'], oak: ['#2e2018', '#4a3426', '#5a402e', '#684a36', '#7a5a42'], leather: ['#4a2a12', '#7a4a1e', '#a0662a', '#c08440', '#dca460'], walnut: ['#2a1810', '#4a2c1c', '#6a4028', '#8a5636', '#a86e44'], brick: ['#3a1a14', '#5a2a20', '#6e3428', '#80402e', '#94503a'], ink: ['#141428', '#1e2240', '#2a3058', '#3a4272', '#4e5890'] };
+/* ---- New York: a full-floor penthouse high over Midtown (大平层). One wide open plan under a single panoramic wall of glass:
+   kitchen and island at the left, the dining table below it, the living room in the middle around a big sectional,
+   a grand piano by the glass, a study corner at the right, the entry foyer down by the front door at the bottom left ---- */
+const NYC = { wall: ['#1a1c26', '#24263a', '#2e3146', '#3a3e56', '#4a4f6a'], oak: ['#6a4a30', '#8a6440', '#a07a50', '#b48c5e', '#c8a070'], leather: ['#4a2a12', '#7a4a1e', '#a0662a', '#c08440', '#dca460'], walnut: ['#2a1810', '#4a2c1c', '#6a4028', '#8a5636', '#a86e44'], ink: ['#141428', '#1e2240', '#2a3058', '#3a4272', '#4e5890'], boucle: ['#8a8278', '#aaa298', '#c8c0b4', '#ddd6ca', '#eee8de'] };
 function roomBottom(g, doorX) { R(g, '#2a2420', 76, 236, doorX - 76, 8); R(g, '#2a2420', doorX + 32, 236, 404 - doorX - 32, 8); R(g, '#0e0c10', doorX, 236, 32, 8); R(g, '#4a3a30', doorX - 2, 236, 2, 8); R(g, '#4a3a30', doorX + 32, 236, 2, 8); }
+function marble(g, x, y, w, h, base = '#ecebf0') { for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) { const v = Math.sin((xx + yy * 0.6) / 7 + bay(xx, yy) * 3); R(g, v > 0.96 ? '#a8a4b0' : v > 0.9 ? '#c8c4d0' : bay(xx * 2, yy * 2) > 0.9 ? '#ffffff' : base, xx, yy); } }
 function buildNyc(rm) {
-  const [c, g] = mk(W, H), o = { x: 80, y: 36, w: 320, h: 200 };
+  const [c, g] = mk(W, H), o = { x: 24, y: 28, w: 432, h: 220 };
   shellRoom(g, o);
-  rm.door = { x: 112, w: 32 }; rm.spawn = { x: 128, y: 228 }; rm.look = { x: 214, y: 96, w: 176, h: 12 };
-  // left: exposed brick, a bit of soot and old paint ghosts
-  const B = NYC.brick;
-  for (let y = 36; y < 96; y++) for (let x = 80; x < 200; x++) { const row = Math.floor((y - 36) / 4), mort = (y - 36) % 4 === 3 || (x + (row % 2) * 5) % 10 === 0; let col = mort ? '#3a2620' : B[2 + ((x * 7 + row * 13) % 3 === 0 ? 1 : 0)]; if (!mort && bay(x, y) > 0.9) col = B[4]; if (!mort && bay(x, y) < 0.08) col = B[1]; R(g, col, x, y); }
-  for (let x = 82; x < 196; x += 3) if (bay(x, 40) > 0.6) R(g, 'rgba(230,220,200,0.08)', x, 38, 3, 16);
-  // a concrete column, the ceiling soffit with a spot track
-  R(g, '#4a4a54', 196, 36, 10, 60); R(g, '#5a5a66', 196, 36, 2, 60); R(g, '#34343c', 204, 36, 2, 60);
-  R(g, '#121218', 80, 36, 320, 2); for (let x = 90; x < 196; x += 26) { R(g, '#121218', x, 38, 3, 3); R(g, '#fff0c8', x + 1, 40, 1, 1); }
-  // right: the glass wall, black steel, the city painted live underneath
-  const WX = 208, WY = 38, WW = 188, WH = 58;
+  rm.door = { x: 56, w: 32 }; rm.spawn = { x: 72, y: 240 }; rm.look = { x: 150, y: 92, w: 290, h: 12 };
+  rm.fx = { notes: [150, 210], steam: [100, 58] };
+  // ceiling soffit with recessed lights
+  R(g, '#121218', 24, 28, 432, 4); for (let x = 36; x < 456; x += 30) { R(g, '#2a2a34', x, 31, 4, 1); R(g, '#fff0c8', x + 1, 31, 2, 1); }
+  // the kitchen wall: walnut tall units with an integrated fridge, a marble slab backsplash, a steel hood over the range
+  const WN = NYC.walnut;
+  R(g, WN[2], 24, 32, 100, 60); for (let x = 24; x < 124; x += 20) { R(g, WN[1], x, 32, 1, 60); R(g, WN[3], x + 1, 32, 1, 60); }
+  R(g, WN[1], 24, 32, 22, 60); R(g, WN[3], 25, 33, 20, 1); R(g, '#c8c4cc', 42, 50, 1, 18); R(g, '#c8c4cc', 42, 72, 1, 14);
+  marble(g, 46, 50, 78, 18); R(g, '#e8e6ec', 46, 68, 78, 4); R(g, '#ffffff', 46, 68, 78, 1); R(g, '#a8a4b0', 46, 71, 78, 1);
+  for (let x = 48; x < 124; x += 19) { R(g, WN[1], x - 2, 72, 1, 20); R(g, '#c8c4cc', x + 6, 76, 5, 1); }
+  R(g, '#9a9aa8', 66, 34, 26, 12); R(g, '#c8c8d4', 66, 34, 26, 2); for (let i = 0; i < 4; i++) R(g, '#9a9aa8', 70 + i, 46 + i, 18 - i * 2, 1); R(g, '#2a2a30', 70, 66, 22, 2); fillCircle(g, '#3a3a44', 75, 66, 2); fillCircle(g, '#3a3a44', 87, 66, 2);
+  for (let x = 48; x < 64; x += 5) { R(g, '#f4f0e6', x, 41, 3, 6); } R(g, WN[3], 46, 47, 18, 2); for (let x = 96; x < 120; x += 5) { R(g, ['#d84a3a', '#2a5aa8', '#f2c414', '#e8e6ec', '#1a1a22'][(x / 5) % 5], x, 42, 3, 5); } R(g, WN[3], 94, 47, 28, 2);
+  R(g, '#9a9aa8', 96, 56, 14, 12); R(g, '#c8c8d4', 96, 56, 14, 2); R(g, '#1a1a22', 99, 60, 8, 3); R(g, '#e8e6ec', 101, 64, 4, 4);
+  R(g, '#f4f0e6', 50, 64, 12, 4); for (const [ax, ay] of [[52, 62], [55, 61], [58, 62], [54, 59], [57, 59]]) { fillCircle(g, '#c8282e', ax, ay, 2); R(g, '#ff6a5a', ax - 1, ay - 1, 1, 1); }
+  R(g, '#3a6a3a', 114, 60, 5, 8); R(g, '#5aa050', 115, 57, 2, 4); R(g, '#c8b898', 114, 66, 5, 2);
+  // a concrete column, then the panoramic glass all the way across; the city is painted live underneath
+  R(g, '#4a4a54', 124, 32, 6, 60); R(g, '#5a5a66', 124, 32, 1, 60);
+  const WX = 132, WY = 32, WW = 322, WH = 60;
   R(g, '#0c0c10', WX - 2, WY, WW + 4, WH); g.clearRect(WX, WY, WW, WH);
   rm.wins = [[WX, WY, WW, WH, null]];
-  for (let k = 1; k < 4; k++) R(g, '#0c0c10', WX + Math.round(WW * k / 4) - 1, WY, 2, WH);
-  R(g, '#0c0c10', WX, WY + 40, WW, 2); R(g, '#3a3a46', WX - 2, WY + WH - 1, WW + 4, 2); R(g, '#5a5a6a', WX - 2, WY + WH - 1, WW + 4, 1);
-  for (let i = 0; i < 58; i++) { const ww = 8 - Math.floor(Math.abs(i - 36) / 7); R(g, i % 3 ? 'rgba(232,228,240,0.5)' : 'rgba(200,196,214,0.5)', WX - 1, 38 + i, ww, 1); }
-  // the open kitchen: neon on the brick, a shelf, subway tiles, walnut cabinets, marble counter
-  R(g, NYC.walnut[3], 86, 52, 106, 2); R(g, NYC.walnut[1], 86, 54, 106, 1);
-  for (const [x, col] of [[88, '#e8e6ec'], [94, '#d84a3a'], [100, '#1a1a22'], [106, '#f2c414']]) { R(g, col, x, 46, 4, 6); R(g, col, x + 4, 48, 1, 2); }
-  for (let x = 82; x < 196; x += 2) if ((x * 13) % 7 < 3) R(g, '#0e0a10', x, 40, 1, 1);
-  for (let y = 100; y < 112; y++) for (let x = 112; x < 176; x++) R(g, ((x >> 2) + (y >> 1)) % 2 ? '#3a4a5a' : '#2e3a48', x, y);
-  R(g, '#14121a', 142, 38, 36, 13); R(g, '#e8e6e0', 143, 39, 34, 11); for (let x = 145; x < 175; x += 2) { const hh = 2 + ((x * 7) % 6) + (x === 159 ? 4 : 0); R(g, '#3a3a40', x, 49 - hh, 2, hh); } R(g, '#3a3a40', 159, 41, 1, 3); R(g, '#c8c4c0', 145, 40, 30, 1);
-  R(g, '#3a7a3a', 184, 46, 6, 6); R(g, '#5aa050', 185, 43, 2, 4); R(g, '#5aa050', 188, 44, 2, 3); R(g, '#c8b898', 184, 50, 6, 2);
-  for (let y = 56; y < 72; y++) for (let x = 86; x < 192; x++) R(g, (y - 56) % 3 === 2 || (x + ((y - 56) / 3 | 0) % 2 * 3) % 6 === 0 ? '#b8b4c0' : (bay(x, y) > 0.85 ? '#ffffff' : '#ecebf0'), x, y);
-  R(g, NYC.walnut[2], 84, 76, 110, 20); for (let x = 84; x < 194; x += 22) { R(g, NYC.walnut[1], x, 77, 1, 19); R(g, '#c8c4cc', x + 9, 81, 4, 1); }
-  R(g, '#e8e6ec', 82, 72, 114, 4); R(g, '#ffffff', 82, 72, 114, 1); for (let x = 84; x < 194; x += 9) R(g, '#c8c4d0', x, 73, 4, 1); R(g, '#a8a4b0', 82, 75, 114, 1);
-  R(g, '#2a2a30', 118, 70, 22, 2); for (const bx of [121, 133]) { fillCircle(g, '#4a4a54', bx, 70, 2); }
-  R(g, '#8a8a96', 118, 56, 22, 3); R(g, '#c8c8d4', 118, 56, 22, 1); R(g, '#5a5a66', 124, 50, 10, 6);
-  R(g, '#9a9aa8', 90, 60, 16, 12); R(g, '#c8c8d4', 90, 60, 16, 2); R(g, '#1a1a22', 93, 64, 10, 4); R(g, '#e8e6ec', 96, 68, 4, 4); R(g, '#d84a3a', 103, 62, 2, 2);
-  R(g, '#a8784a', 146, 66, 16, 6); R(g, '#c89a6a', 146, 66, 16, 1); R(g, '#e8c890', 149, 64, 9, 3); R(g, '#c89a5a', 150, 64, 7, 1);
-  R(g, '#f4f0e6', 170, 68, 14, 4); R(g, '#d8d0c0', 170, 71, 14, 1); for (const [ax, ay] of [[172, 65], [176, 64], [180, 65], [174, 62], [178, 62]]) { fillCircle(g, '#c8282e', ax, ay, 2); R(g, '#ff6a5a', ax - 1, ay - 1, 1, 1); R(g, '#3a2a1a', ax, ay - 3, 1, 1); }
-  R(g, '#2e5a32', 186, 62, 3, 10); R(g, '#4a8a4a', 186, 62, 3, 1); R(g, '#c8b898', 186, 60, 3, 2);
-  // floors: terrazzo in the kitchen, oak in the living room, a brass threshold between
-  for (let y = 96; y < 236; y++) for (let x = 80; x < 200; x++) { const b = bay(x * 3, y * 3); R(g, b > 0.93 ? '#8a8a94' : b < 0.06 ? '#e8e6ea' : b > 0.8 ? '#b8b4bc' : '#c8c6cc', x, y); }
-  for (let y = 96; y < 236; y += 20) R(g, '#a8a6ae', 80, y, 120, 1); for (let x = 100; x < 200; x += 20) R(g, '#a8a6ae', x, 96, 1, 140);
-  plankFloor(g, 200, 96, 200, 140, NYC.oak); R(g, '#c8a050', 199, 96, 2, 140); R(g, 'rgba(10,8,12,0.35)', 80, 96, 320, 3);
-  roomBottom(g, rm.door.x);
-  // a deep blue rug with a mustard grid under the living room
-  for (let y = 132; y < 206; y++) for (let x = 226; x < 392; x++) { const e = Math.min(x - 226, 391 - x, y - 132, 205 - y); let col = NYC.ink[2]; if (e < 2) col = NYC.ink[0]; else if (e < 4) col = '#c8a050'; else if ((x - 226) % 20 === 10 || (y - 132) % 18 === 9) col = '#a8843c'; else if (bay(x, y) > 0.9) col = NYC.ink[3]; R(g, col, x, y); }
-  // props
+  for (let k = 1; k < 6; k++) R(g, '#0c0c10', WX + Math.round(WW * k / 6) - 1, WY, 2, WH);
+  R(g, '#3a3a46', WX - 2, WY + WH - 1, WW + 4, 2); R(g, '#5a5a6a', WX - 2, WY + WH - 1, WW + 4, 1);
+  for (const [cx, dir] of [[WX, 1], [WX + WW - 1, -1]]) for (let i = 0; i < 60; i++) { const ww = 9 - Math.floor(Math.abs(i - 38) / 7); R(g, i % 3 ? 'rgba(236,232,244,0.5)' : 'rgba(206,200,220,0.5)', dir > 0 ? cx : cx - ww + 1, 32 + i, ww, 1); }
+  // floors: marble in the kitchen, wide herringbone oak everywhere else
+  for (let y = 92; y < 248; y++) for (let x = 24; x < 456; x++) { const u = (x + y) % 20, v = (x - y + 500) % 20, a = Math.floor((x + y) / 10) % 2; let col = a ? (u < 1 ? NYC.oak[0] : NYC.oak[2]) : (v < 1 ? NYC.oak[0] : NYC.oak[3]); if (bay(x, y) > 0.95) col = NYC.oak[4]; R(g, col, x, y); }
+  marble(g, 24, 92, 104, 44, '#e2e0e6'); for (let x = 24; x < 128; x += 26) R(g, '#b8b4bc', x, 92, 1, 44); R(g, '#b8b4bc', 24, 114, 104, 1); R(g, '#c8a050', 24, 136, 104, 1); R(g, '#c8a050', 128, 92, 1, 44);
+  R(g, 'rgba(10,8,12,0.3)', 24, 92, 432, 3);
+  R(g, '#2a2420', 20, 248, 36, 8); R(g, '#2a2420', 88, 248, 372, 8); R(g, '#0e0c10', 56, 248, 32, 8); R(g, '#8a7a60', 54, 248, 2, 8); R(g, '#8a7a60', 88, 248, 2, 8);
+  // rugs: a big cream one in the living room, a long runner in the foyer, a round one under the dining table
+  for (let y = 126; y < 218; y++) for (let x = 158; x < 326; x++) { const e = Math.min(x - 158, 325 - x, y - 126, 217 - y); let col = e < 2 ? '#8a8278' : e < 5 ? '#ddd6ca' : e < 6 ? '#a89e90' : (bay(x, y) > 0.9 ? '#e6e0d4' : '#d8d0c2'); if (e > 8 && ((x - 158) % 28 === 14 || (y - 126) % 23 === 11)) col = '#cbc2b2'; R(g, col, x, y); }
+  for (let y = 196; y < 248; y++) for (let x = 60; x < 84; x++) R(g, (x === 60 || x === 83) ? '#1e2240' : ((x + y) % 6 < 3 ? '#2a3058' : '#3a4272'), x, y);
+  ovalRug(g, 76, 176, 50, 22, ['#3a2a20', '#5a4030', '#8a6a4a', '#a8885e', '#c8a878']);
   const props = [];
   const P_ = (img, x, y, blockH = 8, id) => { props.push({ img, x, y, base: y + img.height, id }); rm.block.push([x + 1, y + img.height - blockH - 1, img.width - 2, blockH]); };
-  const L2 = NYC.leather, WN = NYC.walnut, GR = ['#141418', '#1e1e26', '#2a2a34', '#3a3a46', '#4a4a58'];
-  // kitchen island with a bowl of lemons, wine and two glasses; stools
-  P_(propCanvas(66, 32, g2 => { rbox(g2, 0, 4, 66, 6, ['#a8a4b0', '#c8c4cc', '#e8e6ec', '#f4f4f8', '#ffffff'], 3); rbox(g2, 2, 10, 62, 14, WN, 2); for (let x = 4; x < 62; x += 5) R(g2, WN[1], x, 11, 1, 13); for (const sx of [10, 30, 50]) { R(g2, '#1a1a22', sx, 24, 8, 3); R(g2, '#3a3a46', sx, 24, 8, 1); R(g2, '#8a8a96', sx + 1, 27, 1, 5); R(g2, '#8a8a96', sx + 6, 27, 1, 5); }
-    R(g2, '#f4f0e6', 8, 1, 12, 4); for (const lx of [10, 13, 16]) { fillCircle(g2, '#f2d040', lx, 1, 2); } R(g2, '#3a1420', 40, -2, 3, 7); R(g2, '#5a2030', 40, -2, 1, 7); R(g2, '#e8e6ec', 46, 1, 2, 4); R(g2, '#7a1a2a', 46, 2, 2, 2); R(g2, '#e8e6ec', 50, 1, 2, 4); }), 96, 104, 10, 'island');
-  // a low bookcase with records, books and a little green statue
-  P_(propCanvas(40, 30, g2 => { rbox(g2, 0, 0, 40, 30, WN, 2); R(g2, WN[0], 2, 2, 36, 12); R(g2, WN[0], 2, 16, 36, 12); R(g2, WN[3], 0, 14, 40, 2); bookRow(g2, 3, 14, 22, 31); R(g2, '#5aa890', 30, 6, 3, 8); R(g2, '#5aa890', 29, 8, 5, 2); R(g2, '#7ac8b0', 31, 4, 1, 3); R(g2, '#3a7868', 28, 12, 7, 2); for (let i = 0; i < 9; i++) R(g2, ['#d84a3a', '#1a1a22', '#2a5aa8', '#f2c414', '#e8e6ec'][i % 5], 3 + i * 4, 18, 3, 10); }), 84, 168, 6, 'nshelf');
-  // the sofa, seen from behind (it faces the glass)
-  P_(propCanvas(72, 24, g2 => { rbox(g2, 0, 3, 8, 19, L2, 2); rbox(g2, 64, 3, 8, 19, L2, 2); rbox(g2, 7, 0, 58, 18, L2, 3); R(g2, L2[4], 8, 1, 56, 1); for (const sx of [26, 46]) R(g2, L2[1], sx, 2, 1, 14); R(g2, L2[1], 7, 17, 58, 3); R(g2, '#1a1418', 3, 22, 3, 2); R(g2, '#1a1418', 66, 22, 3, 2); R(g2, '#c84a3a', 12, 0, 10, 6); R(g2, '#e86a5a', 12, 0, 10, 1); R(g2, '#2a5aa8', 50, 0, 9, 5); R(g2, '#4a7ac8', 50, 0, 9, 1); R(g2, '#f4f0e6', 32, 1, 14, 3); for (let x = 30; x < 50; x += 2) R(g2, '#c8bfae', x, 3, 1, 2); }), 262, 170, 8, 'nsofa');
-  // round walnut coffee table: a pizza box, two cans, a candle
-  P_(propCanvas(44, 18, g2 => { R(g2, WN[1], 4, 9, 36, 3); R(g2, WN[3], 2, 2, 40, 8); R(g2, WN[4], 3, 2, 38, 1); R(g2, WN[1], 2, 9, 40, 1); R(g2, '#1a1418', 8, 12, 2, 6); R(g2, '#1a1418', 34, 12, 2, 6); R(g2, '#1a1418', 20, 12, 2, 5);
-    R(g2, '#e8d8b8', 6, 0, 18, 6); R(g2, '#c8b898', 6, 5, 18, 1); R(g2, '#c8282e', 10, 1, 10, 1); R(g2, '#c8282e', 11, 3, 8, 1); R(g2, '#f2c414', 28, 0, 3, 5); R(g2, '#c8282e', 32, 0, 3, 5); R(g2, '#f4f4f8', 28, 0, 3, 1); R(g2, '#f4f4f8', 32, 0, 3, 1); R(g2, '#f4f0e6', 37, 2, 3, 4); }), 276, 136, 6, 'ntable');
-  // lounge chair facing the glass
-  P_(propCanvas(26, 24, g2 => { rbox(g2, 2, 0, 22, 15, GR, 3); R(g2, '#5a5a6a', 4, 1, 18, 1); rbox(g2, 0, 6, 5, 12, WN, 3); rbox(g2, 21, 6, 5, 12, WN, 3); R(g2, '#141418', 6, 15, 14, 3); R(g2, '#8a8a96', 12, 18, 2, 4); R(g2, '#8a8a96', 6, 22, 14, 2); }), 352, 104, 6, 'nchair');
-  // brass telescope on a tripod by the glass
-  P_(propCanvas(18, 34, g2 => { R(g2, '#c8a050', 3, 4, 13, 4); R(g2, '#f0d080', 3, 4, 13, 1); R(g2, '#8a6a2a', 14, 3, 3, 6); R(g2, '#1a1a22', 1, 5, 2, 2); R(g2, '#5a4a3a', 8, 8, 2, 4); for (let i = 0; i < 22; i++) { R(g2, '#5a4a3a', 8 - Math.round(i * 0.3), 12 + i, 1, 1); R(g2, '#5a4a3a', 9 + Math.round(i * 0.3), 12 + i, 1, 1); R(g2, '#4a3a2a', 9, 12 + i, 1, 1); } }), 214, 92, 4, 'scope');
-  // credenza with the turntable and speakers, a crate of records beside it
-  P_(propCanvas(52, 30, g2 => { rbox(g2, 0, 10, 42, 16, WN, 3); for (let x = 2; x < 40; x += 13) R(g2, WN[1], x + 12, 12, 1, 13); R(g2, WN[4], 1, 10, 40, 1); R(g2, '#1a1418', 3, 26, 2, 4); R(g2, '#1a1418', 37, 26, 2, 4);
-    rbox(g2, 2, 2, 7, 9, GR, 2); fillCircle(g2, '#4a4a58', 5, 6, 2); rbox(g2, 33, 2, 7, 9, GR, 2); fillCircle(g2, '#4a4a58', 36, 6, 2);
-    rbox(g2, 12, 4, 18, 7, ['#6a4028', '#8a5636', '#c8b898', '#e8d8b8', '#f4ecd8'], 3); R(g2, '#1a1418', 14, 5, 10, 4); R(g2, '#c8c8d4', 26, 5, 1, 4); for (let i = 0; i < 4; i++) R(g2, ['#d84a3a', '#2a5aa8', '#f2c414', '#1a1a22'][i], 4 + i * 9, 13, 7, 9);
-    rbox(g2, 43, 14, 9, 16, ['#5a3a20', '#7a5030', '#9a6a3a', '#b8844a', '#c89a5a'], 2); for (let i = 0; i < 4; i++) R(g2, ['#1a1a22', '#d84a3a', '#e8e6ec', '#2a5aa8'][i], 44 + i * 2, 10, 2, 6); }), 330, 192, 8, 'vinyl');
-  // guitar on a stand, by the glass
-  P_(propCanvas(14, 36, g2 => { fillCircle(g2, '#c86a2a', 7, 27, 6); fillCircle(g2, '#c86a2a', 7, 19, 4); R(g2, '#1a1418', 6, 21, 3, 3); fillCircle(g2, '#2a1810', 7, 23, 2); R(g2, '#3a2418', 6, 2, 2, 17); R(g2, '#2a1810', 5, 0, 4, 3); R(g2, '#e8e6ec', 6, 4, 1, 14); R(g2, '#e8a050', 4, 24, 6, 1); R(g2, '#3a3a46', 2, 33, 10, 3); }), 380, 140, 4, 'guitar');
-  // fiddle-leaf fig in the corner of the glass
-  P_(propCanvas(20, 42, g2 => { R(g2, '#e8e6ec', 5, 32, 10, 10); R(g2, '#ffffff', 5, 32, 10, 1); R(g2, '#c8c4cc', 13, 33, 2, 9); R(g2, '#5a4030', 9, 14, 2, 18); for (const [lx, ly, s] of [[4, 2, 1], [11, 0, 1], [2, 10, 1], [12, 8, 1], [6, 16, 0], [13, 18, 0], [4, 22, 0]]) { fillCircle(g2, s ? '#3a7a3a' : '#2e6a32', lx + 2, ly + 3, 3); R(g2, '#5aa050', lx + 1, ly + 2, 2, 1); } }), 378, 80, 6, 'plant');
-  // arc floor lamp reaching over the sofa
-  P_(propCanvas(30, 52, g2 => { R(g2, '#1a1a22', 18, 48, 10, 4); R(g2, '#3a3a46', 18, 48, 10, 1); R(g2, '#c8c8d4', 22, 10, 2, 38); for (let i = 0; i < 18; i++) R(g2, '#c8c8d4', 22 - i, 10 - Math.round(Math.sin(i / 18 * Math.PI) * 8) + Math.round(i * 0.25), 1, 2); R(g2, '#c8c8d4', 1, 6, 9, 6); R(g2, '#f4f4f8', 1, 6, 9, 1); R(g2, '#fff0c8', 2, 11, 7, 1); }), 336, 128, 4, 'nlamp');
-  // side table with a snow globe of the city
-  P_(propCanvas(18, 22, g2 => { R(g2, WN[3], 0, 8, 18, 3); R(g2, WN[4], 0, 8, 18, 1); R(g2, '#1a1418', 2, 11, 2, 11); R(g2, '#1a1418', 14, 11, 2, 11); R(g2, '#5a3a24', 5, 6, 8, 2); fillCircle(g2, '#c8e8ff', 9, 3, 3); R(g2, '#4a9a7a', 8, 2, 2, 4); R(g2, '#ffffff', 7, 1, 1, 1); }), 236, 168, 4, 'globe');
-  // shopping bags by the door: today's souvenir
-  P_(propCanvas(26, 18, g2 => { R(g2, '#f4f0e6', 0, 4, 12, 14); R(g2, '#1a1a22', 3, 0, 1, 5); R(g2, '#1a1a22', 8, 0, 1, 5); R(g2, '#1a1a22', 3, 0, 6, 1); R(g2, '#d84a3a', 2, 9, 8, 3); R(g2, '#1a1a22', 13, 6, 12, 12); R(g2, '#f2c414', 15, 2, 1, 5); R(g2, '#f2c414', 22, 2, 1, 5); R(g2, '#f2c414', 15, 2, 8, 1); R(g2, '#f2c414', 16, 10, 6, 2); }), 152, 208, 4, 'nycgift');
+  const L2 = NYC.leather, BC = NYC.boucle, GR = ['#141418', '#1e1e26', '#2a2a34', '#3a3a46', '#4a4a58'];
+  // the island: a marble waterfall top, fluted walnut, three stools; a bowl of lemons, wine and glasses
+  P_(propCanvas(84, 30, g2 => { marble(g2, 0, 2, 84, 6); R(g2, '#ffffff', 0, 2, 84, 1); R(g2, '#b8b4c0', 0, 7, 84, 1); marble(g2, 0, 8, 5, 14); marble(g2, 79, 8, 5, 14); rbox(g2, 5, 8, 74, 14, WN, 2); for (let x = 7; x < 78; x += 3) R(g2, WN[1], x, 9, 1, 13);
+    for (const sx of [14, 38, 62]) { rbox(g2, sx, 22, 9, 3, ['#7a4a1e', '#a0662a', '#c08440', '#dca460', '#f0c080'], 2); R(g2, '#c8a050', sx + 1, 25, 1, 5); R(g2, '#c8a050', sx + 7, 25, 1, 5); R(g2, '#c8a050', sx + 1, 28, 7, 1); }
+    R(g2, '#f4f0e6', 10, -1, 12, 3); for (const lx of [12, 15, 18]) fillCircle(g2, '#f2d040', lx, -1, 2); R(g2, '#3a1420', 54, -4, 3, 7); R(g2, '#5a2030', 54, -4, 1, 7); R(g2, '#e8e6ec', 60, -1, 2, 4); R(g2, '#7a1a2a', 60, 0, 2, 2); R(g2, '#e8e6ec', 64, -1, 2, 4); }), 34, 102, 10, 'island');
+  // dining for six: a long walnut table, chairs either side, candles and a low vase of white flowers
+  P_(propCanvas(92, 40, g2 => { for (const cx of [10, 38, 66]) { rbox(g2, cx, 0, 14, 10, BC, 3); R(g2, BC[4], cx + 1, 1, 12, 1); } rbox(g2, 2, 9, 88, 7, WN, 3); R(g2, WN[4], 3, 9, 86, 1); R(g2, WN[1], 6, 16, 3, 12); R(g2, WN[1], 83, 16, 3, 12); for (const cx of [10, 38, 66]) { rbox(g2, cx, 22, 14, 12, BC, 3); R(g2, '#3a2a1a', cx + 2, 34, 2, 6); R(g2, '#3a2a1a', cx + 10, 34, 2, 6); }
+    R(g2, '#f4f0e6', 42, 6, 8, 4); for (let i = 0; i < 5; i++) fillCircle(g2, '#fbf6ec', 43 + i * 2, 5, 1); R(g2, '#c8a050', 24, 7, 2, 3); R(g2, '#f4f0e0', 24, 3, 2, 4); R(g2, '#c8a050', 66, 7, 2, 3); R(g2, '#f4f0e0', 66, 3, 2, 4); }), 30, 156, 10, 'dining');
+  // the sectional: a long boucle back facing the glass, the chaise running toward you on the right
+  P_(propCanvas(136, 26, g2 => { rbox(g2, 0, 4, 8, 20, BC, 2); rbox(g2, 6, 0, 104, 18, BC, 3); R(g2, BC[4], 7, 1, 102, 1); for (const sx of [40, 74]) R(g2, BC[1], sx, 2, 1, 14); R(g2, BC[1], 6, 17, 104, 3); rbox(g2, 108, 0, 28, 24, BC, 3); R(g2, BC[4], 109, 1, 26, 1); R(g2, '#c84a3a', 16, 0, 12, 6); R(g2, '#e86a5a', 16, 0, 12, 1); R(g2, '#c8a050', 86, 0, 12, 6); R(g2, '#e8c070', 86, 0, 12, 1); R(g2, '#2a3058', 52, 1, 16, 4); R(g2, '#1a1418', 3, 24, 3, 2); R(g2, '#1a1418', 130, 24, 3, 2); }), 172, 178, 8, 'nsofa');
+  // a low travertine coffee table: art books, a tray, the pizza box from last night
+  P_(propCanvas(60, 16, g2 => { rbox(g2, 0, 2, 60, 8, ['#a8987a', '#c4b494', '#d8caa8', '#e8dcc0', '#f4ecd8'], 3); R(g2, '#a8987a', 4, 10, 52, 5); R(g2, '#8a7a62', 4, 14, 52, 1); R(g2, '#e8d8b8', 8, -2, 18, 5); R(g2, '#c8b898', 8, 2, 18, 1); R(g2, '#c8282e', 12, -1, 10, 1); R(g2, '#1a1a22', 34, 0, 14, 3); R(g2, '#c8a050', 34, -1, 14, 1); R(g2, '#f4f0e6', 50, -2, 4, 4); }), 212, 148, 6, 'ntable');
+  // two lounge chairs facing the glass
+  for (const [cx, id] of [[170, 'nchair'], [292, 'nchair2']]) P_(propCanvas(26, 24, g2 => { rbox(g2, 2, 0, 22, 15, ['#2a1a10', '#4a2a1a', '#6a3a22', '#8a4e2e', '#a8663c'], 3); R(g2, '#c8885a', 4, 1, 18, 1); rbox(g2, 0, 6, 5, 12, GR, 3); rbox(g2, 21, 6, 5, 12, GR, 3); R(g2, '#141418', 6, 15, 14, 3); R(g2, '#c8a050', 12, 18, 2, 4); R(g2, '#c8a050', 6, 22, 14, 2); }), cx, 100, 6, id);
+  // the grand piano by the glass, lid up, a lamp and a little bust on it
+  P_(propCanvas(64, 40, g2 => { const B = ['#050508', '#0e0e14', '#1a1a24', '#2a2a38', '#4a4a5a']; for (let y = 0; y < 22; y++) { const ww = y < 6 ? 44 + y * 3 : 62 - Math.max(0, y - 14) * 3; R(g2, y < 2 ? B[3] : B[2], 1, 8 + y, ww, 1); } R(g2, B[4], 2, 9, 40, 1); for (let i = 0; i < 18; i++) R(g2, B[1], 6 + i * 2, 8 - Math.round(i * 0.4), 2, 1); R(g2, B[3], 6, 8, 1, 1); R(g2, B[1], 40, 0, 2, 9); R(g2, '#f4f0e6', 2, 26, 40, 3); for (let x = 3; x < 42; x += 3) R(g2, '#0e0e14', x, 26, 1, 2); R(g2, B[1], 4, 29, 2, 11); R(g2, B[1], 52, 29, 2, 11); R(g2, B[1], 30, 30, 2, 10); rbox(g2, 12, 33, 18, 4, B, 2); R(g2, B[1], 13, 37, 1, 3); R(g2, B[1], 28, 37, 1, 3); R(g2, '#c8a050', 34, 3, 1, 6); R(g2, '#c8a050', 32, 2, 5, 2); R(g2, '#e8e0d0', 18, 4, 4, 4); R(g2, '#e8e0d0', 19, 2, 2, 2); }), 344, 96, 8, 'piano');
+  // the study corner: a tall walnut bookcase, a desk with the laptop open to the task board, a chair
+  P_(propCanvas(30, 56, g2 => { rbox(g2, 0, 0, 30, 56, WN, 2); for (let i = 0; i < 4; i++) { const sy = 12 + i * 12; R(g2, WN[0], 2, sy - 10, 26, 10); R(g2, WN[3], 0, sy, 30, 2); bookRow(g2, 3, sy, 24, 900 + i); } R(g2, '#5aa890', 20, 15, 3, 7); R(g2, '#5aa890', 19, 17, 5, 2); R(g2, '#7ac8b0', 21, 13, 1, 3); }), 424, 92, 8, 'nshelf');
+  P_(propCanvas(60, 34, g2 => { rbox(g2, 0, 8, 60, 6, WN, 3); R(g2, WN[4], 1, 8, 58, 1); R(g2, WN[1], 2, 14, 2, 14); R(g2, WN[1], 56, 14, 2, 14); R(g2, '#2a2a34', 16, 1, 22, 7); R(g2, '#c8c4cc', 14, 7, 26, 2); R(g2, '#c8a050', 48, 2, 1, 6); R(g2, '#c8a050', 45, 0, 7, 3); R(g2, '#fff0c8', 46, 3, 5, 1); R(g2, '#f4f0e6', 4, 6, 6, 2); rbox(g2, 20, 22, 18, 12, GR, 3); R(g2, '#5a5a6a', 21, 23, 16, 1); R(g2, '#8a8a96', 28, 30, 2, 4); }), 386, 162, 8, 'desk');
+  // a brass bar cart with bottles and glasses
+  P_(propCanvas(28, 26, g2 => { R(g2, '#c8a050', 0, 8, 28, 2); R(g2, '#c8a050', 0, 20, 28, 2); R(g2, '#c8a050', 1, 8, 1, 16); R(g2, '#c8a050', 26, 8, 1, 16); fillCircle(g2, '#2a2a30', 3, 24, 2); fillCircle(g2, '#2a2a30', 24, 24, 2); for (const [bx, col, hh] of [[3, '#3a5a2a', 8], [8, '#c8a050', 7], [13, '#e8e6ec', 9], [19, '#7a1a2a', 7]]) { R(g2, col, bx, 8 - hh, 4, hh); R(g2, col, bx + 1, 8 - hh - 2, 2, 2); R(g2, '#ffffff', bx, 8 - hh + 1, 1, hh - 2); } for (const gx of [4, 10, 16]) { R(g2, '#c8d8e8', gx, 16, 4, 4); R(g2, '#c8a050', gx + 1, 18, 2, 2); } }), 334, 196, 4, 'bar');
+  // a low credenza with the turntable and speakers by the living room
+  P_(propCanvas(52, 28, g2 => { rbox(g2, 0, 10, 52, 14, WN, 3); for (let x = 2; x < 50; x += 3) R(g2, WN[1], x, 12, 1, 11); R(g2, '#c8a050', 3, 24, 2, 4); R(g2, '#c8a050', 47, 24, 2, 4); rbox(g2, 2, 2, 8, 9, GR, 2); fillCircle(g2, '#4a4a58', 6, 6, 2); rbox(g2, 42, 2, 8, 9, GR, 2); fillCircle(g2, '#4a4a58', 46, 6, 2); rbox(g2, 16, 4, 20, 7, ['#6a4028', '#8a5636', '#c8b898', '#e8d8b8', '#f4ecd8'], 3); R(g2, '#1a1418', 18, 5, 12, 4); R(g2, '#c8c8d4', 32, 5, 1, 4); }), 128, 208, 6, 'vinyl');
+  // the foyer: a console with a sculptural lamp, a bowl for keys and white orchids
+  P_(propCanvas(30, 30, g2 => { rbox(g2, 0, 12, 30, 5, WN, 3); R(g2, WN[1], 2, 17, 2, 13); R(g2, WN[1], 26, 17, 2, 13); R(g2, WN[1], 2, 27, 26, 1); fillCircle(g2, '#f4f0e6', 7, 6, 4); R(g2, '#c8a050', 6, 9, 2, 3); R(g2, '#1a1a22', 13, 9, 8, 3); R(g2, '#c8a050', 14, 9, 6, 1); R(g2, '#e8e6ec', 23, 7, 4, 5); R(g2, '#5a7a3a', 24, 1, 1, 6); for (const [fx, fy] of [[22, 2], [25, 0], [27, 3]]) R(g2, '#fbf6ec', fx, fy, 2, 2); }), 26, 214, 6, 'console');
+  // telescope by the glass, an olive tree in the corner, a monstera by the bookcase
+  P_(propCanvas(18, 34, g2 => { R(g2, '#c8a050', 3, 4, 13, 4); R(g2, '#f0d080', 3, 4, 13, 1); R(g2, '#8a6a2a', 14, 3, 3, 6); R(g2, '#1a1a22', 1, 5, 2, 2); R(g2, '#5a4a3a', 8, 8, 2, 4); for (let i = 0; i < 22; i++) { R(g2, '#5a4a3a', 8 - Math.round(i * 0.3), 12 + i, 1, 1); R(g2, '#5a4a3a', 9 + Math.round(i * 0.3), 12 + i, 1, 1); } }), 318, 90, 4, 'scope');
+  P_(propCanvas(26, 50, g2 => { R(g2, '#c8c0b0', 6, 38, 14, 12); R(g2, '#e0d8c8', 6, 38, 14, 1); R(g2, '#5a4a3a', 12, 18, 2, 20); R(g2, '#5a4a3a', 9, 20, 3, 1); for (let i = 0; i < 40; i++) { const a2 = i * 2.4, rr = 3 + (i % 9); R(g2, i % 3 ? '#7a8a5a' : '#9aaa6a', Math.round(13 + Math.cos(a2) * rr), Math.round(14 + Math.sin(a2) * rr * 0.7), 2, 1); } }), 134, 64, 6, 'plant');
+  P_(propCanvas(22, 42, g2 => { R(g2, '#1a1a22', 6, 32, 10, 10); R(g2, '#3a3a46', 6, 32, 10, 1); for (const [lx, ly] of [[2, 6], [10, 0], [14, 10], [4, 16], [12, 20]]) { fillCircle(g2, '#2e6a32', lx + 3, ly + 4, 4); R(g2, '#1a4a22', lx + 3, ly + 2, 1, 4); R(g2, '#5aa050', lx + 1, ly + 2, 2, 1); } R(g2, '#3a5a2a', 10, 18, 1, 14); }), 404, 76, 6, 'monstera');
+  // arc lamp over the sectional, a side table with the snow globe, shopping bags by the door
+  P_(propCanvas(30, 52, g2 => { R(g2, '#1a1a22', 18, 48, 10, 4); R(g2, '#c8a050', 22, 10, 2, 38); for (let i = 0; i < 18; i++) R(g2, '#c8a050', 22 - i, 10 - Math.round(Math.sin(i / 18 * Math.PI) * 8) + Math.round(i * 0.25), 1, 2); R(g2, '#c8a050', 1, 6, 9, 6); R(g2, '#f0d080', 1, 6, 9, 1); R(g2, '#fff0c8', 2, 11, 7, 1); }), 312, 146, 4, 'nlamp');
+  P_(propCanvas(18, 22, g2 => { R(g2, '#c8a050', 0, 8, 18, 2); R(g2, '#c8a050', 8, 10, 2, 12); R(g2, '#c8a050', 3, 20, 12, 2); R(g2, '#5a3a24', 5, 6, 8, 2); fillCircle(g2, '#c8e8ff', 9, 3, 3); R(g2, '#4a9a7a', 8, 2, 2, 4); R(g2, '#ffffff', 7, 1, 1, 1); }), 150, 180, 4, 'globe');
+  P_(propCanvas(26, 18, g2 => { R(g2, '#f4f0e6', 0, 4, 12, 14); R(g2, '#1a1a22', 3, 0, 1, 5); R(g2, '#1a1a22', 8, 0, 1, 5); R(g2, '#1a1a22', 3, 0, 6, 1); R(g2, '#d84a3a', 2, 9, 8, 3); R(g2, '#1a1a22', 13, 6, 12, 12); R(g2, '#f2c414', 15, 2, 1, 5); R(g2, '#f2c414', 22, 2, 1, 5); R(g2, '#f2c414', 15, 2, 8, 1); R(g2, '#f2c414', 16, 10, 6, 2); }), 94, 224, 4, 'nycgift');
   props.push({ img: SPR.pumpkin, x: -100, y: -100, base: -100 });
   rm.props = props;
   rm.getLights = () => {
-    const now = performance.now(), L = [[262, 108, 96, 'neon', hexRGB(neonAt(0, 0.5, now))], [352, 112, 90, 'neon', hexRGB(neonAt(3, 0.5, now))], [300, 64, 70, 'win'], [124, 46, 34, 'neon', [255, 70, 110]], [136, 74, 46], [124, 106, 40]];
-    if (TOG.nlamp !== false) L.push([342, 138, 64]);
-    if (Sound.on) L.push([352, 196, 16, 'fairy']);
+    const now = performance.now(), L = [[200, 104, 90, 'neon', hexRGB(neonAt(0, 0.5, now))], [300, 108, 90, 'neon', hexRGB(neonAt(2, 0.5, now))], [410, 106, 80, 'neon', hexRGB(neonAt(4, 0.5, now))], [290, 62, 120, 'win'], [56, 96, 40], [92, 96, 40], [80, 64, 36], [70, 160, 30, 'candle'], [434, 166, 30], [40, 210, 30], [366, 100, 22]];
+    if (TOG.nlamp !== false) L.push([306, 160, 70]);
+    if (Sound.on) L.push([152, 212, 16, 'fairy']);
     return L;
   };
   rm.items = [
-    { kind: 'flyHome', name: '门 · 坐飞机回农场', rect: { x: 112, y: 222, w: 32, h: 16 }, spot: { x: 128, y: 226 } },
-    { kind: 'lookout', name: '落地玻璃 · 看看时代广场', rect: { x: 208, y: 38, w: 188, h: 56 }, spot: { x: 300, y: 106 } },
-    { kind: 'seat', id: 'nsofa', name: '皮沙发 · 坐下看夜景', rect: { x: 262, y: 168, w: 72, h: 26 }, spot: { x: 298, y: 206 }, seat: { x: 298, hip: 175, pose: 'up', key: 193, id: 'nsofa', msg: '陷进沙发里，玻璃外的霓虹一闪一闪 · 按方向键起身' } },
-    { kind: 'seat', id: 'nchair', name: '窗边躺椅 · 坐下看夜景', rect: { x: 352, y: 102, w: 26, h: 26 }, spot: { x: 365, y: 132 }, seat: { x: 365, hip: 110, pose: 'up', key: 121, id: 'nchair', look: true, msg: '对着落地玻璃坐下 · 按空格看窗外，方向键起身' } },
-    { kind: 'vinyl', name: '唱片机 · 放一张爵士', rect: { x: 330, y: 190, w: 52, h: 32 }, spot: { x: 352, y: 228 } },
-    { kind: 'coffee', name: '咖啡机 · 做一杯咖啡', rect: { x: 88, y: 58, w: 20, h: 16 }, spot: { x: 98, y: 100 } },
-    { kind: 'apple', name: '一碗苹果', rect: { x: 168, y: 60, w: 18, h: 14 }, spot: { x: 176, y: 100 } },
-    { kind: 'bread', name: '面包板 · 一个刚买的贝果', rect: { x: 144, y: 62, w: 20, h: 12 }, spot: { x: 154, y: 100 } },
-    { kind: 'pizza', name: '茶几 · 披萨盒', rect: { x: 276, y: 134, w: 44, h: 20 }, spot: { x: 298, y: 164 } },
-    { kind: 'scope', name: '望远镜 · 看远处', rect: { x: 214, y: 90, w: 18, h: 36 }, spot: { x: 222, y: 132 } },
-    { kind: 'globe', name: '雪花球 · 摇一摇', rect: { x: 236, y: 166, w: 18, h: 24 }, spot: { x: 245, y: 198 } },
-    { kind: 'nlamp', name: '落地灯 · 开关', rect: { x: 336, y: 126, w: 30, h: 54 }, spot: { x: 344, y: 184 } },
-    { kind: 'guitar', name: '吉他 · 弹几下', rect: { x: 380, y: 138, w: 14, h: 38 }, spot: { x: 384, y: 182 } },
-    { kind: 'neon', name: '霓虹苹果灯 · 开关', rect: { x: 114, y: 36, w: 20, h: 18 }, spot: { x: 124, y: 100 } },
-    { kind: 'photo', name: '老照片 · 曼哈顿天际线', rect: { x: 142, y: 38, w: 36, h: 13 }, spot: { x: 160, y: 100 } },
-    { kind: 'nycgift', name: '购物袋 · 今天的纪念品', rect: { x: 152, y: 206, w: 26, h: 20 }, spot: { x: 166, y: 230 } },
-    { kind: 'nshelf', name: '矮书架 · 唱片和小雕像', rect: { x: 84, y: 166, w: 40, h: 32 }, spot: { x: 104, y: 204 } },
-    { kind: 'plant', name: '琴叶榕', rect: { x: 378, y: 78, w: 20, h: 44 }, spot: { x: 384, y: 128 } }
+    { kind: 'flyHome', name: '门 · 坐飞机回农场', rect: { x: 56, y: 236, w: 32, h: 14 }, spot: { x: 72, y: 240 } },
+    { kind: 'lookout', name: '全景落地窗 · 看看时代广场', rect: { x: 132, y: 32, w: 322, h: 58 }, spot: { x: 240, y: 104 } },
+    { kind: 'seat', id: 'nsofa', name: '大沙发 · 坐下看夜景', rect: { x: 172, y: 176, w: 136, h: 28 }, spot: { x: 230, y: 214 }, seat: { x: 230, hip: 183, pose: 'up', key: 201, id: 'nsofa', msg: '陷进大沙发里，整面玻璃外都是霓虹 · 按方向键起身' } },
+    { kind: 'seat', id: 'nchair', name: '窗边躺椅 · 坐下看夜景', rect: { x: 170, y: 98, w: 26, h: 26 }, spot: { x: 183, y: 130 }, seat: { x: 183, hip: 106, pose: 'up', key: 117, id: 'nchair', look: true, msg: '对着全景玻璃坐下 · 按空格看窗外，方向键起身' } },
+    { kind: 'seat', id: 'nchair2', name: '窗边躺椅 · 坐下看夜景', rect: { x: 292, y: 98, w: 26, h: 26 }, spot: { x: 305, y: 130 }, seat: { x: 305, hip: 106, pose: 'up', key: 117, id: 'nchair2', look: true, msg: '对着全景玻璃坐下 · 按空格看窗外，方向键起身' } },
+    { kind: 'piano', name: '三角钢琴 · 弹一段爵士', rect: { x: 344, y: 94, w: 64, h: 42 }, spot: { x: 366, y: 142 } },
+    { kind: 'desk', name: '书桌 · 笔记本开着委托板', rect: { x: 386, y: 160, w: 60, h: 36 }, spot: { x: 416, y: 204 } },
+    { kind: 'nshelf', name: '书柜', rect: { x: 424, y: 90, w: 30, h: 58 }, spot: { x: 436, y: 154 } },
+    { kind: 'vinyl', name: '唱片机 · 放一张爵士', rect: { x: 128, y: 206, w: 52, h: 30 }, spot: { x: 154, y: 240 } },
+    { kind: 'coffee', name: '咖啡机 · 做一杯咖啡', rect: { x: 94, y: 54, w: 18, h: 16 }, spot: { x: 104, y: 140 } },
+    { kind: 'apple', name: '一碗苹果', rect: { x: 48, y: 56, w: 16, h: 14 }, spot: { x: 56, y: 140 } },
+    { kind: 'stove', name: '灶台 · 煮点东西', rect: { x: 66, y: 34, w: 28, h: 36 }, spot: { x: 80, y: 140 } },
+    { kind: 'island', name: '中岛 · 柠檬和红酒', rect: { x: 34, y: 100, w: 84, h: 32 }, spot: { x: 76, y: 140 } },
+    { kind: 'dining', name: '餐桌 · 六人座', rect: { x: 30, y: 154, w: 92, h: 42 }, spot: { x: 136, y: 176 } },
+    { kind: 'pizza', name: '茶几 · 画册和披萨盒', rect: { x: 212, y: 146, w: 60, h: 18 }, spot: { x: 242, y: 172 } },
+    { kind: 'scope', name: '望远镜 · 看远处', rect: { x: 318, y: 88, w: 18, h: 36 }, spot: { x: 326, y: 130 } },
+    { kind: 'bar', name: '酒推车', rect: { x: 334, y: 194, w: 28, h: 28 }, spot: { x: 348, y: 228 } },
+    { kind: 'globe', name: '雪花球 · 摇一摇', rect: { x: 150, y: 178, w: 18, h: 24 }, spot: { x: 159, y: 206 } },
+    { kind: 'nlamp', name: '落地灯 · 开关', rect: { x: 312, y: 144, w: 30, h: 54 }, spot: { x: 330, y: 180 } },
+    { kind: 'console', name: '玄关柜 · 钥匙和兰花', rect: { x: 26, y: 212, w: 30, h: 32 }, spot: { x: 42, y: 210 } },
+    { kind: 'nycgift', name: '购物袋 · 今天的纪念品', rect: { x: 94, y: 222, w: 26, h: 20 }, spot: { x: 104, y: 244 } },
+    { kind: 'plant', name: '橄榄树', rect: { x: 134, y: 62, w: 26, h: 52 }, spot: { x: 148, y: 120 } },
+    { kind: 'monstera', name: '龟背竹', rect: { x: 404, y: 74, w: 22, h: 44 }, spot: { x: 414, y: 124 } }
   ];
+  rm.floor = { x: 28, y: 96, w: 424, h: 150 };
   rm.bg = [c, g];
 }
-// the view through the loft glass: a little live Times Square, rain beading on the panes
+// the view through the panoramic glass: the Empire State lit for Halloween, the canyon of screens around Times Square, the Hudson at the right
 function paintNycWindows(rm, now) {
   const anim = !REDUCE;
   for (const [x, y, w, h] of rm.wins) {
     ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
-    for (let yy = 0; yy < h; yy++) R(ctx, mix('#08081e', '#6a2a5a', Math.pow(yy / h, 1.5)), x, y + yy, w, 1);
-    // searchlights sweeping the clouds
-    ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 2; i++) { const a = -Math.PI / 2 + Math.sin(now / 3000 + i * 2) * 0.5, bx = x + w * (0.3 + i * 0.45), by = y + h; ctx.globalAlpha = 0.06; ctx.fillStyle = '#c8d8ff'; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a - 0.05) * h * 2, by + Math.sin(a - 0.05) * h * 2); ctx.lineTo(bx + Math.cos(a + 0.05) * h * 2, by + Math.sin(a + 0.05) * h * 2); ctx.fill(); } ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    for (let yy = 0; yy < h; yy++) R(ctx, mix('#07081e', '#7a2e5e', Math.pow(yy / h, 1.5)), x, y + yy, w, 1);
+    for (let i = 0; i < 4; i++) { const cx = x + ((i * 97 + now * 0.004) % (w + 60)) - 30, cy = y + 6 + i * 4; ctx.globalAlpha = 0.14; ctx.fillStyle = '#c86a9a'; ctx.beginPath(); ctx.ellipse(cx, cy, 34, 2, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 2; i++) { const a = -Math.PI / 2 + Math.sin(now / 3000 + i * 2) * 0.5, bx = x + w * (0.45 + i * 0.25), by = y + h; ctx.globalAlpha = 0.06; ctx.fillStyle = '#c8d8ff'; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a - 0.05) * h * 2, by + Math.sin(a - 0.05) * h * 2); ctx.lineTo(bx + Math.cos(a + 0.05) * h * 2, by + Math.sin(a + 0.05) * h * 2); ctx.fill(); } ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    // the Hudson at the right, a ferry crossing
+    R(ctx, '#0e1430', x + w * 0.78, y + h - 14, w * 0.22, 8); for (let i = 0; i < 12; i++) R(ctx, '#ffc890', x + w * 0.78 + ((i * 11 + now / 200) % (w * 0.22)), y + h - 12 + (i % 3) * 2, 2, 1); R(ctx, '#2a2a44', x + w * 0.78, y + h - 18, w * 0.22, 4); { const fx = x + w * 0.78 + ((now / 120) % (w * 0.22)); R(ctx, '#e8e6ec', fx, y + h - 12, 6, 2); R(ctx, '#ffd890', fx + 1, y + h - 12, 4, 1); }
+    // far towers, red beacons
     const fr = rng(311);
-    for (let xx = x - 4; xx < x + w;) { const bw = 6 + Math.floor(fr() * 9), bh = 16 + Math.floor(fr() * 28), top = y + h - bh - 8; R(ctx, '#181634', xx, top, bw, bh + 8); if (fr() < 0.4) { R(ctx, '#181634', xx + (bw >> 1) - 1, top - 5, 2, 5); if (!anim || Math.floor(now / 700 + xx) % 2) R(ctx, '#ff4040', xx + (bw >> 1) - 1, top - 6, 1, 1); } for (let wy = top + 2; wy < y + h - 8; wy += 3) for (let wx = xx + 1; wx < xx + bw - 1; wx += 2) if (fr() < 0.42) R(ctx, fr() < 0.8 ? '#c8a868' : '#e8e0c8', wx, wy, 1, 1); xx += bw + 1; }
+    for (let xx = x - 4; xx < x + w * 0.78;) { const bw = 6 + Math.floor(fr() * 9), bh = 16 + Math.floor(fr() * 28), top = y + h - bh - 8; R(ctx, '#181634', xx, top, bw, bh + 8); if (fr() < 0.4) { R(ctx, '#181634', xx + (bw >> 1) - 1, top - 5, 2, 5); if (!anim || Math.floor(now / 700 + xx) % 2) R(ctx, '#ff4040', xx + (bw >> 1) - 1, top - 6, 1, 1); } for (let wy = top + 2; wy < y + h - 8; wy += 3) for (let wx = xx + 1; wx < xx + bw - 1; wx += 2) if (fr() < 0.42) R(ctx, fr() < 0.8 ? '#c8a868' : '#e8e0c8', wx, wy, 1, 1); xx += bw + 1; }
+    // the Empire State, its crown in Halloween orange and purple
+    { const ex = x + Math.round(w * 0.16), b = y + h - 6, crown = Math.floor(now / 4000) % 2 ? '#ff9a3a' : '#b060ff'; R(ctx, '#1c1a36', ex - 8, b - 40, 16, 40); R(ctx, '#1c1a36', ex - 6, b - 48, 12, 8); R(ctx, '#1c1a36', ex - 4, b - 54, 8, 6); R(ctx, '#1c1a36', ex - 2, b - 58, 4, 4); R(ctx, '#2a2648', ex, b - 68, 1, 10);
+      ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(ex, b - 54, 0, ex, b - 54, 18); g.addColorStop(0, `rgba(${hexRGB(crown)},0.45)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ex - 18, b - 72, 36, 36); ctx.globalCompositeOperation = 'source-over';
+      R(ctx, crown, ex - 4, b - 54, 8, 1); R(ctx, crown, ex - 2, b - 58, 4, 3); R(ctx, '#ffe0c0', ex, b - 68, 1, 10); for (let yy = b - 38; yy < b; yy += 3) for (let xx = ex - 7; xx < ex + 7; xx += 2) if (((xx + yy) * 13) % 7 < 3) R(ctx, '#e8c890', xx, yy, 1, 1); }
+    // the canyon of screens around Times Square
     const bb = (bx, by, bw, bh, i) => { for (let yy = 0; yy < bh; yy++) R(ctx, neonAt(i, yy / bh, now), bx, by + yy, bw, 1); };
-    R(ctx, '#121024', x, y + 8, 44, h); R(ctx, '#121024', x + w - 48, y + 4, 48, h);
-    bb(x + 4, y + 12, 36, 14, 0); bb(x + 6, y + 30, 30, 10, 1); bb(x + w - 44, y + 8, 40, 16, 2); bb(x + w - 42, y + 30, 34, 9, 3);
-    { const s = Math.floor(now / 90) % 40; R(ctx, '#0e0e18', x + w - 44, y + 26, 40, 3); for (let k = 0; k < 40; k++) if (((k + s) % 6) < 3) R(ctx, (k + s) % 12 < 6 ? '#3aff9a' : '#ff5a5a', x + w - 44 + k, y + 27, 1, 1); }
-    const cx = x + Math.round(w / 2);
-    R(ctx, '#1a182e', cx - 9, y + 10, 18, h); bb(cx - 9, y + 14, 18, 8, 4); bb(cx - 9, y + 24, 18, 7, 5); bb(cx - 9, y + 33, 18, 6, 2);
-    R(ctx, '#a8a8c0', cx - 1, y + 2, 2, 8); fillCircle(ctx, anim && Math.floor(now / 400) % 2 ? '#ffffff' : '#c8e8ff', cx, y + 3, 2);
+    const cx = x + Math.round(w * 0.56);
+    R(ctx, '#121024', cx - 70, y + 14, 46, h); R(ctx, '#121024', cx + 26, y + 10, 48, h);
+    bb(cx - 66, y + 18, 38, 12, 0); bb(cx - 64, y + 34, 32, 10, 1); bb(cx + 30, y + 14, 40, 14, 2); bb(cx + 32, y + 34, 34, 9, 3);
+    { const s = Math.floor(now / 90) % 40; R(ctx, '#0e0e18', cx + 30, y + 30, 40, 3); for (let k = 0; k < 40; k++) if (((k + s) % 6) < 3) R(ctx, (k + s) % 12 < 6 ? '#3aff9a' : '#ff5a5a', cx + 30 + k, y + 31, 1, 1); }
+    R(ctx, '#1a182e', cx - 9, y + 16, 18, h); bb(cx - 9, y + 20, 18, 8, 4); bb(cx - 9, y + 30, 18, 7, 5); bb(cx - 9, y + 39, 18, 6, 2);
+    R(ctx, '#a8a8c0', cx - 1, y + 8, 2, 8); fillCircle(ctx, anim && Math.floor(now / 400) % 2 ? '#ffffff' : '#c8e8ff', cx, y + 9, 2);
     for (let k = 0; k < 5; k++) R(ctx, k % 2 ? '#a8202e' : '#ff4a5a', cx - 12 - k, y + h - 11 + k, 24 + k * 2, 1);
-    R(ctx, '#1e1c28', x, y + h - 6, w, 6);
-    for (let i = 0; i < 9; i++) { const sp = 0.02 + (i % 3) * 0.006, dir = i % 2 ? 1 : -1, span = w + 20, px = ((((i * 47) + now * sp * dir) % span) + span) % span - 10; R(ctx, '#f2c414', x + Math.round(px), y + h - (i % 2 ? 5 : 3), 4, 2); R(ctx, dir > 0 ? '#fff6c0' : '#ff5a5a', x + Math.round(px) + (dir > 0 ? 3 : 0), y + h - (i % 2 ? 5 : 3), 1, 1); }
-    for (let i = 0; i < 26; i++) R(ctx, NEON[i % 6], x + Math.round(((i * 37 + now / 220 * (i % 2 ? 1 : -1)) % w + w) % w), y + h - 8 + (i % 2), 1, 1);
-    // rain on the glass: beads catching the neon, a few running down
-    const dr = rng(808); for (let i = 0; i < 40; i++) { const dx = x + dr() * w, run = dr() < 0.25, dy = run ? y + ((dr() * h + now * 0.01 * (1 + dr())) % h) : y + dr() * h, col = NEON[i % 6]; ctx.globalAlpha = 0.55; R(ctx, col, Math.round(dx), Math.round(dy), 1, 1); ctx.globalAlpha = 0.18; if (run) R(ctx, '#ffffff', Math.round(dx), Math.round(dy) - 6, 1, 6); ctx.globalAlpha = 1; }
-    ctx.globalAlpha = 0.07; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(x + 20, y); ctx.lineTo(x + 46, y); ctx.lineTo(x + 6, y + h); ctx.lineTo(x - 20, y + h); ctx.fill(); ctx.beginPath(); ctx.moveTo(x + 120, y); ctx.lineTo(x + 130, y); ctx.lineTo(x + 100, y + h); ctx.lineTo(x + 90, y + h); ctx.fill(); ctx.globalAlpha = 1;
+    R(ctx, '#1e1c28', x, y + h - 6, w * 0.78, 6);
+    for (let i = 0; i < 14; i++) { const sp = 0.02 + (i % 3) * 0.006, dir = i % 2 ? 1 : -1, span = w * 0.78 + 20, px = ((((i * 47) + now * sp * dir) % span) + span) % span - 10; R(ctx, '#f2c414', x + Math.round(px), y + h - (i % 2 ? 5 : 3), 4, 2); R(ctx, dir > 0 ? '#fff6c0' : '#ff5a5a', x + Math.round(px) + (dir > 0 ? 3 : 0), y + h - (i % 2 ? 5 : 3), 1, 1); }
+    for (let i = 0; i < 30; i++) R(ctx, NEON[i % 6], cx - 40 + Math.round(((i * 37 + now / 220 * (i % 2 ? 1 : -1)) % 80 + 80) % 80), y + h - 8 + (i % 2), 1, 1);
+    // rain beading on the glass; the room's pendant lights reflected faintly
+    const dr = rng(808); for (let i = 0; i < 60; i++) { const dx = x + dr() * w, run = dr() < 0.25, dy = run ? y + ((dr() * h + now * 0.01 * (1 + dr())) % h) : y + dr() * h; ctx.globalAlpha = 0.55; R(ctx, NEON[i % 6], Math.round(dx), Math.round(dy), 1, 1); ctx.globalAlpha = 0.18; if (run) R(ctx, '#ffffff', Math.round(dx), Math.round(dy) - 6, 1, 6); ctx.globalAlpha = 1; }
+    ctx.globalCompositeOperation = 'lighter'; for (const px of [x + 30, x + 70]) { const g = ctx.createRadialGradient(px, y + 26, 0, px, y + 26, 10); g.addColorStop(0, 'rgba(255,200,120,0.18)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(px - 10, y + 16, 20, 20); } ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 0.06; ctx.fillStyle = '#ffffff'; for (const a of [0.1, 0.45, 0.8]) { ctx.beginPath(); ctx.moveTo(x + w * a, y); ctx.lineTo(x + w * a + 20, y); ctx.lineTo(x + w * a - 10, y + h); ctx.lineTo(x + w * a - 30, y + h); ctx.fill(); } ctx.globalAlpha = 1;
     ctx.restore();
   }
 }
 function nycOverlays(now, anim, ents) {
   const add = (y, draw) => ents.push({ y, draw });
-  // the record turns while the music plays; notes drift up
-  add(222.5, () => { const on = Sound.on, rx = 351, ry = 200; fillCircle(ctx, '#1a1418', rx, ry, 4); if (on && anim) { const a = now / 180; R(ctx, '#e8e6ec', rx + Math.round(Math.cos(a) * 3), ry + Math.round(Math.sin(a) * 1), 1, 1); } R(ctx, '#c8282e', rx - 1, ry - 1, 2, 2); for (const n of notes) { ctx.globalAlpha = Math.min(1, n.life / 40); const nx = Math.round(n.x), ny = Math.round(n.y); R(ctx, '#f2c414', nx, ny, 2, 2); R(ctx, '#f2c414', nx + 1, ny - 4, 1, 4); R(ctx, '#f2c414', nx + 2, ny - 4, 1, 1); ctx.globalAlpha = 1; } });
-  add(0, () => {
-    // a small neon apple on the brick (the Big Apple), buzzing, now and then a flicker
-    { const on = TOG.nneon !== false && !(anim && (Math.floor(now / 90) % 47 === 0 || Math.floor(now / 70) % 61 === 0)), cx = 124, cy = 46, red = on ? '#ff4a6a' : '#5a2430', core = on ? '#ffd0d8' : '#6a2a36', leaf = on ? '#5aff8a' : '#2a4a30';
-      if (on) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 26); g.addColorStop(0, 'rgba(255,60,100,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - 26, cy - 26, 52, 52); ctx.globalCompositeOperation = 'source-over'; }
-      for (let a2 = 0; a2 < Math.PI * 2; a2 += 0.09) { const k = Math.cos(a2) > 0 ? 1 : -1, px = cx + Math.cos(a2) * 6.5 + k * 0.5, py = cy + Math.sin(a2) * 6 - (Math.abs(Math.cos(a2)) < 0.25 && Math.sin(a2) < 0 ? -1.5 : 0); R(ctx, red, Math.round(px), Math.round(py), 1, 1); }
-      R(ctx, core, cx - 4, cy - 2, 1, 3); R(ctx, on ? '#c89a5a' : '#4a3a2a', cx, cy - 9, 1, 3); R(ctx, leaf, cx + 1, cy - 10, 3, 1); R(ctx, leaf, cx + 2, cy - 11, 2, 1);
-      R(ctx, '#2a2a30', cx - 9, cy + 8, 1, 2); R(ctx, '#2a2a30', cx + 9, cy + 8, 1, 2); }
-    if (TOG.nlamp !== false) R(ctx, '#fff6d8', 338, 139, 7, 1);
-    for (const s of steam) { ctx.globalAlpha = Math.min(1, s.life / 40) * 0.7; R(ctx, '#f4f1ea', Math.round(s.x), Math.round(s.y), 1, 1); } ctx.globalAlpha = 1;
-    // neon washing the oak in front of the glass
+  // brass pendants hanging over the island
+  add(0, () => { for (const px of [56, 92]) { R(ctx, '#2a2a30', px, 32, 1, 40); R(ctx, '#c8a050', px - 5, 72, 11, 4); R(ctx, '#f0d080', px - 4, 72, 9, 1); R(ctx, '#fff0c8', px - 3, 76, 7, 1); } for (const s of steam) { ctx.globalAlpha = Math.min(1, s.life / 40) * 0.7; R(ctx, '#f4f1ea', Math.round(s.x), Math.round(s.y), 1, 1); } ctx.globalAlpha = 1;
+    // neon from the glass washing across the oak
     ctx.globalCompositeOperation = 'lighter';
-    for (let i = 0; i < 4; i++) { const col = hexRGB(neonAt(i, 0.4, now)), gx = 210 + i * 47, g = ctx.createLinearGradient(0, 96, 0, 146); g.addColorStop(0, `rgba(${col},0.18)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(gx, 96); ctx.lineTo(gx + 45, 96); ctx.lineTo(gx + 58, 146); ctx.lineTo(gx + 8, 146); ctx.closePath(); ctx.fill(); }
-    // the shadow of rain trickling down the glass, cast on the floor
-    for (let i = 0; i < 10; i++) { const x = 214 + ((i * 37) % 180), y = 98 + ((now * 0.02 + i * 23) % 40); ctx.globalAlpha = 0.12; R(ctx, '#c8d0ff', x, y, 1, 4); } ctx.globalAlpha = 1;
+    for (let i = 0; i < 7; i++) { const col = hexRGB(neonAt(i, 0.4, now)), gx = 134 + i * 46, g = ctx.createLinearGradient(0, 92, 0, 146); g.addColorStop(0, `rgba(${col},0.16)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(gx, 92); ctx.lineTo(gx + 44, 92); ctx.lineTo(gx + 56, 146); ctx.lineTo(gx + 8, 146); ctx.closePath(); ctx.fill(); }
+    for (let i = 0; i < 14; i++) { const xx = 136 + ((i * 37) % 316), yy = 94 + ((now * 0.02 + i * 23) % 44); ctx.globalAlpha = 0.12; R(ctx, '#c8d0ff', xx, yy, 1, 4); } ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    const ga = age('globe', now); if (ga < 2600) { for (let i = 0; i < 6; i++) R(ctx, '#ffffff', 242 + ((i * 3 + Math.floor(ga / 120)) % 6), 166 + ((i * 2 + Math.floor(ga / 200)) % 5), 1, 1); }
-    const gu = age('guitar', now); if (gu < 1200) for (let i = 0; i < 3; i++) R(ctx, '#f2c414', 386 + i * 3, 150 - Math.round(gu / 40) - i * 3, 2, 2);
+    if (TOG.nlamp !== false) R(ctx, '#fff6d8', 314, 157, 7, 1);
+    const ga = age('globe', now); if (ga < 2600) for (let i = 0; i < 6; i++) R(ctx, '#ffffff', 156 + ((i * 3 + Math.floor(ga / 120)) % 6), 178 + ((i * 2 + Math.floor(ga / 200)) % 5), 1, 1);
   });
-  add(126.5, () => { const sa = age('scope', now); if (sa < 1400) R(ctx, '#fff8d0', 218, 94, 2, 2); });
+  // the dining candles, the laptop screen showing the task board, the turntable turning, notes from the piano
+  add(166.5, () => { for (const cx of [55, 97]) { const f = anim ? Math.round(Math.sin(now / 70 + cx)) : 0; R(ctx, '#ffd860', cx, 157 - Math.max(0, f), 1, 2 + Math.max(0, f)); } });
+  add(196.5, () => { const need = needList().length; R(ctx, '#1a2a3a', 403, 164, 20, 5); for (let i = 0; i < Math.min(4, need); i++) R(ctx, i === 0 ? '#ff6a5a' : '#8ad0ff', 405 + i * 4, 165 + (i % 2), 3, 1); if (anim && Math.floor(now / 500) % 2) R(ctx, '#ffffff', 420, 167, 1, 1); });
+  add(236.5, () => { fillCircle(ctx, '#1a1418', 152, 214, 3); if (Sound.on && anim) { const a = now / 180; R(ctx, '#e8e6ec', 152 + Math.round(Math.cos(a) * 2), 214 + Math.round(Math.sin(a)), 1, 1); } R(ctx, '#c8282e', 151, 213, 2, 2); for (const n of notes) { ctx.globalAlpha = Math.min(1, n.life / 40); const nx = Math.round(n.x), ny = Math.round(n.y); R(ctx, '#f2c414', nx, ny, 2, 2); R(ctx, '#f2c414', nx + 1, ny - 4, 1, 4); R(ctx, '#f2c414', nx + 2, ny - 4, 1, 1); ctx.globalAlpha = 1; } });
+  add(124.5, () => { const sa = age('scope', now); if (sa < 1400) R(ctx, '#fff8d0', 322, 92, 2, 2); const pa = age('piano', now); if (pa < 2400) R(ctx, '#ffffff', 348 + (Math.floor(now / 110) % 12) * 3, 122, 2, 1); });
 }
 function nycInteract(p) {
   const now = performance.now(), k = p.kind;
   ANIM[p.id || k] = now;
-  if (k === 'vinyl') { const v = Sound.toggle(); hint(v ? '唱针落下，萨克斯和低音提琴慢慢走起来' : '唱片停了，只剩窗外的车声'); if (v) for (let i = 0; i < 4; i++) notes.push({ x: 346 + Math.random() * 8, y: 192, life: 100 + i * 12, p: Math.random() * 6 }); }
-  else if (k === 'coffee') { Sound.water(); hint('做了一杯美式 · 窗外的城市也还没睡'); for (let i = 0; i < 14; i++) steam.push({ x: 96 + Math.random() * 4, y: 66 - Math.random() * 3, life: 50 + i * 5 }); }
-  else if (k === 'apple') { Sound.pop(); hint('一碗红苹果 · 纽约的外号就叫「大苹果」'); for (let i = 0; i < 3; i++) hearts.push({ x: 172 + i * 4, y: 56, vy: -0.3, life: 50 + i * 8 }); }
-  else if (k === 'bread') { Sound.paper(); hint('切开一个芝麻贝果，抹上奶油奶酪'); }
-  else if (k === 'pizza') { Sound.paper(); hint('掀开盒子：还剩两角纽约披萨，对折着吃才地道'); for (let i = 0; i < 8; i++) steam.push({ x: 284 + Math.random() * 10, y: 134, life: 40 + i * 4 }); }
-  else if (k === 'scope') { Sound.blip(); hint(['远处摩天楼的塔尖亮着灯，楼顶的红灯一闪一闪', '望远镜里：广场上有人在跳舞，大屏刚换了一支广告', '看见对面楼里有人也在用电脑加班 · 你的 AI 们正替你干活'][Math.floor(now / 1000) % 3]); }
+  if (k === 'vinyl') { const v = Sound.toggle(); hint(v ? '唱针落下，萨克斯和低音提琴慢慢走起来' : '唱片停了，只剩窗外的车声'); if (v) for (let i = 0; i < 4; i++) notes.push({ x: 148 + Math.random() * 8, y: 206, life: 100 + i * 12, p: Math.random() * 6 }); }
+  else if (k === 'piano') { Sound.lick(); hint('在三角钢琴上弹了一段摇摆爵士，玻璃外的城市好像跟着拍子在闪'); for (let i = 0; i < 6; i++) notes.push({ x: 352 + Math.random() * 30, y: 100, life: 100 + i * 10, p: Math.random() * 6 }); }
+  else if (k === 'desk') { Sound.blip(); const need = needList(), w = tasks.filter(t => t.state === 'working').length; openDialog({ title: '笔记本 · 委托板', portrait: { img: pcIcon() }, lines: [need.length ? `有 ${need.length} 个任务在等你，最急的是「${need[0].name}」（${STATUS[need[0].state]}）。` : '没有任务在等你。', `${w} 个任务正在干活，今天已经收获 ${harvestToday} 个。`, '远在纽约也能看见农场的作物 · 回农场再去处理吧。'] }); }
+  else if (k === 'coffee') { Sound.water(); hint('做了一杯美式 · 窗外的城市也还没睡'); for (let i = 0; i < 14; i++) steam.push({ x: 100 + Math.random() * 4, y: 60 - Math.random() * 3, life: 50 + i * 5 }); }
+  else if (k === 'stove') { Sound.water(); hint('灶上煮着一锅番茄浓汤，香味飘满了整个客厅'); for (let i = 0; i < 12; i++) steam.push({ x: 74 + Math.random() * 14, y: 62, life: 50 + i * 5 }); }
+  else if (k === 'apple') { Sound.pop(); hint('一碗红苹果 · 纽约的外号就叫「大苹果」'); for (let i = 0; i < 3; i++) hearts.push({ x: 52 + i * 4, y: 54, vy: -0.3, life: 50 + i * 8 }); }
+  else if (k === 'island') { Sound.clank(); hint('给自己倒了半杯红酒，靠在中岛边看夜景'); }
+  else if (k === 'dining') { Sound.paper(); hint('六人餐桌上点着两根蜡烛，白色的花刚换过'); }
+  else if (k === 'pizza') { Sound.paper(); hint('掀开盒子：还剩两角纽约披萨，对折着吃才地道'); for (let i = 0; i < 8; i++) steam.push({ x: 220 + Math.random() * 10, y: 146, life: 40 + i * 4 }); }
+  else if (k === 'bar') { Sound.clank(); hint('酒推车上的冰桶里还有冰，调了一杯曼哈顿'); }
+  else if (k === 'scope') { Sound.blip(); hint(['帝国大厦的塔尖今晚亮成了万圣节的橙色和紫色', '望远镜里：时代广场的红色台阶上坐满了人', '哈德逊河上一艘渡轮慢慢开过，灯光倒映在水里'][Math.floor(now / 1000) % 3]); }
   else if (k === 'globe') { Sound.clank(); hint('摇了摇雪花球，小小的城市下起了雪'); }
   else if (k === 'nlamp') { TOG.nlamp = TOG.nlamp === false; Sound.blip(); hint(TOG.nlamp === false ? '关了落地灯，屋里只剩霓虹的颜色' : '落地灯亮了'); }
-  else if (k === 'neon') { TOG.nneon = TOG.nneon === false; Sound.blip(); hint(TOG.nneon === false ? '关了霓虹苹果灯' : '霓虹苹果灯嗡的一声亮了 · 纽约的外号就叫「大苹果」'); }
-  else if (k === 'photo') { Sound.paper(); hint('一张黑白老照片：清晨的曼哈顿天际线，帝国大厦的尖顶插进云里'); }
-  else if (k === 'guitar') { Sound.carolRiff ? Sound.carolRiff() : Sound.chime(); hint('拨了几个和弦，楼下的出租车按了声喇叭当伴奏'); }
-  else if (k === 'nshelf') { Sound.paper(); openDialog({ title: '矮书架', portrait: { img: bookIcon() }, lines: ['一张折起来的地铁线路图，彩色的线像一碗面。', '一尊绿色的小雕像，举着火炬。', '一排黑胶唱片，最上面那张是《午夜的蓝调》。'] }); }
-  else if (k === 'plant') { Sound.cloth(); hint('琴叶榕的叶子擦得发亮，雨点敲在它身后的玻璃上'); }
+  else if (k === 'console') { Sound.clank(); hint('把钥匙丢进玄关的托盘里，白色兰花开得正好'); }
+  else if (k === 'nshelf') { Sound.paper(); openDialog({ title: '书柜', portrait: { img: bookIcon() }, lines: ['一排建筑画册，最厚的那本讲的是曼哈顿的摩天楼。', '一尊绿色的小雕像，举着火炬。', '一张折起来的地铁线路图，彩色的线像一碗面。'] }); }
+  else if (k === 'plant' || k === 'monstera') { Sound.cloth(); hint(k === 'plant' ? '橄榄树在落地窗边长得很好' : '龟背竹的叶子擦得发亮，雨点敲在它身后的玻璃上'); }
   else if (k === 'nycgift') {
     const d = today();
     if (tripGifts.nyc !== d) {
