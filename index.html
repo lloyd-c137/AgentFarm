@@ -611,7 +611,7 @@ SPR.fogIcon = fromRows(['............', 'oooooooooo..', '............', '..ooooo
 /* ---------- sound: everything synthesized with Web Audio, nothing to download ---------- */
 const Sound = (() => {
   let ac = null, master, music, mfade, echoIn, sfx, sfxE, amb, on = false, nextT = 0, stepN = 0, timer = 0, nextAmb = 0, nextFx = 0, nextCrackle = 0, nextTick = 0, nextStroke = 0;
-  let engG, jetG, fireG, windBP, windG, engO1, engO2;
+  let engG, jetG, fireG, windBP, windG, engO1, engO2, cityG, nextCity = 0;
   const SOUND_KEY = 'ai-farm-sound';
   // sound is on by default; browsers only let it start after the first click or key press
   let wanted = true; try { wanted = localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) { /* ignore */ }
@@ -653,12 +653,13 @@ const Sound = (() => {
     jetG = bus(0, master); loopNoise(520, 0.5, 'lowpass', jetG);
     fireG = bus(0, master); loopNoise(240, 0.6, 'lowpass', fireG);
     windG = bus(0, master); windBP = loopNoise(420, 1.4, 'bandpass', windG);
+    cityG = bus(0, master); loopNoise(180, 0.5, 'lowpass', cityG); loopNoise(700, 0.8, 'bandpass', bus(0.3, cityG));
     return true;
   }
 
   /* --- five themes, each its own tempo, all original except the public-domain carol --- */
   let theme = 'farm', pending = null, switchAt = 0;
-  const STEP = { farm: 60 / 88 / 2, home: 60 / 76 / 2, mine: 0.42, travel: 60 / 126 / 2, xmas: 60 / 116 / 2 };
+  const STEP = { farm: 60 / 88 / 2, home: 60 / 76 / 2, mine: 0.42, travel: 60 / 126 / 2, xmas: 60 / 116 / 2, jazz: 60 / 132 / 3, spooky: 60 / 100 / 2 };
   // farm: C major, four-chord loop, a little skipping melody (night drops it an octave)
   const CHORDS = [[48, [60, 64, 67]], [45, [57, 60, 64]], [41, [53, 57, 60]], [43, [55, 59, 62]]];
   const MELODY = [
@@ -718,13 +719,39 @@ const Sound = (() => {
     const m = CAROL[bar][beat]; if (m) { tone(midi(m), t, EX * 1.6, 'triangle', 0.16, music); tone(midi(m + 12), t, EX * 0.5, 'sine', 0.03, music); }
     if (beat % 2 === 0) noise(t, 0.06, 7200, 1.2, beat % 4 === 0 ? 0.06 : 0.035, music);
   }
-  const SCHED = { farm: scheduleFarm, home: scheduleHome, mine: scheduleMine, travel: scheduleTravel, xmas: scheduleCarol };
+  // jazz: an original swing tune in F for New York; walking bass on every beat, ride cymbal, piano comping on the swung offbeats
+  // (steps are triplet eighths, 12 to a bar; notes land on a beat or on its swung "and")
+  const JAZZ_CH = [[53, [57, 60, 64]], [50, [54, 57, 60]], [43, [58, 62, 65]], [48, [52, 55, 58]], [45, [55, 60, 64]], [50, [54, 57, 60]], [43, [58, 62, 65]], [53, [57, 60, 64]]];
+  const JAZZ_BASS = [[41, 45, 48, 50], [50, 54, 57, 56], [43, 46, 50, 49], [48, 52, 55, 52], [45, 48, 52, 51], [50, 48, 45, 42], [43, 50, 48, 52], [41, 45, 48, 40]];
+  const JAZZ_MEL = [[0, 0, 0, 69, 0, 72, 76, 0, 0, 74, 0, 72], [0, 0, 0, 69, 0, 0, 66, 0, 69, 72, 0, 0], [70, 0, 0, 0, 0, 69, 70, 0, 74, 77, 0, 0], [76, 0, 0, 0, 0, 0, 74, 0, 72, 70, 0, 67],
+    [69, 0, 0, 0, 0, 72, 76, 0, 0, 79, 0, 0], [78, 0, 0, 0, 0, 76, 74, 0, 0, 72, 0, 0], [70, 0, 74, 0, 0, 0, 76, 0, 74, 72, 0, 70], [69, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+  function scheduleJazz(t) {
+    const S = STEP.jazz, bar = Math.floor(stepN / 12) % 8, st = stepN % 12, beat = Math.floor(st / 3), [, tones] = JAZZ_CH[bar];
+    if (st % 3 === 0) tone(midi(JAZZ_BASS[bar][beat]), t, S * 2.6, 'triangle', 0.2, music);
+    if (st === 0 || st === 3 || st === 5 || st === 6 || st === 9 || st === 11) noise(t, st % 3 === 2 ? 0.05 : 0.12, 7600, 1.4, st % 3 === 2 ? 0.02 : 0.03, music);
+    if (st === 3 || st === 9) noise(t, 0.03, 5200, 2, 0.025, music);
+    if (st === 5 || (st === 11 && bar % 2) || (st === 2 && bar % 4 === 3)) for (const n of tones) tone(midi(n), t, S * 1.6, 'sine', 0.04, music);
+    const m = JAZZ_MEL[bar][st]; if (m) { tone(midi(m), t, S * 2.4, 'triangle', 0.12, echoIn, midi(m) * 0.995); tone(midi(m + 12), t, S * 0.8, 'sine', 0.018, music); }
+  }
+  // spooky: an original 6/8 waltz in D minor for Salem; a plucked harpsichord arpeggio, a slow bass, a music-box tune that leans on its sharps
+  const SPOOK_CH = [[38, [62, 65, 69]], [38, [62, 65, 69]], [34, [58, 62, 65]], [33, [57, 61, 64]], [38, [62, 65, 69]], [31, [55, 58, 62]], [33, [57, 61, 64]], [38, [62, 65, 69]]];
+  const SPOOK_MEL = [[62, 0, 65, 69, 0, 68], [69, 0, 0, 0, 0, 0], [70, 0, 69, 70, 0, 74], [73, 0, 0, 0, 0, 0], [74, 0, 72, 70, 0, 69], [67, 0, 70, 74, 0, 72], [73, 0, 70, 69, 0, 67], [62, 0, 0, 0, 0, 0]];
+  function scheduleSpooky(t) {
+    const S = STEP.spooky, bar = Math.floor(stepN / 6) % 8, st = stepN % 6, [root, tones] = SPOOK_CH[bar];
+    if (st === 0) { tone(midi(root + 12), t, S * 2.8, 'sine', 0.2, music); tone(midi(root + 12), t, S * 5.5, 'triangle', 0.05, music); }
+    if (st === 3) tone(midi(root + 19), t, S * 2.4, 'sine', 0.12, music);
+    tone(midi([tones[0], tones[1], tones[2], tones[2] + 12, tones[2], tones[1]][st]), t, 0.09, 'square', 0.026, music);
+    const m = SPOOK_MEL[bar][st]; if (m) bell(midi(m + 12), t, S * 3, 0.09, echoIn);
+    if (bar === 3 && st === 3) tone(midi(81), t, 1.4, 'sine', 0.025, echoIn, midi(74));
+  }
+  const SCHED = { farm: scheduleFarm, home: scheduleHome, mine: scheduleMine, travel: scheduleTravel, xmas: scheduleCarol, jazz: scheduleJazz, spooky: scheduleSpooky };
   function scheduleStep(t) { SCHED[theme](t); stepN++; }
 
   // which theme and which ambient beds fit where the farmer is right now
+  const CITY_THEME = { london: 'xmas', nyc: 'jazz', salem: 'spooky' };
   function sceneTheme() {
-    if (cut) return ['taxi', 'window'].includes(cut.kind) ? 'xmas' : 'travel';
-    if (scene === 'london') return 'xmas';
+    if (cut) return ['taxi', 'nycTaxi', 'salemRide', 'window'].includes(cut.kind) ? CITY_THEME[cut.city || trip] || 'xmas' : 'travel';
+    if (CITY_THEME[scene]) return CITY_THEME[scene];
     if (scene === 'mine') return 'mine';
     if (scene === 'airport') return 'travel';
     if (scene === 'house' || scene === 'bedroom' || scene === 'coop') return 'home';
@@ -732,12 +759,17 @@ const Sound = (() => {
   }
   function beds() {
     const T = ac.currentTime, k = cut && cut.kind, set = (g, v, tc = 0.5) => g.gain.setTargetAtTime(v, T, tc);
-    const driving = k === 'drive' || k === 'driveHome' || k === 'taxi', flying = k === 'flight' || k === 'flightHome';
+    const driving = k === 'drive' || k === 'driveHome' || k === 'taxi' || k === 'nycTaxi' || k === 'salemRide', flying = k === 'flight' || k === 'flightHome';
+    const city = k === 'window' ? cut.city : k ? null : scene;
+    // New York: the low roar of traffic, a horn now and then; Salem: an owl, a crow, the crowd on the street below
+    set(cityG, city === 'nyc' ? (k === 'window' ? 0.06 : 0.025) : k === 'nycTaxi' ? 0.05 : 0, 0.8);
+    if ((city === 'nyc' || k === 'nycTaxi') && T > nextCity) { const f0 = 380 + Math.random() * 90, g0 = k === 'window' || k === 'nycTaxi' ? 0.03 : 0.012; tone(f0, T, 0.18, 'square', g0, sfx); tone(f0 * 1.26, T, 0.18, 'square', g0 * 0.8, sfx); if (Math.random() < 0.4) { tone(f0, T + 0.26, 0.3, 'square', g0, sfx); tone(f0 * 1.26, T + 0.26, 0.3, 'square', g0 * 0.8, sfx); } nextCity = T + 3 + Math.random() * 7; }
+    if ((city === 'salem' || k === 'salemRide') && T > nextCity) { const r0 = Math.random(); if (r0 < 0.5) { tone(360, T, 0.32, 'sine', 0.05, sfxE, 330); tone(330, T + 0.42, 0.5, 'sine', 0.045, sfxE, 300); } else if (r0 < 0.75) { tone(520, T, 0.16, 'sawtooth', 0.025, sfx, 300); tone(500, T + 0.22, 0.18, 'sawtooth', 0.02, sfx, 280); } else if (k === 'window') { for (let i = 0; i < 4; i++) tone(500 + Math.random() * 300, T + i * 0.09, 0.08, 'triangle', 0.012, sfx, 420); } nextCity = T + 4 + Math.random() * 6; }
     set(engG, driving ? 0.11 : 0); if (driving) { const w = 46 + Math.sin(T * 0.7) * 3; engO1.frequency.setTargetAtTime(w, T, 0.3); engO2.frequency.setTargetAtTime(w * 1.5, T, 0.3); }
     set(jetG, flying ? 0.2 : scene === 'airport' && !k ? 0.035 : 0);
-    const fire = (scene === 'london' && !k) || k === 'window';
+    const fire = ((scene === 'london' || scene === 'salem') && !k) || (k === 'window' && city !== 'nyc');
     set(fireG, fire ? (k === 'window' ? 0.03 : 0.06) : 0);
-    const windy = k === 'window' ? 0.07 : scene === 'mine' && !k ? 0.03 : 0;
+    const windy = k === 'window' ? (city === 'nyc' ? 0.02 : 0.07) : scene === 'mine' && !k ? 0.03 : scene === 'salem' && !k ? 0.02 : 0;
     set(windG, windy, 1); if (windy) windBP.frequency.setTargetAtTime(300 + Math.sin(T * 0.37) * 140 + Math.sin(T * 1.3) * 60, T, 0.4);
     // rain only out on the farm; muffled indoors, silent underground and abroad
     const wet = isWet(), rain = wet ? (weather.kind === 'storm' ? 0.035 : 0.02) * weather.amt : 0;
@@ -1127,7 +1159,7 @@ let mouse = { x: -1, y: -1 }, umouse = { x: -1, y: -1 };
 let hover = null, hoverTag = null, coinPop = 0, crowFly = null;
 let uiHits = [], uiPanels = [], shopRects = [], closeRect = null, decorRects = [];
 let boardOpen = true; try { boardOpen = localStorage.getItem('ai-farm-board') !== 'closed'; } catch (e) { /* default open */ }
-const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen);
+const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen || destOpen);
 const toasts = [];
 const TOAST_LIFE = 4500;
 function hint(s) { toasts.push({ s, t0: performance.now() }); while (toasts.length > 6) toasts.shift(); }
@@ -1306,7 +1338,7 @@ function walkTo(x, y, pending) {
   if (!farmer.path.length) arrive();
 }
 function arrive() { const p = farmer.pending; farmer.pending = null; if (p) interact(p); }
-function footstep() { if (farmer.swim) return; const n = performance.now(); if (n - farmer.lastStep > 280) { farmer.lastStep = n; Sound.stepOn(scene === 'london' || scene === 'bedroom' ? 'carpet' : scene === 'airport' ? 'tile' : scene === 'house' || scene === 'coop' ? 'wood' : 'grass'); } }
+function footstep() { if (farmer.swim) return; const n = performance.now(); if (n - farmer.lastStep > 280) { farmer.lastStep = n; Sound.stepOn(scene === 'london' || scene === 'bedroom' ? 'carpet' : scene === 'airport' ? 'tile' : scene === 'house' || scene === 'coop' || scene === 'nyc' || scene === 'salem' ? 'wood' : 'grass'); } }
 function faceTo(dx, dy) { if (!dx && !dy) return; farmer.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
 const inWater = (x, y) => { const [px, py] = SCENE.pond, nx = (x - px) / 54, ny = (y - py) / 25; return scene === 'farm' && nx * nx + ny * ny < 1 && !(x >= px - 10 && x <= px + 10 && y >= py + 10); };
 let swimHinted = false;
@@ -1935,7 +1967,7 @@ function drawHelp() {
     else icon(SPR.pumpkin, lx + 4, ly + 6, 2);
     text(s, lx + 52, ly + 13, 12, k === 'drop' || k === 'bang' ? P.ALERT : P.INK);
   });
-  const ctl = ['点地面、方向键或 WASD：走路，镜头跟着农夫', '点作物、出货箱、邮箱、猫、小鸡：互动', '走近后按空格：互动', '点委托板或屏幕边的牌子：走去那株作物', 'Q：收起或展开委托板', 'B：商店　T：预览天气　Y：预览季节', 'M：音乐开关　H：打开这里', '点房门进屋 · 卧室的床能睡觉 · 池塘能游泳', '矿洞：左键挖 · B 建造 · X 自动 · L 伸缩梯', 'P：宠物（宠物屋在小屋右下方）', '大路西头的小货车：开去机场，坐飞机去伦敦'];
+  const ctl = ['点地面、方向键或 WASD：走路，镜头跟着农夫', '点作物、出货箱、邮箱、猫、小鸡：互动', '走近后按空格：互动', '点委托板或屏幕边的牌子：走去那株作物', 'Q：收起或展开委托板', 'B：商店　T：预览天气　Y：预览季节', 'M：音乐开关　H：打开这里', '点房门进屋 · 卧室的床能睡觉 · 池塘能游泳', '矿洞：左键挖 · B 建造 · X 自动 · L 伸缩梯', 'P：宠物（宠物屋在小屋右下方）', '大路西头的小货车：开去机场，飞伦敦、纽约或塞勒姆'];
   text('操作', x + 352, y + 54, 12, P.INK);
   ctl.forEach((s, i) => text(s, x + 352, y + 80 + i * 24, 12, P.INK_MUTED));
   text('所有玩法都不会改变任务状态，作物只听 AI 的', x + 352, y + h - 44, 12, P.INK_MUTED);
@@ -1956,6 +1988,7 @@ function drawUI(now) {
   if (helpOpen) drawHelp();
   if (petOpen) drawPetPanel();
   if (wardOpen) drawWardrobe(now);
+  if (destOpen) drawDest(now);
   if (dialog) drawDialog(now);
 }
 
@@ -1997,7 +2030,8 @@ function toggleBoard() { boardOpen = !boardOpen; Sound.wood(); try { localStorag
 ucv.addEventListener('mousemove', e => {
   setMouse(e); hover = null; hoverTag = null; let cursor = 'default';
   if (modal()) {
-    const rects = shopOpen ? shopRects.concat(closeRect ? [closeRect] : []) : (closeRect ? [closeRect] : []);
+    const rects = shopOpen ? shopRects.concat(closeRect ? [closeRect] : []) : destOpen ? destRects.concat(closeRect ? [closeRect] : []) : (closeRect ? [closeRect] : []);
+    if (destOpen) { const d = destRects.find(b => inRect(umouse, b)); if (d && d.i !== destSel) { destSel = d.i; } }
     cursor = dialog || rects.some(b => inRect(umouse, b)) ? 'pointer' : 'default';
   } else if (placing) cursor = 'crosshair';
   else {
@@ -2018,6 +2052,7 @@ ucv.addEventListener('click', e => {
   setMouse(e);
   if (sleep) { wake(); return; }
   if (scene === 'cut') { endCut(); return; }
+  if (destOpen) { destClick(); return; }
   if (petOpen) { petClick(); return; }
   if (wardOpen) { wardClick(); return; }
   const sb = uiHits.find(h => h.kind === 'sound' && inRect(umouse, h));
@@ -2089,6 +2124,7 @@ window.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (sleep) { e.preventDefault(); wake(); return; }
   if (scene === 'cut') { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endCut(); } return; }
+  if (destOpen) { destKey(e); return; }
   if (buildOpen && (e.key === 'Escape' || e.key === 'b' || e.key === 'B')) { buildOpen = false; Sound.wood(); return; }
   if (wardOpen && e.key === 'Escape') { wardOpen = false; Sound.wood(); return; }
   if (petOpen && (e.key === 'Escape' || e.key === 'p' || e.key === 'P')) { petOpen = false; Sound.paper(); return; }
@@ -2099,7 +2135,7 @@ window.addEventListener('keydown', e => {
   if (panelView && closeKey) { e.preventDefault(); panelView = null; Sound.paper(); return; }
   if (helpOpen && (closeKey || e.key === 'h' || e.key === 'H' || e.key === '?')) { e.preventDefault(); helpOpen = false; Sound.paper(); return; }
   if (MOVE_KEYS[e.key]) { e.preventDefault(); Sound.unlock(); if (!modal()) keys.add(MOVE_KEYS[e.key]); return; }
-  if ((e.key === ' ' || e.key === 'Enter') && farmer.seat && farmer.seat.id === 'winseat' && !modal()) { e.preventDefault(); lookOutside(); return; }
+  if ((e.key === ' ' || e.key === 'Enter') && farmer.seat && (farmer.seat.id === 'winseat' || farmer.seat.look) && !modal()) { e.preventDefault(); lookOutside(); return; }
   if ((e.key === ' ' || e.key === 'Enter') && !shopOpen && !placing) {
     e.preventDefault(); Sound.unlock();
     const near = interactables().filter(o => !o.noKey).map(o => ({ o, d: Math.hypot(o.spot.x - farmer.x, o.spot.y - farmer.y) })).sort((a, b) => a.d - b.d)[0];
@@ -2419,8 +2455,10 @@ function buildCoop(rm) {
 const ROOMS = {
   house: { name: '小屋', floor: { x: 98, y: 92, w: 284, h: 142 }, mat: { x: 240, y: 228 }, out: { x: HX + 49, y: HY + 90 }, build: buildHouse, block: [] },
   bedroom: { name: '卧室', parent: 'house', floor: { x: 148, y: 98, w: 184, h: 120 }, mat: { x: 240, y: 214 }, out: { x: 330, y: 102 }, build: buildBedroom, block: [] },
-  airport: { name: '机场', floor: { x: 20, y: 98, w: 440, h: 132 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildAirport, block: [], margin: '#5a5864', outdoor: true },
+  airport: { name: '机场', floor: { x: 20, y: 98, w: 440, h: 132 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildAirport, block: [], margin: '#5a5864', outdoor: true, overlay: airportOverlay },
   london: { name: '伦敦', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildLondon, block: [], night: true, paintWins: paintLondonWindows, overlay: londonOverlays },
+  nyc: { name: '纽约', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildNyc, block: [], night: true, paintWins: paintNycWindows, overlay: nycOverlays },
+  salem: { name: '塞勒姆', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildSalem, block: [], night: true, paintWins: paintSalemWindows, overlay: salemOverlays },
   coop: { name: '鸡舍', floor: { x: 154, y: 100, w: 172, h: 126 }, mat: { x: 240, y: 220 }, out: { x: CX + 26, y: CY + 50 }, build: buildCoop, block: [] }
 };
 const TOG = { flamp: true, lampL: true, lampR: true, flampB: false, fairy: true, kcurt: false, scurt: false, bcurt: false };
@@ -2456,7 +2494,7 @@ function roomInteract(p) {
   if (p.kind === 'pet' || p.kind === 'pethouse') { openPet(); return true; }
   if (p.kind === 'seat') { sitDown(p); return true; }
   if (p.kind === 'truck') { goAirport(); return true; }
-  if (londonInteract(p)) return true;
+  if (londonInteract(p) || (scene === 'nyc' && nycInteract(p)) || (scene === 'salem' && salemInteract(p))) return true;
   if (p.kind === 'mine') { enterMine(); return true; }
   if (p.kind === 'door') { enterRoom(p.room); return true; }
   if (scene === 'farm') return false;
@@ -2527,7 +2565,15 @@ function stepRoom() {
     if (Math.random() < (performance.now() - fireBoost < 2500 ? 0.3 : 0.06)) embers.push({ x: 230 + Math.random() * 20, y: 88, vx: (Math.random() - 0.5) * 0.15, life: 40 + Math.random() * 40 });
     if (Sound.on && Math.random() < 0.02) notes.push({ x: 112 + Math.random() * 8, y: 176, life: 120, p: Math.random() * 6 });
   }
-  for (let i = embers.length - 1; i >= 0; i--) { const e = embers[i]; e.life -= 1; e.y -= 0.35; e.x += e.vx + Math.sin(e.life / 6) * 0.1; if (e.life <= 0 || e.y < (scene === 'london' ? 58 : 72)) embers.splice(i, 1); }
+  if (scene === 'nyc') {
+    if (Sound.on && Math.random() < 0.014) notes.push({ x: 346 + Math.random() * 6, y: 192, life: 120, p: Math.random() * 6 });
+    if (Math.random() < 0.01) steam.push({ x: 96 + Math.random() * 4, y: 64, life: 40 });
+  }
+  if (scene === 'salem') {
+    if (Math.random() < (performance.now() - fireBoost < 2500 ? 0.3 : 0.07)) embers.push({ x: 112 + Math.random() * 48, y: 88, vx: (Math.random() - 0.5) * 0.15, life: 30 + Math.random() * 30 });
+    if (Math.random() < 0.04) embers.push({ x: 128 + Math.random() * 16, y: 72, vx: (Math.random() - 0.5) * 0.1, life: 40 + Math.random() * 30, green: true });
+  }
+  for (let i = embers.length - 1; i >= 0; i--) { const e = embers[i]; e.life -= 1; e.y -= e.green ? 0.25 : 0.35; e.x += e.vx + Math.sin(e.life / 6) * 0.1; if (e.life <= 0 || e.y < (scene === 'london' ? 58 : scene === 'salem' ? (e.green ? 44 : 58) : 72)) embers.splice(i, 1); }
   for (let i = notes.length - 1; i >= 0; i--) { const n = notes[i]; n.life -= 1; n.y -= 0.2; n.x += Math.sin(n.life / 14 + n.p) * 0.15; if (n.life <= 0) notes.splice(i, 1); }
   if (sleep) { if (tick % 50 === 0) zzz.push({ x: 226, y: 84, life: 150 }); if (performance.now() - sleep.t0 > 9000) wake(); }
   for (let i = zzz.length - 1; i >= 0; i--) { const z = zzz[i]; z.life -= 1; z.y -= 0.18; z.x += 0.12 + Math.sin(z.life / 12) * 0.12; if (z.life <= 0) zzz.splice(i, 1); }
@@ -2668,10 +2714,10 @@ function renderRoom(now) {
   L.globalCompositeOperation = 'lighter';
   const flick = anim ? 1 + Math.sin(now / 110) * 0.05 + Math.sin(now / 37) * 0.03 : 1;
   const lights = rm.getLights().filter(l => !sk || l[3] === 'fairy' || l[3] === 'candle' || l[3] === 'fire');
-  for (const [x, y, r0, kind] of lights) {
+  for (const [x, y, r0, kind, rgb] of lights) {
     const r = r0 * (kind === 'fire' || kind === 'candle' ? flick : 1), lx = x + OX, ly = y + OY, gr = L.createRadialGradient(lx, ly, 0, lx, ly, r);
-    const col = kind === 'screen' ? [140, 230, 170] : kind === 'fire' ? [255, 170, 90] : kind === 'fairy' ? [255, 200, 170] : kind === 'win' ? [120, 140, 210] : kind === 'tree' ? [255, 196, 130] : [255, 205, 140];
-    const a0 = kind === 'screen' ? 0.35 : kind === 'fairy' ? 0.45 : 0.8;
+    const col = rgb ? rgb : kind === 'screen' ? [140, 230, 170] : kind === 'fire' ? [255, 170, 90] : kind === 'fairy' ? [255, 200, 170] : kind === 'win' ? [120, 140, 210] : kind === 'tree' ? [255, 196, 130] : [255, 205, 140];
+    const a0 = kind === 'screen' ? 0.35 : kind === 'fairy' ? 0.45 : kind === 'neon' ? 0.55 : 0.8;
     gr.addColorStop(0, `rgba(${col}, ${a0})`); gr.addColorStop(0.5, `rgba(${col}, ${a0 * 0.38})`); gr.addColorStop(1, 'rgba(0, 0, 0, 0)');
     L.fillStyle = gr; L.fillRect(lx - r, ly - r, r * 2, r * 2);
   }
@@ -2683,7 +2729,7 @@ function renderRoom(now) {
   }
   ctx.globalCompositeOperation = 'multiply'; ctx.drawImage(lightmap[0], -OX, -OY);
   ctx.globalCompositeOperation = 'lighter';
-  for (const [x, y, r0, kind] of lights) { if (kind === 'screen') continue; const r = r0 * (kind === 'fairy' ? 0.25 : 0.3), gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(110, 60, 20, 0.45)'); gr.addColorStop(1, 'rgba(0, 0, 0, 0)'); ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
+  for (const [x, y, r0, kind, rgb] of lights) { if (kind === 'screen' || rgb) continue; const r = r0 * (kind === 'fairy' ? 0.25 : 0.3), gr = ctx.createRadialGradient(x, y, 0, x, y, r); gr.addColorStop(0, 'rgba(110, 60, 20, 0.45)'); gr.addColorStop(1, 'rgba(0, 0, 0, 0)'); ctx.fillStyle = gr; ctx.fillRect(x - r, y - r, r * 2, r * 2); }
   ctx.globalCompositeOperation = 'source-over';
   if (isWet() && weather.kind === 'storm' && now - flashT < 90) { ctx.fillStyle = 'rgba(236, 240, 255, 0.2)'; ctx.fillRect(-OX, -OY, VW, VH); }
 }
@@ -4270,10 +4316,12 @@ function renderCut(now) {
   ctx.setTransform(1, 0, 0, 1, OX, OY); ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
   const x0 = -OX, x1 = VW - OX, wide = VW;
   // after a short establishing shot outside, the journeys are seen from your seat by the window
-  const inside = { drive: 1, driveHome: 1, flight: 1, flightHome: 1, taxi: 1 }[cut.kind];
+  const inside = { drive: 1, driveHome: 1, flight: 1, flightHome: 1, taxi: 1, nycTaxi: 1, salemRide: 1 }[cut.kind];
   if (inside && el >= EST) {
     if (cut.kind === 'drive' || cut.kind === 'driveHome') renderDriveWindow(now, el, cut.kind === 'drive', k);
     else if (cut.kind === 'taxi') renderTaxiWindow(now, el, k);
+    else if (cut.kind === 'nycTaxi') renderNycCabWindow(now, el, k);
+    else if (cut.kind === 'salemRide') renderSalemRideWindow(now, el, k);
     else renderFlightWindow(now, el, cut.kind === 'flight', k);
     const a = 1 - smooth(EST, EST + 380, el); if (a > 0) { ctx.globalAlpha = a; R(ctx, '#0a0810', x0, -OY, wide, VH); ctx.globalAlpha = 1; }
     ctx.setTransform(1, 0, 0, 1, 0, 0); return;
@@ -4308,13 +4356,15 @@ function renderCut(now) {
       const a = Math.min(1, (t - 0.72) / 0.2), gy = Math.round(270 - a * 50); R(ctx, '#141626', x0, gy, wide, 300);
       for (let i = 0; i < 220; i++) { const lx = x0 + ((i * 53.7) % wide), ly = gy + 6 + ((i * 29) % 46); R(ctx, i % 7 ? '#ffd890' : '#ffffff', Math.round(lx), ly, 1, 1); }
       for (let x = x0; x < x1; x++) { const ry = gy + 20 + Math.round(Math.sin(x / 50) * 8); R(ctx, '#2a3a5a', x, ry, 1, 4); }
-      if (out) drawSnow(now, x0, -OY, wide, VH, Math.min(1, (t - 0.72) * 4) * 0.7, 2);
+      if (out && trip === 'london') drawSnow(now, x0, -OY, wide, VH, Math.min(1, (t - 0.72) * 4) * 0.7, 2);
     }
     const bob = anim ? Math.round(Math.sin(el / 400) * 2) : 0, img = out ? VEH.plane : VEH.planeL;
     ctx.drawImage(img, 0, 0, img.width, img.height, 140, 100 + bob - (t > 0.7 && out ? -Math.round((t - 0.7) * 40) : 0), img.width * 2, img.height * 2);
     for (let i = 0; i < 30; i++) R(ctx, 'rgba(255,255,255,0.5)', out ? 140 - i * 6 : 340 + i * 6, 140 + bob + Math.round(Math.sin(i / 3) * 0.5), 5, 1);
   } else if (cut.kind === 'window') {
-    renderWindowView(now);
+    if (cut.city === 'nyc') renderTimesSquare(now); else if (cut.city === 'salem') renderSalemView(now); else renderWindowView(now);
+  } else if (cut.kind === 'nycTaxi' || cut.kind === 'salemRide') {
+    renderCityRideOut(now, el, k, cut.kind);
   } else if (cut.kind === 'taxi') {
     skyBands(now, '#141a34', '#3a3460', 0);
     const sk = el * 0.015;
@@ -4354,9 +4404,9 @@ function drawCutUI(now) {
 
 /* ---- the journeys ---- */
 function goAirport() { Sound.engine(); startFade(() => playCut('drive', 8500, '开着小货车去机场……', () => arriveAirport(80, 206))); }
-function arriveAirport(x, y) { scene = 'airport'; farmer.x = x; farmer.y = y; farmer.dir = 'right'; farmer.path = []; rebuildWalk(); hint('到机场了 · 走到飞机舷梯登机，去伦敦过圣诞'); }
-function flyLondon() { Sound.chime(); startFade(() => playCut('flight', 12000, '飞往伦敦 · 快进中（约 13 小时）', () => playCut('taxi', 9000, '伦敦下雪了 · 坐黑色出租车去市中心的家', () => arriveLondon()))); }
-function arriveLondon() { scene = 'london'; farmer.x = 240; farmer.y = 228; farmer.dir = 'up'; farmer.path = []; rebuildWalk(); hint('到家了 · 圣诞快乐！壁炉、圣诞树、钢琴都可以点'); }
+function arriveAirport(x, y) { scene = 'airport'; farmer.x = x; farmer.y = y; farmer.dir = 'right'; farmer.path = []; rebuildWalk(); hint('到机场了 · 看看出发牌，走到飞机舷梯选目的地'); }
+function flyLondon() { flyTo('london'); }
+function arriveLondon() { scene = 'london'; trip = 'london'; markVisited('london'); farmer.x = 240; farmer.y = 228; farmer.dir = 'up'; farmer.path = []; rebuildWalk(); hint('到家了 · 圣诞快乐！壁炉、圣诞树、钢琴都可以点'); }
 function flyHome() { Sound.chime(); startFade(() => playCut('flightHome', 11000, '飞回农场 · 快进中', () => playCut('driveHome', 7500, '从机场开车回农场……', () => arriveFarmByTruck()))); }
 function driveHome() { Sound.engine(); startFade(() => playCut('driveHome', 7500, '开车回农场……', () => arriveFarmByTruck())); }
 function arriveFarmByTruck() { scene = 'farm'; farmer.x = TRUCK_POS.x + 20; farmer.y = TRUCK_POS.y + 34; farmer.dir = 'down'; farmer.path = []; rebuildWalk(); hint('回到农场了'); }
@@ -4383,14 +4433,16 @@ function buildAirport(rm) {
   rm.props = [];
   const plane = { img: VEH.plane, x: 200, y: 104, base: 104 + VEH.plane.height };
   const stairs = (() => { const [cc, gg] = mk(20, 30); for (let i = 0; i < 8; i++) { R(gg, '#c8c4d2', 2 + i * 2, 28 - i * 3, 10, 2); R(gg, '#8e8a9a', 2 + i * 2, 29 - i * 3, 10, 1); } R(gg, '#f0c840', 2, 6, 1, 24); R(gg, '#f0c840', 17, 6, 1, 18); return outline(cc, P.OL); })();
-  rm.props.push(plane, { img: stairs, x: 248, y: 120, base: 152 }, { img: VEH.truck[0], x: 50, y: 170, base: 194 });
-  rm.block = [[0, 0, W, 98], [204, 120, 96, 18], [52, 182, 40, 12], [110, 118, 32, 14], [0, 230, W, 40], [392, 80, 20, 10], [440, 150, 12, 12]];
+  const board = { img: makeDeparturesBoard(), x: 318, y: 82 }; board.base = board.y + board.img.height; rm.board = board;
+  rm.props.push(plane, { img: stairs, x: 248, y: 120, base: 152 }, { img: VEH.truck[0], x: 50, y: 170, base: 194 }, board);
+  rm.block = [[0, 0, W, 98], [204, 120, 96, 18], [52, 182, 40, 12], [110, 118, 32, 14], [0, 230, W, 40], [392, 80, 20, 10], [440, 150, 12, 12], [322, 138, 70, 10]];
   rm.wins = [];
   rm.getLights = () => darkness() > 0.3 ? [[100, 52, 40], [180, 52, 40], [260, 52, 40], [401, 7, 20], [92, 184, 26]] : [];
   rm.items = [
-    { kind: 'board', name: '飞机舷梯 · 登机去伦敦', rect: { x: 246, y: 116, w: 24, h: 38 }, spot: { x: 262, y: 160 } },
+    { kind: 'board', name: '飞机舷梯 · 选目的地登机', rect: { x: 246, y: 116, w: 24, h: 38 }, spot: { x: 262, y: 160 } },
+    { kind: 'departures', name: '出发牌 · 伦敦 / 纽约 / 塞勒姆', rect: { x: 318, y: 82, w: 78, h: 58 }, spot: { x: 356, y: 160 } },
     { kind: 'truckHome', name: '小货车 · 开回农场', rect: { x: 50, y: 168, w: 44, h: 28 }, spot: { x: 72, y: 206 } },
-    { kind: 'terminal', name: '航站楼', rect: { x: 168, y: 56, w: 24, h: 30 }, spot: { x: 180, y: 104 } }
+    { kind: 'terminal', name: '航站楼 · 值机', rect: { x: 168, y: 56, w: 24, h: 30 }, spot: { x: 180, y: 104 } }
   ];
   rm.bg = [c, g];
 }
@@ -4503,9 +4555,9 @@ function londonInteract(p) {
   const now = performance.now(), k = p.kind;
   if (k === 'flyHome') { flyHome(); return true; }
   if (k === 'lookout') { lookOutside(); return true; }
-  if (k === 'board') { flyLondon(); return true; }
+  if (k === 'board' || k === 'departures') { openDest(); return true; }
   if (k === 'truckHome') { driveHome(); return true; }
-  if (k === 'terminal') { Sound.paper(); hint('值机办好了，登机牌上写着：伦敦 · 圣诞航班'); return true; }
+  if (k === 'terminal') { openDest(); hint('值机柜台：今天有飞伦敦、纽约和波士顿（去塞勒姆）的航班'); return true; }
   if (scene !== 'london') return false;
   ANIM[k] = now;
   if (k === 'lfire') { fireBoost = now; Sound.wood(); hint('添了一根圣诞柴，炉火噼啪作响'); for (let i = 0; i < 18; i++) fx.push({ kind: 'spark', x: 280 + Math.random() * 8, y: 80, vx: (Math.random() - 0.5) * 1.8, vy: -0.6 - Math.random() * 2, life: 34 }); }
@@ -4527,6 +4579,1045 @@ function londonInteract(p) {
   return true;
 }
 
+/* ---------- destinations: the airport's departures board offers London, New York and Salem (cosmetic, never touches tasks) ---------- */
+const DEST_ORDER = ['london', 'nyc', 'salem'];
+const DEST = {
+  london: { name: '伦敦', en: 'LONDON', code: 'LHR', tag: '圣诞', tagC: '#2e6a3a', lines: ['乔治亚风客厅，壁炉和圣诞树', '窗外下着雪，红色巴士驶过'], hours: '约 13 小时', fly: '飞往伦敦 · 快进中（约 13 小时）', ride: ['taxi', 9000, '伦敦下雪了 · 坐黑色出租车去市中心的家'], win: '窗外的伦敦 · 点击或按 Esc 回到屋里' },
+  nyc: { name: '纽约', en: 'NEW YORK', code: 'JFK', tag: '不夜城', tagC: '#3a4a9a', lines: ['时代广场边的高层公寓', '窗外是霓虹大屏和黄色出租车'], hours: '约 18 小时', fly: '飞往纽约 · 快进中（约 18 小时）', ride: ['nycTaxi', 9000, '到纽约了 · 坐黄色出租车穿过曼哈顿'], win: '窗外的时代广场 · 点击或按 Esc 回到屋里', hello: '到纽约的家了 · 唱片机、咖啡机、望远镜都可以点' },
+  salem: { name: '塞勒姆', en: 'SALEM', code: 'BOS', tag: '万圣节', tagC: '#b4501e', lines: ['「万圣节之都」的殖民老宅', '窗外南瓜灯、游人和无人机秀'], hours: '约 19 小时', fly: '飞往波士顿 · 快进中（约 19 小时）', ride: ['salemRide', 9000, '从波士顿开车去塞勒姆 · 女巫小镇正在过万圣节'], win: '窗外塞勒姆的万圣节夜 · 点击或按 Esc 回到屋里', hello: '到塞勒姆的老宅了 · 万圣节快乐！坩埚、水晶球、糖果碗都可以点' }
+};
+let trip = 'london', destOpen = false, destSel = 0, destRects = [], destBox = { x: 0, y: 0, w: 0, h: 0 };
+const TRIP_KEY = 'ai-farm-trips';
+let tripGifts = {}; try { tripGifts = JSON.parse(localStorage.getItem(TRIP_KEY) || '{}') || {}; } catch (e) { /* storage unavailable */ }
+function saveTrips() { try { localStorage.setItem(TRIP_KEY, JSON.stringify(tripGifts)); } catch (e) { /* ignore */ } }
+const halloweenSeason = () => { const d = new Date(); return d.getMonth() === 9 || (d.getMonth() === 10 && d.getDate() <= 2); };
+function openDest() { if (modal()) return; standUp(); keys.clear(); destOpen = true; destSel = Math.max(0, DEST_ORDER.indexOf(trip)); farmer.path = []; farmer.pending = null; hover = null; hoverTag = null; Sound.paper(); }
+function flyTo(id) {
+  const d = DEST[id]; if (!d) return; trip = id; destOpen = false; Sound.chime();
+  startFade(() => playCut('flight', 12000, d.fly, () => playCut(d.ride[0], d.ride[1], d.ride[2], () => (id === 'london' ? arriveLondon() : arriveCity(id)))));
+}
+function markVisited(id) { tripGifts.visited = tripGifts.visited || {}; if (!tripGifts.visited[id]) { tripGifts.visited[id] = true; saveTrips(); } }
+function arriveCity(id) { scene = id; trip = id; markVisited(id); const sp = ROOMS[id].spawn || { x: 240, y: 228 }; farmer.x = sp.x; farmer.y = sp.y; farmer.dir = 'up'; farmer.path = []; farmer.pending = null; rebuildWalk(); hint(DEST[id].hello); }
+
+// neon: the billboard colours of Times Square, cycling slowly
+const NEON = ['#ff3a8a', '#3ae0ff', '#ffd23a', '#8a5aff', '#3aff9a', '#ff7a2a'];
+function neonAt(i, t, now) { const ph = now / 2400 + i * 0.37, a = Math.floor(ph) + i, f = ph % 1; return mix(mix(NEON[a % 6], NEON[(a + 1) % 6], f), mix(NEON[(a + 2) % 6], NEON[(a + 3) % 6], f), t); }
+
+// little live postcards for the departures panel: 58x40 world pixels, scaled up
+const THUMB = {};
+function destThumb(id, now) {
+  if (!THUMB[id]) THUMB[id] = mk(58, 40);
+  const [c, g] = THUMB[id]; g.clearRect(0, 0, 58, 40);
+  if (id === 'london') {
+    for (let y = 0; y < 40; y++) R(g, mix('#0c1030', '#4a3a66', y / 40), 0, y, 58, 1);
+    fillCircle(g, '#f4f0dc', 30, 7, 3); R(g, '#d8d2bc', 29, 6, 1, 1);
+    for (let i = 0; i < 28; i++) { const a = i / 28 * Math.PI * 2 + now / 9000; R(g, (Math.floor(now / 300) + i) % 4 ? '#a0d8f8' : '#ffffff', Math.round(46 + Math.cos(a) * 8), Math.round(18 + Math.sin(a) * 8)); }
+    for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + now / 9000; for (let t = 2; t < 8; t += 2) R(g, '#4a5a8a', Math.round(46 + Math.cos(a) * t), Math.round(18 + Math.sin(a) * t)); }
+    R(g, '#3a3a50', 46, 18, 1, 12);
+    R(g, '#262840', 8, 8, 5, 26); R(g, '#262840', 7, 11, 7, 6); fillCircle(g, '#ffe8a0', 10, 14, 1); for (let i = 0; i < 4; i++) R(g, '#262840', 8 + (i >> 1), 7 - i, 5 - i, 1); R(g, '#262840', 10, 2, 1, 2);
+    for (let x = -3; x < 58; x += 9) { const h = 25 + ((x + 3) * 7) % 5; R(g, '#2a2236', x, h, 9, 40 - h); R(g, '#eef2fa', x, h, 9, 1); for (let wx = x + 2; wx < x + 8; wx += 3) R(g, (x + wx) % 4 ? '#ffd890' : '#1c2030', wx, h + 3, 1, 2); }
+    R(g, '#e8eef8', 0, 37, 58, 3);
+    const bx = Math.round((now / 45) % 90) - 22; R(g, '#b8202a', bx, 30, 15, 7); for (let k = 1; k < 14; k += 3) { R(g, '#ffe0a0', bx + k, 31, 2, 2); R(g, '#ffe0a0', bx + k, 34, 2, 1); } R(g, '#1a1820', bx + 3, 37, 2, 1); R(g, '#1a1820', bx + 11, 37, 2, 1);
+    for (let i = 0; i < 34; i++) { const f = SNOW[i]; R(g, f.big ? '#ffffff' : '#c8d4e8', Math.round(f.x * 58 + Math.sin(now / 900 + i) * 1.5), Math.round((f.y * 40 + now * 0.004 * (0.6 + f.s)) % 40)); }
+  } else if (id === 'nyc') {
+    for (let y = 0; y < 40; y++) R(g, mix('#0a0a24', '#6a2a5a', Math.pow(y / 40, 1.4)), 0, y, 58, 1);
+    for (let x = 0; x < 58; x += 4) { const h = 5 + (x * 13) % 15; R(g, '#1a1834', x, h, 4, 40 - h); if ((x * 3) % 7 === 0 && Math.floor(now / 600 + x) % 2) R(g, '#ff4040', x + 1, h - 1); for (let yy = h + 2; yy < 30; yy += 3) if ((x + yy) % 5) R(g, '#c8a868', x + 1 + (yy % 2), yy); }
+    const bb = (x, y, w, h, i) => { for (let yy = 0; yy < h; yy++) R(g, neonAt(i, yy / h, now), x, y + yy, w, 1); };
+    R(g, '#141226', 0, 5, 17, 35); R(g, '#141226', 41, 3, 17, 37);
+    bb(1, 7, 15, 9, 0); bb(2, 18, 13, 6, 1); bb(42, 5, 15, 11, 2); bb(43, 18, 13, 6, 3);
+    { const tx = (now / 30) % 30; for (let x = 0; x < 13; x++) if (((x + Math.floor(tx)) % 5) < 3) R(g, '#ffffff', 43 + x, 25, 1, 1); R(g, '#1a1a2a', 43, 24, 13, 3); for (let x = 0; x < 13; x++) if (((x + Math.floor(tx)) % 4) === 0) R(g, x % 2 ? '#3aff9a' : '#ff5a5a', 43 + x, 25, 1, 1); }
+    R(g, '#1c1a30', 25, 8, 8, 28); bb(25, 11, 8, 6, 4); bb(25, 19, 8, 5, 5); bb(25, 26, 8, 4, 1); R(g, '#a8a8c0', 28, 2, 2, 6); fillCircle(g, (Math.floor(now / 500) % 2) ? '#ffffff' : '#c8e8ff', 29, 2, 1);
+    for (let k = 0; k < 4; k++) R(g, k % 2 ? '#c82a3a' : '#ff5a6a', 22 - k, 30 + k, 14 + k * 2, 1);
+    R(g, '#22202c', 0, 34, 58, 6); for (let x = 0; x < 58; x += 6) R(g, '#3a3846', x, 37, 3, 1);
+    for (let i = 0; i < 5; i++) { const cx = Math.round(((now / (28 + i * 6)) + i * 19) % 76) - 9, cy = i % 2 ? 35 : 38, dir = i % 2 ? 1 : -1, xx = dir > 0 ? cx : 58 - cx; R(g, '#f2c414', xx, cy, 5, 2); R(g, '#fff4b0', xx + (dir > 0 ? 4 : 0), cy, 1, 1); }
+    for (let i = 0; i < 14; i++) R(g, NEON[i % 6], Math.round(18 + ((i * 37 + now / 160 * (i % 2 ? 1 : -1)) % 22 + 22) % 22), 30 + (i % 3), 1, 1);
+  } else {
+    for (let y = 0; y < 40; y++) R(g, mix('#140c2a', '#b4542a', Math.pow(y / 40, 1.8)), 0, y, 58, 1);
+    for (let i = 0; i < 12; i++) R(g, '#c8b8e8', (i * 17) % 58, (i * 11) % 14);
+    fillCircle(g, '#f2c060', 38, 13, 8); fillCircle(g, '#ffe0a0', 37, 12, 6); R(g, '#e0a850', 34, 14, 2, 1); R(g, '#e0a850', 40, 10, 2, 2); R(g, '#e0a850', 38, 16, 1, 1);
+    { const wx = Math.round((now / 55) % 100) - 20, wy = 12 + Math.round(Math.sin(now / 400) * 1); R(g, '#140a14', wx, wy + 2, 9, 1); R(g, '#140a14', wx + 9, wy + 1, 2, 3); R(g, '#140a14', wx + 3, wy - 1, 3, 3); R(g, '#140a14', wx + 4, wy - 3, 2, 2); R(g, '#140a14', wx + 5, wy - 5, 1, 2); R(g, '#140a14', wx + 2, wy - 2, 5, 1); }
+    for (let i = 0; i < 4; i++) { const bx = Math.round(10 + ((i * 23 + now / 40) % 50)), by = 6 + (i * 5) % 12 + Math.round(Math.sin(now / 150 + i) * 2), fl = Math.floor(now / 120 + i) % 2; R(g, '#140a14', bx, by, 1, 1); R(g, '#140a14', bx - 1 - fl, by - fl, 1, 1); R(g, '#140a14', bx + 1 + fl, by - fl, 1, 1); }
+    // the gabled old house, a bare tree, lit diamond-pane windows
+    const D = '#0e0a14';
+    R(g, D, 2, 22, 26, 18); for (let i = 0; i < 10; i++) { R(g, D, 4 + i, 22 - i, 10 - i * 2 > 0 ? 10 - i * 2 + 2 : 1, 1); R(g, D, 16 + i, 22 - i, Math.max(1, 12 - i * 2), 1); } R(g, D, 9, 10, 2, 4);
+    for (const [wx, wy] of [[5, 26], [12, 26], [19, 26], [8, 33], [20, 33]]) { R(g, (Math.floor(now / 700) + wx) % 7 ? '#ffb040' : '#ff8a20', wx, wy, 4, 4); R(g, D, wx + 1, wy + 1, 1, 1); R(g, D, wx + 2, wy + 2, 1, 1); }
+    R(g, D, 48, 18, 2, 22); for (const [dx, dy, l] of [[-1, 0, 6], [1, 2, 7], [-1, 6, 5], [1, 8, 4]]) for (let k = 0; k < l; k++) R(g, D, 49 + dx * k, 20 + dy - k, 1, 1);
+    R(g, '#1a1020', 0, 37, 58, 3);
+    for (const [px, s] of [[31, 0], [37, 1], [43, 2]]) { const f = Math.floor(now / 110 + s * 3) % 3; R(g, '#e2701e', px, 34, 5, 4); R(g, '#f8a040', px + 1, 34, 3, 1); R(g, '#3a5a2a', px + 2, 33, 1, 1); R(g, f ? '#ffe070' : '#ffc040', px + 1, 35, 1, 1); R(g, f ? '#ffe070' : '#ffc040', px + 3, 35, 1, 1); R(g, '#ffe070', px + 1, 37, 3, 1); }
+    for (let i = 0; i < 6; i++) { const lx = Math.round(((i * 13 + now / 30) % 66) - 4), ly = Math.round(((i * 7 + now / 70) % 40)); R(g, ['#e2701e', '#c8402a', '#e8b030'][i % 3], lx, ly, 1, 1); }
+  }
+  return c;
+}
+
+/* the departures panel */
+function drawDest(now) {
+  dim(); const { x, y, w, h } = destBox = box(640, 430);
+  panel(x, y, w, h); plaque(x + w / 2 - 90, y + 12, 180, 28, '选择目的地');
+  closeRect = closeBtn(x + w - 42, y + 12);
+  destRects = [];
+  const cw = 194, gap = 9, ch = 316;
+  DEST_ORDER.forEach((id, i) => {
+    const d = DEST[id], cx = x + 20 + i * (cw + gap), cy = y + 52, r = { x: cx, y: cy, w: cw, h: ch }, sel = destSel === i;
+    UR(sel ? P.Y[2] : P.WD[1], cx, cy, cw, ch); UR(sel ? P.PAPER_HI : '#ead1a4', cx + 2, cy + 2, cw - 4, ch - 4);
+    const th = destThumb(id, now), tw = cw - 20, thh = Math.round(tw * th.height / th.width);
+    UR(P.OL, cx + 8, cy + 8, tw + 4, thh + 4); uctx.drawImage(th, 0, 0, th.width, th.height, cx + 10, cy + 10, tw, thh);
+    let ty = cy + thh + 22;
+    text(d.name, cx + 12, ty, 24, P.INK); const nw = textW(d.name, 24);
+    text(`${d.code} · ${d.en}`, cx + 18 + nw, ty + 10, 12, P.INK_MUTED);
+    ty += 34;
+    const tag = d.tag + (id === 'salem' && halloweenSeason() ? ' · 当季' : ''), pw = textW(tag, 12) + 14; UR(d.tagC, cx + 12, ty, pw, 20); text(tag, cx + 19, ty + 4, 12, P.CREAM);
+    if (tripGifts.visited && tripGifts.visited[id]) text('去过', cx + cw - 14, ty + 4, 12, P.INK_MUTED, { align: 'right' });
+    ty += 30;
+    d.lines.forEach((s, k) => text(s, cx + 12, ty + k * 20, 12, P.INK));
+    ty += 48; text(`航程 ${d.hours}`, cx + 12, ty, 12, P.INK_MUTED);
+    const br = { x: cx + 12, y: cy + ch - 42, w: cw - 24, h: 30 };
+    UR(P.OL, br.x, br.y, br.w, br.h); UR(sel ? '#3a8a52' : P.WD[3], br.x + 2, br.y + 2, br.w - 4, br.h - 4); UR(sel ? '#5aaa6a' : P.WD[4], br.x + 2, br.y + 2, br.w - 4, 2);
+    text(sel ? `登机 → ${d.name}` : `${i + 1} · ${d.name}`, br.x + br.w / 2, br.y + 8, 12, P.CREAM, { align: 'center', shadow: P.OL });
+    destRects.push({ ...r, i });
+  });
+  text('点卡片登机 · ← → 或 1 2 3 选择，回车出发 · Esc 留在机场', x + w / 2, y + h - 34, 12, P.INK_MUTED, { align: 'center' });
+}
+function destClick() {
+  if (closeRect && inRect(umouse, closeRect)) { destOpen = false; Sound.paper(); return; }
+  const hit = destRects.find(r => inRect(umouse, r));
+  if (hit) { destSel = hit.i; flyTo(DEST_ORDER[hit.i]); return; }
+  if (!inRect(umouse, destBox)) { destOpen = false; Sound.paper(); }
+}
+function destKey(e) {
+  const k = e.key;
+  if (k === 'Escape') { destOpen = false; Sound.paper(); }
+  else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { destSel = (destSel + 2) % 3; Sound.blip(); }
+  else if (k === 'ArrowRight' || k === 'd' || k === 'D') { destSel = (destSel + 1) % 3; Sound.blip(); }
+  else if (k === '1' || k === '2' || k === '3') { destSel = +k - 1; flyTo(DEST_ORDER[destSel]); }
+  else if (k === 'Enter' || k === ' ') flyTo(DEST_ORDER[destSel]);
+  e.preventDefault();
+}
+// the departures board at the airport: a split-flap sign whose status lights blink
+function makeDeparturesBoard() {
+  return propCanvas(78, 66, g => {
+    R(g, '#56545e', 8, 52, 3, 14); R(g, '#56545e', 67, 52, 3, 14); R(g, '#3a3842', 6, 64, 7, 2); R(g, '#3a3842', 65, 64, 7, 2);
+    R(g, '#26242e', 0, 0, 78, 54); R(g, '#3e3c48', 0, 0, 78, 2); R(g, '#16141c', 2, 13, 74, 39);
+    R(g, '#2e7a44', 2, 2, 74, 11); g.drawImage(glyphs('出发', 12, '#f4f0ea'), 5, 1); g.drawImage(glyphs('DEP', 12, '#a8e0b8'), 50, 1);
+    DEST_ORDER.forEach((id, i) => { const yy = 14 + i * 12, d = DEST[id]; R(g, '#201e28', 3, yy + 11, 72, 1); g.drawImage(glyphs(d.code, 12, '#ffd23a'), 5, yy - 1); g.drawImage(glyphs(d.name, 12, '#f4f0ea'), 29, yy - 1); });
+  });
+}
+function airportOverlay(now, anim, ents) {
+  const b = ROOMS.airport.board; if (!b) return;
+  ents.push({ y: b.y + b.img.height + 0.5, draw: () => { DEST_ORDER.forEach((id, i) => { const on = !anim || (Math.floor(now / 520) + i) % 3 !== 0; R(ctx, on ? '#5aff8a' : '#1e4a2a', b.x + 69, b.y + 18 + i * 12, 3, 3); }); } });
+}
+
+/* ---- New York: a loft high over Midtown. Exposed brick and an open kitchen on the left, a wall of glass over Times Square on the right,
+   the front door down by the kitchen. Laid out differently from London on purpose: glass right, kitchen left, door bottom-left ---- */
+const NYC = { wall: ['#1a1c26', '#24263a', '#2e3146', '#3a3e56', '#4a4f6a'], oak: ['#2e2018', '#4a3426', '#5a402e', '#684a36', '#7a5a42'], leather: ['#4a2a12', '#7a4a1e', '#a0662a', '#c08440', '#dca460'], walnut: ['#2a1810', '#4a2c1c', '#6a4028', '#8a5636', '#a86e44'], brick: ['#3a1a14', '#5a2a20', '#6e3428', '#80402e', '#94503a'], ink: ['#141428', '#1e2240', '#2a3058', '#3a4272', '#4e5890'] };
+function roomBottom(g, doorX) { R(g, '#2a2420', 76, 236, doorX - 76, 8); R(g, '#2a2420', doorX + 32, 236, 404 - doorX - 32, 8); R(g, '#0e0c10', doorX, 236, 32, 8); R(g, '#4a3a30', doorX - 2, 236, 2, 8); R(g, '#4a3a30', doorX + 32, 236, 2, 8); }
+function buildNyc(rm) {
+  const [c, g] = mk(W, H), o = { x: 80, y: 36, w: 320, h: 200 };
+  shellRoom(g, o);
+  rm.door = { x: 112, w: 32 }; rm.spawn = { x: 128, y: 228 }; rm.look = { x: 214, y: 96, w: 176, h: 12 };
+  // left: exposed brick, a bit of soot and old paint ghosts
+  const B = NYC.brick;
+  for (let y = 36; y < 96; y++) for (let x = 80; x < 200; x++) { const row = Math.floor((y - 36) / 4), mort = (y - 36) % 4 === 3 || (x + (row % 2) * 5) % 10 === 0; let col = mort ? '#3a2620' : B[2 + ((x * 7 + row * 13) % 3 === 0 ? 1 : 0)]; if (!mort && bay(x, y) > 0.9) col = B[4]; if (!mort && bay(x, y) < 0.08) col = B[1]; R(g, col, x, y); }
+  for (let x = 82; x < 196; x += 3) if (bay(x, 40) > 0.6) R(g, 'rgba(230,220,200,0.08)', x, 38, 3, 16);
+  // a concrete column, the ceiling soffit with a spot track
+  R(g, '#4a4a54', 196, 36, 10, 60); R(g, '#5a5a66', 196, 36, 2, 60); R(g, '#34343c', 204, 36, 2, 60);
+  R(g, '#121218', 80, 36, 320, 2); for (let x = 90; x < 196; x += 26) { R(g, '#121218', x, 38, 3, 3); R(g, '#fff0c8', x + 1, 40, 1, 1); }
+  // right: the glass wall, black steel, the city painted live underneath
+  const WX = 208, WY = 38, WW = 188, WH = 58;
+  R(g, '#0c0c10', WX - 2, WY, WW + 4, WH); g.clearRect(WX, WY, WW, WH);
+  rm.wins = [[WX, WY, WW, WH, null]];
+  for (let k = 1; k < 4; k++) R(g, '#0c0c10', WX + Math.round(WW * k / 4) - 1, WY, 2, WH);
+  R(g, '#0c0c10', WX, WY + 40, WW, 2); R(g, '#3a3a46', WX - 2, WY + WH - 1, WW + 4, 2); R(g, '#5a5a6a', WX - 2, WY + WH - 1, WW + 4, 1);
+  for (let i = 0; i < 58; i++) { const ww = 8 - Math.floor(Math.abs(i - 36) / 7); R(g, i % 3 ? 'rgba(232,228,240,0.5)' : 'rgba(200,196,214,0.5)', WX - 1, 38 + i, ww, 1); }
+  // the open kitchen: neon on the brick, a shelf, subway tiles, walnut cabinets, marble counter
+  R(g, NYC.walnut[3], 86, 52, 106, 2); R(g, NYC.walnut[1], 86, 54, 106, 1);
+  for (const [x, col] of [[88, '#e8e6ec'], [94, '#d84a3a'], [100, '#1a1a22'], [106, '#f2c414']]) { R(g, col, x, 46, 4, 6); R(g, col, x + 4, 48, 1, 2); }
+  for (let x = 82; x < 196; x += 2) if ((x * 13) % 7 < 3) R(g, '#0e0a10', x, 40, 1, 1);
+  for (let y = 100; y < 112; y++) for (let x = 112; x < 176; x++) R(g, ((x >> 2) + (y >> 1)) % 2 ? '#3a4a5a' : '#2e3a48', x, y);
+  R(g, '#3a7a3a', 184, 46, 6, 6); R(g, '#5aa050', 185, 43, 2, 4); R(g, '#5aa050', 188, 44, 2, 3); R(g, '#c8b898', 184, 50, 6, 2);
+  for (let y = 56; y < 72; y++) for (let x = 86; x < 192; x++) R(g, (y - 56) % 3 === 2 || (x + ((y - 56) / 3 | 0) % 2 * 3) % 6 === 0 ? '#b8b4c0' : (bay(x, y) > 0.85 ? '#ffffff' : '#ecebf0'), x, y);
+  R(g, NYC.walnut[2], 84, 76, 110, 20); for (let x = 84; x < 194; x += 22) { R(g, NYC.walnut[1], x, 77, 1, 19); R(g, '#c8c4cc', x + 9, 81, 4, 1); }
+  R(g, '#e8e6ec', 82, 72, 114, 4); R(g, '#ffffff', 82, 72, 114, 1); for (let x = 84; x < 194; x += 9) R(g, '#c8c4d0', x, 73, 4, 1); R(g, '#a8a4b0', 82, 75, 114, 1);
+  R(g, '#2a2a30', 118, 70, 22, 2); for (const bx of [121, 133]) { fillCircle(g, '#4a4a54', bx, 70, 2); }
+  R(g, '#8a8a96', 118, 56, 22, 3); R(g, '#c8c8d4', 118, 56, 22, 1); R(g, '#5a5a66', 124, 50, 10, 6);
+  R(g, '#9a9aa8', 90, 60, 16, 12); R(g, '#c8c8d4', 90, 60, 16, 2); R(g, '#1a1a22', 93, 64, 10, 4); R(g, '#e8e6ec', 96, 68, 4, 4); R(g, '#d84a3a', 103, 62, 2, 2);
+  R(g, '#a8784a', 146, 66, 16, 6); R(g, '#c89a6a', 146, 66, 16, 1); R(g, '#e8c890', 149, 64, 9, 3); R(g, '#c89a5a', 150, 64, 7, 1);
+  R(g, '#f4f0e6', 170, 68, 14, 4); R(g, '#d8d0c0', 170, 71, 14, 1); for (const [ax, ay] of [[172, 65], [176, 64], [180, 65], [174, 62], [178, 62]]) { fillCircle(g, '#c8282e', ax, ay, 2); R(g, '#ff6a5a', ax - 1, ay - 1, 1, 1); R(g, '#3a2a1a', ax, ay - 3, 1, 1); }
+  R(g, '#2e5a32', 186, 62, 3, 10); R(g, '#4a8a4a', 186, 62, 3, 1); R(g, '#c8b898', 186, 60, 3, 2);
+  // floors: terrazzo in the kitchen, oak in the living room, a brass threshold between
+  for (let y = 96; y < 236; y++) for (let x = 80; x < 200; x++) { const b = bay(x * 3, y * 3); R(g, b > 0.93 ? '#8a8a94' : b < 0.06 ? '#e8e6ea' : b > 0.8 ? '#b8b4bc' : '#c8c6cc', x, y); }
+  for (let y = 96; y < 236; y += 20) R(g, '#a8a6ae', 80, y, 120, 1); for (let x = 100; x < 200; x += 20) R(g, '#a8a6ae', x, 96, 1, 140);
+  plankFloor(g, 200, 96, 200, 140, NYC.oak); R(g, '#c8a050', 199, 96, 2, 140); R(g, 'rgba(10,8,12,0.35)', 80, 96, 320, 3);
+  roomBottom(g, rm.door.x);
+  // a deep blue rug with a mustard grid under the living room
+  for (let y = 132; y < 206; y++) for (let x = 226; x < 392; x++) { const e = Math.min(x - 226, 391 - x, y - 132, 205 - y); let col = NYC.ink[2]; if (e < 2) col = NYC.ink[0]; else if (e < 4) col = '#c8a050'; else if ((x - 226) % 20 === 10 || (y - 132) % 18 === 9) col = '#a8843c'; else if (bay(x, y) > 0.9) col = NYC.ink[3]; R(g, col, x, y); }
+  // props
+  const props = [];
+  const P_ = (img, x, y, blockH = 8, id) => { props.push({ img, x, y, base: y + img.height, id }); rm.block.push([x + 1, y + img.height - blockH - 1, img.width - 2, blockH]); };
+  const L2 = NYC.leather, WN = NYC.walnut, GR = ['#141418', '#1e1e26', '#2a2a34', '#3a3a46', '#4a4a58'];
+  // kitchen island with a bowl of lemons, wine and two glasses; stools
+  P_(propCanvas(66, 32, g2 => { rbox(g2, 0, 4, 66, 6, ['#a8a4b0', '#c8c4cc', '#e8e6ec', '#f4f4f8', '#ffffff'], 3); rbox(g2, 2, 10, 62, 14, WN, 2); for (let x = 4; x < 62; x += 5) R(g2, WN[1], x, 11, 1, 13); for (const sx of [10, 30, 50]) { R(g2, '#1a1a22', sx, 24, 8, 3); R(g2, '#3a3a46', sx, 24, 8, 1); R(g2, '#8a8a96', sx + 1, 27, 1, 5); R(g2, '#8a8a96', sx + 6, 27, 1, 5); }
+    R(g2, '#f4f0e6', 8, 1, 12, 4); for (const lx of [10, 13, 16]) { fillCircle(g2, '#f2d040', lx, 1, 2); } R(g2, '#3a1420', 40, -2, 3, 7); R(g2, '#5a2030', 40, -2, 1, 7); R(g2, '#e8e6ec', 46, 1, 2, 4); R(g2, '#7a1a2a', 46, 2, 2, 2); R(g2, '#e8e6ec', 50, 1, 2, 4); }), 96, 104, 10, 'island');
+  // a low bookcase with records, books and a little green statue
+  P_(propCanvas(40, 30, g2 => { rbox(g2, 0, 0, 40, 30, WN, 2); R(g2, WN[0], 2, 2, 36, 12); R(g2, WN[0], 2, 16, 36, 12); R(g2, WN[3], 0, 14, 40, 2); bookRow(g2, 3, 14, 22, 31); R(g2, '#5aa890', 30, 6, 3, 8); R(g2, '#5aa890', 29, 8, 5, 2); R(g2, '#7ac8b0', 31, 4, 1, 3); R(g2, '#3a7868', 28, 12, 7, 2); for (let i = 0; i < 9; i++) R(g2, ['#d84a3a', '#1a1a22', '#2a5aa8', '#f2c414', '#e8e6ec'][i % 5], 3 + i * 4, 18, 3, 10); }), 84, 168, 6, 'nshelf');
+  // the sofa, seen from behind (it faces the glass)
+  P_(propCanvas(72, 24, g2 => { rbox(g2, 0, 3, 8, 19, L2, 2); rbox(g2, 64, 3, 8, 19, L2, 2); rbox(g2, 7, 0, 58, 18, L2, 3); R(g2, L2[4], 8, 1, 56, 1); for (const sx of [26, 46]) R(g2, L2[1], sx, 2, 1, 14); R(g2, L2[1], 7, 17, 58, 3); R(g2, '#1a1418', 3, 22, 3, 2); R(g2, '#1a1418', 66, 22, 3, 2); R(g2, '#c84a3a', 12, 0, 10, 6); R(g2, '#e86a5a', 12, 0, 10, 1); R(g2, '#2a5aa8', 50, 0, 9, 5); R(g2, '#4a7ac8', 50, 0, 9, 1); R(g2, '#f4f0e6', 32, 1, 14, 3); for (let x = 30; x < 50; x += 2) R(g2, '#c8bfae', x, 3, 1, 2); }), 262, 170, 8, 'nsofa');
+  // round walnut coffee table: a pizza box, two cans, a candle
+  P_(propCanvas(44, 18, g2 => { R(g2, WN[1], 4, 9, 36, 3); R(g2, WN[3], 2, 2, 40, 8); R(g2, WN[4], 3, 2, 38, 1); R(g2, WN[1], 2, 9, 40, 1); R(g2, '#1a1418', 8, 12, 2, 6); R(g2, '#1a1418', 34, 12, 2, 6); R(g2, '#1a1418', 20, 12, 2, 5);
+    R(g2, '#e8d8b8', 6, 0, 18, 6); R(g2, '#c8b898', 6, 5, 18, 1); R(g2, '#c8282e', 10, 1, 10, 1); R(g2, '#c8282e', 11, 3, 8, 1); R(g2, '#f2c414', 28, 0, 3, 5); R(g2, '#c8282e', 32, 0, 3, 5); R(g2, '#f4f4f8', 28, 0, 3, 1); R(g2, '#f4f4f8', 32, 0, 3, 1); R(g2, '#f4f0e6', 37, 2, 3, 4); }), 276, 136, 6, 'ntable');
+  // lounge chair facing the glass
+  P_(propCanvas(26, 24, g2 => { rbox(g2, 2, 0, 22, 15, GR, 3); R(g2, '#5a5a6a', 4, 1, 18, 1); rbox(g2, 0, 6, 5, 12, WN, 3); rbox(g2, 21, 6, 5, 12, WN, 3); R(g2, '#141418', 6, 15, 14, 3); R(g2, '#8a8a96', 12, 18, 2, 4); R(g2, '#8a8a96', 6, 22, 14, 2); }), 352, 104, 6, 'nchair');
+  // brass telescope on a tripod by the glass
+  P_(propCanvas(18, 34, g2 => { R(g2, '#c8a050', 3, 4, 13, 4); R(g2, '#f0d080', 3, 4, 13, 1); R(g2, '#8a6a2a', 14, 3, 3, 6); R(g2, '#1a1a22', 1, 5, 2, 2); R(g2, '#5a4a3a', 8, 8, 2, 4); for (let i = 0; i < 22; i++) { R(g2, '#5a4a3a', 8 - Math.round(i * 0.3), 12 + i, 1, 1); R(g2, '#5a4a3a', 9 + Math.round(i * 0.3), 12 + i, 1, 1); R(g2, '#4a3a2a', 9, 12 + i, 1, 1); } }), 214, 92, 4, 'scope');
+  // credenza with the turntable and speakers, a crate of records beside it
+  P_(propCanvas(52, 30, g2 => { rbox(g2, 0, 10, 42, 16, WN, 3); for (let x = 2; x < 40; x += 13) R(g2, WN[1], x + 12, 12, 1, 13); R(g2, WN[4], 1, 10, 40, 1); R(g2, '#1a1418', 3, 26, 2, 4); R(g2, '#1a1418', 37, 26, 2, 4);
+    rbox(g2, 2, 2, 7, 9, GR, 2); fillCircle(g2, '#4a4a58', 5, 6, 2); rbox(g2, 33, 2, 7, 9, GR, 2); fillCircle(g2, '#4a4a58', 36, 6, 2);
+    rbox(g2, 12, 4, 18, 7, ['#6a4028', '#8a5636', '#c8b898', '#e8d8b8', '#f4ecd8'], 3); R(g2, '#1a1418', 14, 5, 10, 4); R(g2, '#c8c8d4', 26, 5, 1, 4); for (let i = 0; i < 4; i++) R(g2, ['#d84a3a', '#2a5aa8', '#f2c414', '#1a1a22'][i], 4 + i * 9, 13, 7, 9);
+    rbox(g2, 43, 14, 9, 16, ['#5a3a20', '#7a5030', '#9a6a3a', '#b8844a', '#c89a5a'], 2); for (let i = 0; i < 4; i++) R(g2, ['#1a1a22', '#d84a3a', '#e8e6ec', '#2a5aa8'][i], 44 + i * 2, 10, 2, 6); }), 330, 192, 8, 'vinyl');
+  // guitar on a stand, by the glass
+  P_(propCanvas(14, 36, g2 => { fillCircle(g2, '#c86a2a', 7, 27, 6); fillCircle(g2, '#c86a2a', 7, 19, 4); R(g2, '#1a1418', 6, 21, 3, 3); fillCircle(g2, '#2a1810', 7, 23, 2); R(g2, '#3a2418', 6, 2, 2, 17); R(g2, '#2a1810', 5, 0, 4, 3); R(g2, '#e8e6ec', 6, 4, 1, 14); R(g2, '#e8a050', 4, 24, 6, 1); R(g2, '#3a3a46', 2, 33, 10, 3); }), 380, 140, 4, 'guitar');
+  // fiddle-leaf fig in the corner of the glass
+  P_(propCanvas(20, 42, g2 => { R(g2, '#e8e6ec', 5, 32, 10, 10); R(g2, '#ffffff', 5, 32, 10, 1); R(g2, '#c8c4cc', 13, 33, 2, 9); R(g2, '#5a4030', 9, 14, 2, 18); for (const [lx, ly, s] of [[4, 2, 1], [11, 0, 1], [2, 10, 1], [12, 8, 1], [6, 16, 0], [13, 18, 0], [4, 22, 0]]) { fillCircle(g2, s ? '#3a7a3a' : '#2e6a32', lx + 2, ly + 3, 3); R(g2, '#5aa050', lx + 1, ly + 2, 2, 1); } }), 378, 80, 6, 'plant');
+  // arc floor lamp reaching over the sofa
+  P_(propCanvas(30, 52, g2 => { R(g2, '#1a1a22', 18, 48, 10, 4); R(g2, '#3a3a46', 18, 48, 10, 1); R(g2, '#c8c8d4', 22, 10, 2, 38); for (let i = 0; i < 18; i++) R(g2, '#c8c8d4', 22 - i, 10 - Math.round(Math.sin(i / 18 * Math.PI) * 8) + Math.round(i * 0.25), 1, 2); R(g2, '#c8c8d4', 1, 6, 9, 6); R(g2, '#f4f4f8', 1, 6, 9, 1); R(g2, '#fff0c8', 2, 11, 7, 1); }), 336, 128, 4, 'nlamp');
+  // side table with a snow globe of the city
+  P_(propCanvas(18, 22, g2 => { R(g2, WN[3], 0, 8, 18, 3); R(g2, WN[4], 0, 8, 18, 1); R(g2, '#1a1418', 2, 11, 2, 11); R(g2, '#1a1418', 14, 11, 2, 11); R(g2, '#5a3a24', 5, 6, 8, 2); fillCircle(g2, '#c8e8ff', 9, 3, 3); R(g2, '#4a9a7a', 8, 2, 2, 4); R(g2, '#ffffff', 7, 1, 1, 1); }), 236, 168, 4, 'globe');
+  // shopping bags by the door: today's souvenir
+  P_(propCanvas(26, 18, g2 => { R(g2, '#f4f0e6', 0, 4, 12, 14); R(g2, '#1a1a22', 3, 0, 1, 5); R(g2, '#1a1a22', 8, 0, 1, 5); R(g2, '#1a1a22', 3, 0, 6, 1); R(g2, '#d84a3a', 2, 9, 8, 3); R(g2, '#1a1a22', 13, 6, 12, 12); R(g2, '#f2c414', 15, 2, 1, 5); R(g2, '#f2c414', 22, 2, 1, 5); R(g2, '#f2c414', 15, 2, 8, 1); R(g2, '#f2c414', 16, 10, 6, 2); }), 152, 208, 4, 'nycgift');
+  props.push({ img: SPR.pumpkin, x: -100, y: -100, base: -100 });
+  rm.props = props;
+  rm.getLights = () => {
+    const now = performance.now(), L = [[262, 108, 96, 'neon', hexRGB(neonAt(0, 0.5, now))], [352, 112, 90, 'neon', hexRGB(neonAt(3, 0.5, now))], [300, 64, 70, 'win'], [138, 48, 40, 'neon', [255, 80, 160]], [136, 74, 46], [124, 106, 40]];
+    if (TOG.nlamp !== false) L.push([342, 138, 64]);
+    if (Sound.on) L.push([352, 196, 16, 'fairy']);
+    return L;
+  };
+  rm.items = [
+    { kind: 'flyHome', name: '门 · 坐飞机回农场', rect: { x: 112, y: 222, w: 32, h: 16 }, spot: { x: 128, y: 226 } },
+    { kind: 'lookout', name: '落地玻璃 · 看看时代广场', rect: { x: 208, y: 38, w: 188, h: 56 }, spot: { x: 300, y: 106 } },
+    { kind: 'seat', id: 'nsofa', name: '皮沙发 · 坐下看夜景', rect: { x: 262, y: 168, w: 72, h: 26 }, spot: { x: 298, y: 206 }, seat: { x: 298, hip: 175, pose: 'up', key: 193, id: 'nsofa', msg: '陷进沙发里，玻璃外的霓虹一闪一闪 · 按方向键起身' } },
+    { kind: 'seat', id: 'nchair', name: '窗边躺椅 · 坐下看夜景', rect: { x: 352, y: 102, w: 26, h: 26 }, spot: { x: 365, y: 132 }, seat: { x: 365, hip: 110, pose: 'up', key: 121, id: 'nchair', look: true, msg: '对着落地玻璃坐下 · 按空格看窗外，方向键起身' } },
+    { kind: 'vinyl', name: '唱片机 · 放一张爵士', rect: { x: 330, y: 190, w: 52, h: 32 }, spot: { x: 352, y: 228 } },
+    { kind: 'coffee', name: '咖啡机 · 做一杯咖啡', rect: { x: 88, y: 58, w: 20, h: 16 }, spot: { x: 98, y: 100 } },
+    { kind: 'apple', name: '一碗苹果', rect: { x: 168, y: 60, w: 18, h: 14 }, spot: { x: 176, y: 100 } },
+    { kind: 'bread', name: '面包板 · 一个刚买的贝果', rect: { x: 144, y: 62, w: 20, h: 12 }, spot: { x: 154, y: 100 } },
+    { kind: 'pizza', name: '茶几 · 披萨盒', rect: { x: 276, y: 134, w: 44, h: 20 }, spot: { x: 298, y: 164 } },
+    { kind: 'scope', name: '望远镜 · 看远处', rect: { x: 214, y: 90, w: 18, h: 36 }, spot: { x: 222, y: 132 } },
+    { kind: 'globe', name: '雪花球 · 摇一摇', rect: { x: 236, y: 166, w: 18, h: 24 }, spot: { x: 245, y: 198 } },
+    { kind: 'nlamp', name: '落地灯 · 开关', rect: { x: 336, y: 126, w: 30, h: 54 }, spot: { x: 344, y: 184 } },
+    { kind: 'guitar', name: '吉他 · 弹几下', rect: { x: 380, y: 138, w: 14, h: 38 }, spot: { x: 384, y: 182 } },
+    { kind: 'neon', name: '霓虹灯牌 · 开关', rect: { x: 112, y: 38, w: 54, h: 14 }, spot: { x: 138, y: 100 } },
+    { kind: 'nycgift', name: '购物袋 · 今天的纪念品', rect: { x: 152, y: 206, w: 26, h: 20 }, spot: { x: 166, y: 230 } },
+    { kind: 'nshelf', name: '矮书架 · 唱片和小雕像', rect: { x: 84, y: 166, w: 40, h: 32 }, spot: { x: 104, y: 204 } },
+    { kind: 'plant', name: '琴叶榕', rect: { x: 378, y: 78, w: 20, h: 44 }, spot: { x: 384, y: 128 } }
+  ];
+  rm.bg = [c, g];
+}
+// the view through the loft glass: a little live Times Square, rain beading on the panes
+function paintNycWindows(rm, now) {
+  const anim = !REDUCE;
+  for (const [x, y, w, h] of rm.wins) {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    for (let yy = 0; yy < h; yy++) R(ctx, mix('#08081e', '#6a2a5a', Math.pow(yy / h, 1.5)), x, y + yy, w, 1);
+    // searchlights sweeping the clouds
+    ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 2; i++) { const a = -Math.PI / 2 + Math.sin(now / 3000 + i * 2) * 0.5, bx = x + w * (0.3 + i * 0.45), by = y + h; ctx.globalAlpha = 0.06; ctx.fillStyle = '#c8d8ff'; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a - 0.05) * h * 2, by + Math.sin(a - 0.05) * h * 2); ctx.lineTo(bx + Math.cos(a + 0.05) * h * 2, by + Math.sin(a + 0.05) * h * 2); ctx.fill(); } ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    const fr = rng(311);
+    for (let xx = x - 4; xx < x + w;) { const bw = 6 + Math.floor(fr() * 9), bh = 16 + Math.floor(fr() * 28), top = y + h - bh - 8; R(ctx, '#181634', xx, top, bw, bh + 8); if (fr() < 0.4) { R(ctx, '#181634', xx + (bw >> 1) - 1, top - 5, 2, 5); if (!anim || Math.floor(now / 700 + xx) % 2) R(ctx, '#ff4040', xx + (bw >> 1) - 1, top - 6, 1, 1); } for (let wy = top + 2; wy < y + h - 8; wy += 3) for (let wx = xx + 1; wx < xx + bw - 1; wx += 2) if (fr() < 0.42) R(ctx, fr() < 0.8 ? '#c8a868' : '#e8e0c8', wx, wy, 1, 1); xx += bw + 1; }
+    const bb = (bx, by, bw, bh, i) => { for (let yy = 0; yy < bh; yy++) R(ctx, neonAt(i, yy / bh, now), bx, by + yy, bw, 1); };
+    R(ctx, '#121024', x, y + 8, 44, h); R(ctx, '#121024', x + w - 48, y + 4, 48, h);
+    bb(x + 4, y + 12, 36, 14, 0); bb(x + 6, y + 30, 30, 10, 1); bb(x + w - 44, y + 8, 40, 16, 2); bb(x + w - 42, y + 30, 34, 9, 3);
+    { const s = Math.floor(now / 90) % 40; R(ctx, '#0e0e18', x + w - 44, y + 26, 40, 3); for (let k = 0; k < 40; k++) if (((k + s) % 6) < 3) R(ctx, (k + s) % 12 < 6 ? '#3aff9a' : '#ff5a5a', x + w - 44 + k, y + 27, 1, 1); }
+    const cx = x + Math.round(w / 2);
+    R(ctx, '#1a182e', cx - 9, y + 10, 18, h); bb(cx - 9, y + 14, 18, 8, 4); bb(cx - 9, y + 24, 18, 7, 5); bb(cx - 9, y + 33, 18, 6, 2);
+    R(ctx, '#a8a8c0', cx - 1, y + 2, 2, 8); fillCircle(ctx, anim && Math.floor(now / 400) % 2 ? '#ffffff' : '#c8e8ff', cx, y + 3, 2);
+    for (let k = 0; k < 5; k++) R(ctx, k % 2 ? '#a8202e' : '#ff4a5a', cx - 12 - k, y + h - 11 + k, 24 + k * 2, 1);
+    R(ctx, '#1e1c28', x, y + h - 6, w, 6);
+    for (let i = 0; i < 9; i++) { const sp = 0.02 + (i % 3) * 0.006, dir = i % 2 ? 1 : -1, span = w + 20, px = ((((i * 47) + now * sp * dir) % span) + span) % span - 10; R(ctx, '#f2c414', x + Math.round(px), y + h - (i % 2 ? 5 : 3), 4, 2); R(ctx, dir > 0 ? '#fff6c0' : '#ff5a5a', x + Math.round(px) + (dir > 0 ? 3 : 0), y + h - (i % 2 ? 5 : 3), 1, 1); }
+    for (let i = 0; i < 26; i++) R(ctx, NEON[i % 6], x + Math.round(((i * 37 + now / 220 * (i % 2 ? 1 : -1)) % w + w) % w), y + h - 8 + (i % 2), 1, 1);
+    // rain on the glass: beads catching the neon, a few running down
+    const dr = rng(808); for (let i = 0; i < 40; i++) { const dx = x + dr() * w, run = dr() < 0.25, dy = run ? y + ((dr() * h + now * 0.01 * (1 + dr())) % h) : y + dr() * h, col = NEON[i % 6]; ctx.globalAlpha = 0.55; R(ctx, col, Math.round(dx), Math.round(dy), 1, 1); ctx.globalAlpha = 0.18; if (run) R(ctx, '#ffffff', Math.round(dx), Math.round(dy) - 6, 1, 6); ctx.globalAlpha = 1; }
+    ctx.globalAlpha = 0.07; ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(x + 20, y); ctx.lineTo(x + 46, y); ctx.lineTo(x + 6, y + h); ctx.lineTo(x - 20, y + h); ctx.fill(); ctx.beginPath(); ctx.moveTo(x + 120, y); ctx.lineTo(x + 130, y); ctx.lineTo(x + 100, y + h); ctx.lineTo(x + 90, y + h); ctx.fill(); ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+}
+function nycOverlays(now, anim, ents) {
+  const add = (y, draw) => ents.push({ y, draw });
+  // the record turns while the music plays; notes drift up
+  add(222.5, () => { const on = Sound.on, rx = 351, ry = 200; fillCircle(ctx, '#1a1418', rx, ry, 4); if (on && anim) { const a = now / 180; R(ctx, '#e8e6ec', rx + Math.round(Math.cos(a) * 3), ry + Math.round(Math.sin(a) * 1), 1, 1); } R(ctx, '#c8282e', rx - 1, ry - 1, 2, 2); for (const n of notes) { ctx.globalAlpha = Math.min(1, n.life / 40); const nx = Math.round(n.x), ny = Math.round(n.y); R(ctx, '#f2c414', nx, ny, 2, 2); R(ctx, '#f2c414', nx + 1, ny - 4, 1, 4); R(ctx, '#f2c414', nx + 2, ny - 4, 1, 1); ctx.globalAlpha = 1; } });
+  add(0, () => {
+    // the neon sign on the brick, buzzing, flickering now and then
+    if (TOG.nneon !== false) { const fl = anim && (Math.floor(now / 90) % 47 === 0 || Math.floor(now / 70) % 61 === 0); if (!fl) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(139, 45, 0, 139, 45, 34); g.addColorStop(0, 'rgba(255,70,150,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(105, 11, 68, 68); ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(glyphs('AGENT FARM', 12, '#ff6ab4'), 116, 37); ctx.drawImage(glyphs('AGENT FARM', 12, '#ffd0e8'), 116, 36); } else ctx.drawImage(glyphs('AGENT FARM', 12, '#5a2a40'), 116, 37); }
+    else ctx.drawImage(glyphs('AGENT FARM', 12, '#5a2a40'), 116, 37);
+    if (TOG.nlamp !== false) R(ctx, '#fff6d8', 338, 139, 7, 1);
+    for (const s of steam) { ctx.globalAlpha = Math.min(1, s.life / 40) * 0.7; R(ctx, '#f4f1ea', Math.round(s.x), Math.round(s.y), 1, 1); } ctx.globalAlpha = 1;
+    // neon washing the oak in front of the glass
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) { const col = hexRGB(neonAt(i, 0.4, now)), gx = 210 + i * 47, g = ctx.createLinearGradient(0, 96, 0, 146); g.addColorStop(0, `rgba(${col},0.18)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(gx, 96); ctx.lineTo(gx + 45, 96); ctx.lineTo(gx + 58, 146); ctx.lineTo(gx + 8, 146); ctx.closePath(); ctx.fill(); }
+    // the shadow of rain trickling down the glass, cast on the floor
+    for (let i = 0; i < 10; i++) { const x = 214 + ((i * 37) % 180), y = 98 + ((now * 0.02 + i * 23) % 40); ctx.globalAlpha = 0.12; R(ctx, '#c8d0ff', x, y, 1, 4); } ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'source-over';
+    const ga = age('globe', now); if (ga < 2600) { for (let i = 0; i < 6; i++) R(ctx, '#ffffff', 242 + ((i * 3 + Math.floor(ga / 120)) % 6), 166 + ((i * 2 + Math.floor(ga / 200)) % 5), 1, 1); }
+    const gu = age('guitar', now); if (gu < 1200) for (let i = 0; i < 3; i++) R(ctx, '#f2c414', 386 + i * 3, 150 - Math.round(gu / 40) - i * 3, 2, 2);
+  });
+  add(126.5, () => { const sa = age('scope', now); if (sa < 1400) R(ctx, '#fff8d0', 218, 94, 2, 2); });
+}
+function nycInteract(p) {
+  const now = performance.now(), k = p.kind;
+  ANIM[p.id || k] = now;
+  if (k === 'vinyl') { const v = Sound.toggle(); hint(v ? '唱针落下，萨克斯和低音提琴慢慢走起来' : '唱片停了，只剩窗外的车声'); if (v) for (let i = 0; i < 4; i++) notes.push({ x: 346 + Math.random() * 8, y: 192, life: 100 + i * 12, p: Math.random() * 6 }); }
+  else if (k === 'coffee') { Sound.water(); hint('做了一杯美式 · 窗外的城市也还没睡'); for (let i = 0; i < 14; i++) steam.push({ x: 96 + Math.random() * 4, y: 66 - Math.random() * 3, life: 50 + i * 5 }); }
+  else if (k === 'apple') { Sound.pop(); hint('一碗红苹果 · 纽约的外号就叫「大苹果」'); for (let i = 0; i < 3; i++) hearts.push({ x: 172 + i * 4, y: 56, vy: -0.3, life: 50 + i * 8 }); }
+  else if (k === 'bread') { Sound.paper(); hint('切开一个芝麻贝果，抹上奶油奶酪'); }
+  else if (k === 'pizza') { Sound.paper(); hint('掀开盒子：还剩两角纽约披萨，对折着吃才地道'); for (let i = 0; i < 8; i++) steam.push({ x: 284 + Math.random() * 10, y: 134, life: 40 + i * 4 }); }
+  else if (k === 'scope') { Sound.blip(); hint(['远处摩天楼的塔尖亮着灯，楼顶的红灯一闪一闪', '望远镜里：广场上有人在跳舞，大屏刚换了一支广告', '看见对面楼里有人也在用电脑加班 · 你的 AI 们正替你干活'][Math.floor(now / 1000) % 3]); }
+  else if (k === 'globe') { Sound.clank(); hint('摇了摇雪花球，小小的城市下起了雪'); }
+  else if (k === 'nlamp') { TOG.nlamp = TOG.nlamp === false; Sound.blip(); hint(TOG.nlamp === false ? '关了落地灯，屋里只剩霓虹的颜色' : '落地灯亮了'); }
+  else if (k === 'neon') { TOG.nneon = TOG.nneon === false; Sound.blip(); hint(TOG.nneon === false ? '关了霓虹灯牌' : '霓虹灯牌嗡的一声亮了'); }
+  else if (k === 'guitar') { Sound.carolRiff ? Sound.carolRiff() : Sound.chime(); hint('拨了几个和弦，楼下的出租车按了声喇叭当伴奏'); }
+  else if (k === 'nshelf') { Sound.paper(); openDialog({ title: '矮书架', portrait: { img: bookIcon() }, lines: ['一张折起来的地铁线路图，彩色的线像一碗面。', '一尊绿色的小雕像，举着火炬。', '一排黑胶唱片，最上面那张是《午夜的蓝调》。'] }); }
+  else if (k === 'plant') { Sound.cloth(); hint('琴叶榕的叶子擦得发亮，雨点敲在它身后的玻璃上'); }
+  else if (k === 'nycgift') {
+    const d = today();
+    if (tripGifts.nyc !== d) {
+      tripGifts.nyc = d; saveTrips();
+      const gift = !owned.hat.includes('cap') ? ['hat', 'cap', '棒球帽'] : !owned.shirt.includes('denimjk') ? ['shirt', 'denimjk', '牛仔夹克'] : null;
+      if (gift) { owned[gift[0]].push(gift[1]); saveOutfit(); Sound.ding(); hint(`购物袋里是一件${gift[2]}！回家去衣柜就能换上`); }
+      else { coins += 50; coinPop = now; save(); Sound.coin(); hint('购物袋里塞着 50 金币的找零'); }
+    } else { Sound.paper(); hint('今天的纪念品已经拆过了，明天再来逛'); }
+  }
+  else return false;
+  return true;
+}
+
+/* ---- Salem: the hall of a 17th-century timber-framed house, dressed for Halloween in the "Halloween Capital of the World".
+   First-period New England layout: a great inglenook hearth on the left, a steep boxed stair rising up the back wall,
+   small diamond-paned casements on the right, the door down in the right-hand corner. Floating candles, mist along the floor. ---- */
+const SLM = { plaster: ['#6a5a48', '#8a7a62', '#a8987a', '#c4b494', '#d8caa8'], oak: ['#1a120e', '#2a1c14', '#3a2818', '#4a3420', '#5a4028'], pine: ['#4a2e1c', '#6a4228', '#7a4e30', '#8a5a38', '#9a6842'], brick: ['#3a1c16', '#5a2a1e', '#7a3a26', '#94482e', '#a85a3a'], purple: ['#1e1030', '#2e1a48', '#48286a', '#6a3a8a', '#8a5aaa'], rug: ['#3a1a10', '#6a3418', '#a85a24', '#d88a3a', '#f0b860'] };
+function buildSalem(rm) {
+  const [c, g] = mk(W, H), o = { x: 80, y: 36, w: 320, h: 200 };
+  shellRoom(g, o);
+  rm.door = { x: 320, w: 32 }; rm.spawn = { x: 336, y: 228 }; rm.look = { x: 276, y: 96, w: 92, h: 12 };
+  // limewashed plaster, stained with age, between hewn oak posts; a summer beam across the top
+  for (let y = 36; y < 96; y++) for (let x = 80; x < 400; x++) { const b = bay(x, y); R(g, b > 0.9 ? SLM.plaster[4] : b < 0.12 ? SLM.plaster[2] : SLM.plaster[3], x, y); }
+  for (let x = 80; x < 400; x += 3) if (bay(x, 60) > 0.7) R(g, 'rgba(90,70,50,0.18)', x, 40 + (x * 7) % 40, 2, 3);
+  for (let y = 40; y < 96; y += 2) R(g, 'rgba(40,24,16,0.12)', 186, y, 8, 1);
+  R(g, SLM.oak[2], 80, 36, 320, 7); R(g, SLM.oak[3], 80, 36, 320, 1); R(g, SLM.oak[0], 80, 42, 320, 1); for (let x = 84; x < 400; x += 11) R(g, SLM.oak[1], x, 38, 4, 1);
+  for (const px of [80, 268, 372, 394]) { R(g, SLM.oak[2], px, 36, 6, 60); R(g, SLM.oak[3], px, 36, 1, 60); R(g, SLM.oak[1], px + 5, 36, 1, 60); }
+  // the great inglenook hearth: wide brick opening, a lintel beam, iron crane, trammel hooks, a bake oven door in the back
+  R(g, SLM.brick[2], 86, 40, 100, 56); for (let y = 40; y < 96; y += 4) for (let x = 86 + ((y / 4) % 2) * 4; x < 186; x += 8) { R(g, SLM.brick[1], x, y + 3, 8, 1); R(g, SLM.brick[1], x + 7, y, 1, 3); if (bay(x, y) > 0.7) R(g, SLM.brick[3], x + 1, y, 5, 1); if (bay(x + 3, y) < 0.15) R(g, '#2a1410', x + 2, y, 4, 1); }
+  R(g, '#0c0808', 98, 56, 76, 40); R(g, '#1a0e0a', 100, 58, 72, 38); for (let x = 100; x < 172; x += 2) R(g, '#140a08', x, 58 + (x % 3), 1, 8);
+  R(g, '#2a1610', 104, 62, 12, 10); R(g, '#3a2418', 105, 63, 10, 8); R(g, '#1a1018', 108, 66, 4, 1);
+  R(g, SLM.oak[2], 90, 50, 92, 7); R(g, SLM.oak[4], 90, 50, 92, 1); R(g, SLM.oak[0], 90, 56, 92, 1); for (let x = 92; x < 180; x += 7) R(g, SLM.oak[3], x, 52, 3, 1);
+  R(g, '#2a2a30', 168, 60, 2, 34); R(g, '#2a2a30', 132, 60, 38, 2); R(g, '#2a2a30', 136, 60, 1, 8); R(g, '#2a2a30', 160, 60, 1, 6); R(g, '#3a3a44', 159, 66, 3, 3);
+  R(g, '#3a2418', 112, 88, 48, 4); R(g, '#5a3424', 114, 86, 16, 3); R(g, '#5a3424', 132, 85, 18, 3); R(g, '#2a2a30', 110, 92, 6, 4); R(g, '#2a2a30', 156, 92, 6, 4);
+  // on the lintel: candles in pewter sticks, gourds, a black cat figure, an hourglass; cornstalks bound to either side
+  for (const x of [94, 176]) { R(g, '#8a8a96', x, 48, 4, 2); R(g, '#f4f0e0', x + 1, 41, 2, 7); }
+  for (const [gx, col] of [[112, '#e2802e'], [120, '#f2d06a'], [128, '#6a8a3a'], [136, '#e2802e'], [144, '#d8c8a8']]) { fillCircle(g, col, gx, 47, 2); R(g, mix(col, '#ffffff', 0.3), gx - 1, 46, 1, 1); R(g, '#3a5a2a', gx, 44, 1, 1); }
+  R(g, '#14101a', 156, 42, 6, 8); R(g, '#14101a', 157, 40, 1, 2); R(g, '#14101a', 160, 40, 1, 2); R(g, '#e8d040', 158, 43, 1, 1); R(g, '#e8d040', 160, 43, 1, 1); R(g, '#14101a', 162, 47, 3, 1);
+  R(g, '#c8a050', 166, 42, 6, 1); R(g, '#c8a050', 166, 49, 6, 1); R(g, '#e8d8b8', 167, 43, 4, 2); R(g, '#e8c870', 168, 46, 2, 3);
+  for (const [sx, dir] of [[82, 1], [186, -1]]) for (let i = 0; i < 44; i++) { R(g, i % 4 ? '#c8a050' : '#a8823c', sx + Math.round(Math.sin(i / 6) * 2) * dir, 52 + i, 3, 1); if (i < 10) R(g, '#e0bc6a', sx - 2 + (i % 5) * dir, 46 + i, 1, 1); }
+  // the steep boxed stair rising up the back wall, with a little cupboard door beneath it and a carved newel post
+  const sx0 = 198, sx1 = 262;
+  for (let i = 0; i < 12; i++) { const stx = sx0 + Math.round(i * (sx1 - sx0) / 12), sty = 96 - Math.round((i + 1) * 54 / 12); R(g, SLM.oak[3], stx, sty, Math.round((sx1 - sx0) / 12) + 1, 2); R(g, SLM.oak[4], stx, sty, Math.round((sx1 - sx0) / 12) + 1, 1); R(g, SLM.oak[1], stx, sty + 2, Math.round((sx1 - sx0) / 12) + 1, 96 - sty - 2); }
+  for (let x = sx0; x < sx1; x++) { const top = 96 - Math.round((x - sx0 + 5) * 54 / (sx1 - sx0)); R(g, SLM.oak[2], x, top + 4, 1, 96 - top - 4); if ((x - sx0) % 7 === 0) R(g, SLM.oak[1], x, top + 4, 1, 96 - top - 4); }
+  R(g, SLM.oak[0], 214, 74, 18, 22); R(g, SLM.oak[2], 215, 75, 16, 21); R(g, SLM.oak[1], 222, 75, 1, 21); R(g, '#c8a050', 228, 85, 1, 2);
+  for (let i = 0; i < 12; i++) { const bx = sx0 + 4 + Math.round(i * (sx1 - sx0 - 4) / 12), by = Math.max(43, 96 - Math.round((i + 1) * 54 / 12) - 12); R(g, SLM.oak[3], bx, by, 1, 96 - Math.round((i + 1) * 54 / 12) - by); } for (let x = sx0; x < sx1 + 2; x++) { const yy = 96 - Math.round((x - sx0 + 2) * 54 / (sx1 - sx0)) - 13; if (yy >= 43) R(g, SLM.oak[4], x, yy, 1, 2); }
+  R(g, SLM.oak[3], 194, 66, 6, 30); R(g, SLM.oak[4], 194, 66, 1, 30); R(g, SLM.oak[1], 199, 66, 1, 30); fillCircle(g, SLM.oak[4], 197, 64, 3);
+  // two small casements with leaded diamond panes on the right; the street outside is painted live underneath
+  rm.wins = [[280, 50, 34, 30, null], [326, 50, 34, 30, null]];
+  for (const [x, y, w, h] of rm.wins) { R(g, SLM.oak[1], x - 4, y - 4, w + 8, h + 8); R(g, SLM.oak[3], x - 4, y - 4, w + 8, 1); g.clearRect(x, y, w, h); R(g, SLM.oak[1], x + (w >> 1) - 1, y, 2, h); }
+  R(g, SLM.oak[3], 272, 80, 96, 4); R(g, SLM.oak[4], 272, 80, 96, 1); R(g, SLM.oak[1], 272, 84, 96, 1);
+  for (const [px, big] of [[282, 1], [306, 0], [330, 0], [352, 1]]) { const s = big ? 7 : 5; R(g, '#c25a18', px, 80 - s, s + 1, s); R(g, '#e2802e', px + 1, 80 - s, s - 1, s - 1); R(g, '#f7ae55', px + 1, 80 - s, 2, 1); R(g, '#3a5a2a', px + (s >> 1), 80 - s - 2, 1, 2); R(g, '#2a0e06', px + 1, 80 - s + 2, 2, 1); R(g, '#2a0e06', px + s - 2, 80 - s + 2, 2, 1); R(g, '#2a0e06', px + 1, 80 - 3, s - 1, 1); }
+  for (const x of [296, 342]) { R(g, '#f4f0e0', x, 72, 2, 8); R(g, '#d8d0b8', x + 1, 72, 1, 8); R(g, '#f4f0e0', x + 2, 75, 1, 2); }
+  // a settle bench below the windows with a quilt thrown over it
+  R(g, SLM.oak[2], 274, 86, 92, 10); R(g, SLM.oak[3], 274, 86, 92, 1); for (let x = 276; x < 364; x += 6) R(g, ['#8a2a24', '#c8a050', '#2e4a3a', '#5a2a4a'][((x - 276) / 6) % 4], x, 87, 6, 4);
+  // right corner: a tall cupboard of old books and apothecary jars (some faintly glowing)
+  R(g, SLM.oak[2], 376, 42, 20, 54); R(g, SLM.oak[3], 376, 42, 20, 2); for (let i = 0; i < 3; i++) { const sy = 54 + i * 13; R(g, SLM.oak[0], 378, sy - 9, 16, 9); R(g, SLM.oak[4], 378, sy, 16, 2); }
+  bookRow(g, 379, 54, 14, 1692); for (const [jx, col] of [[379, '#5aff8a'], [384, '#b060ff'], [389, '#c8602a']]) { R(g, col, jx, 61, 4, 6); R(g, mix(col, '#ffffff', 0.4), jx, 61, 1, 6); R(g, '#c8b898', jx, 60, 4, 1); } bookRow(g, 379, 80, 14, 1851);
+  // ceiling: cobwebs, bunches of herbs and garlic, a paper bat garland, a string of orange and purple lights along the beam
+  const web = (cx, cy, sx, sy) => { for (let k = 0; k < 4; k++) for (let i = 0; i < 14; i++) { const a = k / 3 * Math.PI / 2; R(g, 'rgba(240,236,228,0.55)', cx + sx * Math.round(Math.cos(a) * i), cy + sy * Math.round(Math.sin(a) * i)); } for (const rr of [4, 8, 12]) for (let t = 0; t <= 1; t += 0.08) R(g, 'rgba(240,236,228,0.45)', cx + sx * Math.round(Math.cos(t * Math.PI / 2) * rr), cy + sy * Math.round(Math.sin(t * Math.PI / 2) * rr)); };
+  web(86, 44, 1, 1); web(393, 44, -1, 1); web(267, 44, -1, 1);
+  for (const hx of [196, 210, 226]) { R(g, '#6a5a3a', hx, 43, 1, 6); for (let i = 0; i < 8; i++) R(g, i % 2 ? '#5a7a3a' : '#7a8a4a', hx - 2 + (i % 3), 48 + (i >> 1), 2, 1); R(g, '#8a4a6a', hx, 51, 1, 2); }
+  for (const hx of [240, 250]) { R(g, '#6a5a3a', hx, 43, 1, 4); for (let i = 0; i < 4; i++) { fillCircle(g, '#ece6d8', hx - 1 + (i % 2) * 2, 48 + i * 2, 1); } }
+  for (let x = 274; x < 370; x += 2) { const yy = 45 + Math.round(Math.abs(Math.sin((x - 274) / 48 * Math.PI)) * 3); R(g, '#1a1018', x, yy, 2, 1); if ((x - 274) % 16 === 0) { R(g, '#1a1018', x - 3, yy + 1, 7, 1); R(g, '#1a1018', x - 1, yy + 2, 3, 1); R(g, '#1a1018', x - 4, yy, 1, 1); R(g, '#1a1018', x + 4, yy, 1, 1); } }
+  rm.bulbs = []; for (let x = 92; x < 182; x += 6) rm.bulbs.push([x, 43 + Math.round(Math.abs(Math.sin((x - 92) / 45 * Math.PI)) * 3), x]);
+  for (const [bx, by] of rm.bulbs) R(g, '#1a1018', bx - 2, by - 1, 6, 1);
+  // wide pine floorboards; a braided rug before the hearth
+  plankFloor(g, 80, 96, 320, 140, SLM.pine);
+  for (let y = 96; y < 236; y++) for (let x = 80; x < 400; x += 1) if (bay(x * 5, y * 2) > 0.985) R(g, '#3a2214', x, y, 2, 1);
+  ovalRug(g, 140, 150, 50, 22, SLM.rug);
+  for (let a = 0; a < Math.PI * 2; a += 0.05) for (const k of [0.88, 0.6, 0.32]) R(g, SLM.rug[0], Math.round(140 + Math.cos(a) * 50 * k), Math.round(150 + Math.sin(a) * 22 * k), 1, 1);
+  R(g, '#2a1a14', 76, 236, 244, 8); R(g, '#2a1a14', 352, 236, 52, 8); R(g, '#0e0a0c', 320, 236, 32, 8);
+  // props
+  const props = [];
+  const P_ = (img, x, y, blockH = 8, id) => { props.push({ img, x, y, base: y + img.height, id }); rm.block.push([x + 1, y + img.height - blockH - 1, img.width - 2, blockH]); };
+  const OK = SLM.oak;
+  // the cauldron on the crane, glowing green from within
+  P_(propCanvas(26, 20, g2 => { fillCircle(g2, '#1a1a20', 13, 11, 9); R(g2, '#1a1a20', 3, 4, 20, 8); R(g2, '#2a2a34', 4, 4, 18, 1); R(g2, '#3a3a46', 2, 3, 22, 2); R(g2, '#5aff8a', 5, 3, 16, 1); R(g2, '#3ac86a', 6, 4, 14, 1); R(g2, '#2a2a34', 6, 6, 2, 8); R(g2, '#1a1a20', 6, 18, 3, 2); R(g2, '#1a1a20', 17, 18, 3, 2); }), 124, 70, 2, 'cauldron');
+  // a grandfather clock beside the stair
+  P_(propCanvas(16, 56, g2 => { rbox(g2, 1, 0, 14, 16, OK, 3); fillCircle(g2, '#e8dcc0', 8, 8, 5); R(g2, '#1a1418', 8, 5, 1, 4); R(g2, '#1a1418', 8, 8, 3, 1); rbox(g2, 3, 16, 10, 30, OK, 2); R(g2, '#c8a050', 7, 18, 2, 18); fillCircle(g2, '#c8a050', 8, 38, 3); rbox(g2, 1, 46, 14, 10, OK, 3); R(g2, OK[4], 1, 0, 14, 1); R(g2, OK[0], 0, 55, 16, 1); }), 268, 42, 4, 'sclock');
+  // the fortune teller's table: purple cloth, a crystal ball, tarot, a candle, two stools
+  P_(propCanvas(44, 30, g2 => { const pu = SLM.purple; rbox(g2, 4, 6, 36, 14, pu, 2); R(g2, pu[3], 4, 6, 36, 2); for (let x = 5; x < 40; x += 3) R(g2, pu[1], x, 12, 1, 8); R(g2, '#d4a032', 4, 19, 36, 1); for (let x = 6; x < 39; x += 4) R(g2, '#d4a032', x, 20, 1, 2); R(g2, '#1a1018', 8, 22, 2, 4); R(g2, '#1a1018', 34, 22, 2, 4);
+    R(g2, '#8a6a2a', 17, 4, 10, 3); R(g2, '#c8a050', 17, 4, 10, 1); fillCircle(g2, '#b8a0f0', 22, 0, 5); fillCircle(g2, '#d8c8ff', 21, -1, 3); R(g2, '#ffffff', 19, -3, 1, 1);
+    for (let i = 0; i < 3; i++) { R(g2, '#f4ecd8', 6 + i * 3, 4 - (i % 2), 4, 5); R(g2, '#6a3a8a', 7 + i * 3, 5 - (i % 2), 2, 3); } R(g2, '#f4f0e0', 34, 0, 2, 6); R(g2, '#8a8a96', 33, 6, 4, 1);
+    for (const sx of [0, 38]) { R(g2, OK[3], sx, 22, 6, 3); R(g2, OK[1], sx + 1, 25, 1, 5); R(g2, OK[1], sx + 4, 25, 1, 5); } }), 228, 132, 8, 'crystal');
+  // a rocking chair beside the hearth
+  P_(propCanvas(22, 30, g2 => { rbox(g2, 3, 0, 16, 4, OK, 3); for (let x = 5; x < 18; x += 3) R(g2, OK[3], x, 4, 1, 12); rbox(g2, 2, 15, 18, 5, OK, 3); R(g2, OK[2], 3, 20, 2, 6); R(g2, OK[2], 17, 20, 2, 6); for (let i = 0; i < 22; i++) R(g2, OK[3], i, 26 + Math.round(Math.abs(i - 11) / 5), 1, 2); R(g2, '#a85a24', 5, 12, 12, 4); R(g2, '#d88a3a', 5, 12, 12, 1); for (let x = 4; x < 18; x += 2) R(g2, '#8a2a24', x, 16, 1, 3); }), 172, 104, 6, 'rocker');
+  // a friendly skeleton sitting on the bottom stair, in a witch hat
+  P_(propCanvas(22, 34, g2 => { const B = '#ece6d8', S = '#b8b0a0';
+    fillCircle(g2, B, 11, 9, 4); R(g2, '#1a1418', 9, 8, 2, 2); R(g2, '#1a1418', 12, 8, 2, 2); R(g2, '#1a1418', 11, 10, 1, 1); R(g2, S, 9, 12, 5, 1); for (let x = 9; x < 14; x += 2) R(g2, '#1a1418', x, 12, 1, 1);
+    R(g2, B, 10, 14, 2, 10); for (let y = 15; y < 22; y += 2) R(g2, B, 7, y, 8, 1); R(g2, B, 4, 15, 2, 8); R(g2, B, 16, 15, 2, 8); R(g2, B, 6, 24, 10, 2); R(g2, B, 6, 26, 2, 7); R(g2, B, 14, 26, 2, 7); R(g2, S, 5, 32, 4, 1); R(g2, S, 13, 32, 4, 1);
+    R(g2, '#1e1630', 4, 5, 15, 2); for (let i = 0; i < 6; i++) R(g2, '#2e2048', 7 + Math.round(i * 0.6), 4 - i, 8 - Math.round(i * 1.2), 1); R(g2, '#e87a28', 7, 4, 8, 1); R(g2, '#e2802e', 17, 27, 4, 4); R(g2, '#2a1a10', 18, 26, 2, 1); }), 200, 98, 4, 'skelly');
+  // the carving table: one pumpkin waiting for a face, a knife, the scooped seeds
+  P_(propCanvas(28, 28, g2 => { rbox(g2, 0, 12, 28, 4, OK, 3); R(g2, OK[1], 2, 16, 2, 12); R(g2, OK[1], 24, 16, 2, 12); blob(g2, 14, 6, 9, 6.5, P.PK, 1, 4); R(g2, P.T[2], 13, -1, 3, 3); R(g2, '#c8c8d4', 24, 9, 1, 3); R(g2, '#5a3a24', 24, 11, 2, 2); R(g2, '#f4e8c0', 2, 10, 2, 1); R(g2, '#f4e8c0', 5, 11, 2, 1); R(g2, '#e2802e', 3, 11, 2, 1); }), 92, 186, 6, 'carve');
+  // a pewter pot of candy for the trick-or-treaters, by the door
+  P_(propCanvas(22, 18, g2 => { fillCircle(g2, '#26262e', 11, 10, 8); R(g2, '#26262e', 2, 4, 18, 7); R(g2, '#3a3a46', 1, 3, 20, 2); for (let i = 0; i < 12; i++) R(g2, ['#e2802e', '#8a5aaa', '#f4f0e0', '#c8282e', '#5ac86a', '#f2c414'][i % 6], 3 + ((i * 5) % 16), 1 + (i % 3), 2, 2); R(g2, '#1a1a20', 4, 16, 3, 2); R(g2, '#1a1a20', 15, 16, 3, 2); }), 292, 206, 4, 'candy');
+  // hay bale with pumpkins, gourds and a lantern in the right-hand corner
+  P_(propCanvas(36, 26, g2 => { rbox(g2, 0, 14, 36, 12, HAY, 2); for (let x = 1; x < 35; x += 3) R(g2, HAY[1], x, 16, 1, 9); R(g2, '#6a4a20', 0, 19, 36, 1); blob(g2, 8, 10, 7, 5, P.PK, 1, 4); blob(g2, 21, 11, 5, 4, P.PK, 1, 4); R(g2, '#f4ecd8', 14, 6, 5, 4); R(g2, P.T[2], 8, 4, 2, 2); R(g2, P.T[2], 21, 6, 2, 2); R(g2, '#2a2a30', 28, 4, 6, 10); R(g2, '#ffd890', 29, 6, 4, 6); R(g2, '#2a2a30', 30, 2, 2, 2); }), 360, 156, 6, 'hay');
+  // an old sea chest from the days of the clipper ships, a doormat, leaves blown in under the door
+  P_(propCanvas(34, 22, g2 => { rbox(g2, 0, 4, 34, 18, ['#2a1810', '#4a2c1c', '#6a4028', '#8a5636', '#a86e44'], 2); for (let y = 0; y < 6; y++) R(g2, '#5a3424', 1 + Math.round(y * 0.3), y, 32 - Math.round(y * 0.6), 1); R(g2, '#8a5636', 2, 0, 30, 1); for (const bx of [5, 16, 27]) R(g2, '#3a3a44', bx, 1, 2, 21); R(g2, '#c8a050', 15, 8, 4, 4); R(g2, '#1a1418', 16, 10, 2, 1); R(g2, '#c8c4d0', 2, 14, 30, 1); }), 362, 196, 6, 'chest');
+  for (const [lx, ly, col] of [[318, 230, '#e8702a'], [326, 226, '#c8402a'], [344, 231, '#f0b040'], [310, 222, '#a85a2a'], [352, 224, '#e8702a'], [300, 232, '#c8402a']]) { R(g, col, lx, ly, 3, 2); R(g, mix(col, '#000000', 0.3), lx + 1, ly + 1, 1, 1); }
+  for (let y = 226; y < 235; y++) for (let x = 322; x < 350; x++) R(g, ((x + y) % 3) ? '#7a5a34' : '#5a4024', x, y);
+  props.push({ img: SPR.pumpkin, x: -100, y: -100, base: -100 });
+  rm.props = props;
+  rm.getLights = () => {
+    const now = performance.now(), L = [[136, 90, 84, 'fire'], [137, 72, 44, 'cauldron', [120, 255, 150]], [250, 132, 34, 'crystal', [190, 140, 255]], [96, 40, 14, 'candle'], [178, 40, 14, 'candle'], [297, 70, 16, 'candle'], [343, 70, 16, 'candle'], [297, 64, 40, 'win'], [343, 64, 40, 'win'], [384, 62, 16, 'jar', [120, 255, 150]], [386, 62, 12, 'jar', [190, 110, 255]], [392, 168, 22, 'candle']];
+    for (const x of [285, 309, 333, 356]) L.push([x, 76, 12, 'candle']);
+    for (let i = 0; i < 5; i++) L.push([234 + i * 10, 104 + Math.round(Math.sin(now / 900 + i * 1.7) * 3), 14, 'candle']);
+    if (TOG.carved) L.push([106, 186, 30, 'candle']);
+    for (let x = 98; x < 182; x += 28) L.push([x, 46, 16, 'fairy']);
+    return L;
+  };
+  rm.items = [
+    { kind: 'flyHome', name: '门 · 坐飞机回农场', rect: { x: 320, y: 222, w: 32, h: 16 }, spot: { x: 336, y: 226 } },
+    { kind: 'lookout', name: '格子窗 · 看看窗外的万圣节', rect: { x: 278, y: 48, w: 84, h: 34 }, spot: { x: 320, y: 104 } },
+    { kind: 'seat', id: 'rocker', name: '摇椅 · 坐在炉火边', rect: { x: 172, y: 102, w: 22, h: 32 }, spot: { x: 183, y: 142 }, seat: { x: 183, hip: 122, pose: 'down', key: 134.5, id: 'rocker', msg: '在炉火边的摇椅上摇啊摇，坩埚咕嘟咕嘟 · 按方向键起身' } },
+    { kind: 'seat', id: 'swin', name: '窗下长凳 · 看街上的游人', rect: { x: 274, y: 84, w: 92, h: 14 }, spot: { x: 320, y: 104 }, seat: { x: 320, hip: 92, pose: 'up', key: 99, id: 'swin', look: true, msg: '坐在窗下的长凳上看万圣节的街 · 按空格看窗外，方向键起身' } },
+    { kind: 'cauldron', name: '坩埚 · 搅一搅', rect: { x: 98, y: 56, w: 76, h: 40 }, spot: { x: 136, y: 104 } },
+    { kind: 'crystal', name: '水晶球 · 算一卦', rect: { x: 228, y: 126, w: 44, h: 36 }, spot: { x: 250, y: 168 } },
+    { kind: 'carve', name: '南瓜 · 雕一个南瓜灯', rect: { x: 92, y: 180, w: 28, h: 34 }, spot: { x: 106, y: 222 } },
+    { kind: 'candy', name: '糖果锅 · 不给糖就捣蛋', rect: { x: 292, y: 204, w: 22, h: 20 }, spot: { x: 303, y: 228 } },
+    { kind: 'skelly', name: '骷髅先生', rect: { x: 200, y: 96, w: 22, h: 36 }, spot: { x: 211, y: 140 } },
+    { kind: 'sclock', name: '落地钟', rect: { x: 268, y: 40, w: 16, h: 58 }, spot: { x: 276, y: 106 } },
+    { kind: 'owl', name: '楼梯柱上的猫头鹰', rect: { x: 190, y: 54, w: 14, h: 14 }, spot: { x: 196, y: 104 } },
+    { kind: 'scat', name: '黑猫', rect: { x: 132, y: 138, w: 20, h: 14 }, spot: { x: 142, y: 166 } },
+    { kind: 'sbooks', name: '橱柜 · 旧书和药瓶', rect: { x: 376, y: 42, w: 20, h: 54 }, spot: { x: 384, y: 104 } },
+    { kind: 'broom', name: '扫帚', rect: { x: 186, y: 50, w: 10, h: 46 }, spot: { x: 190, y: 104 } },
+    { kind: 'chest', name: '旧水手箱', rect: { x: 362, y: 194, w: 34, h: 24 }, spot: { x: 378, y: 226 } },
+    { kind: 'hay', name: '干草堆和南瓜灯笼', rect: { x: 360, y: 154, w: 36, h: 28 }, spot: { x: 376, y: 190 } }
+  ];
+  rm.bg = [c, g];
+}
+// the view through the old glass: Essex Street on Halloween night, lead diamonds over it
+function paintSalemWindows(rm, now) {
+  const anim = !REDUCE;
+  rm.wins.forEach(([x, y, w, h], wi) => {
+    ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip();
+    for (let yy = 0; yy < h; yy++) R(ctx, mix('#120a28', '#7a3a3a', Math.pow(yy / h, 1.6)), x, y + yy, w, 1);
+    const ox = x - 280 + wi * 4;
+    if (wi === 1) { fillCircle(ctx, '#f2c060', x + 22, y + 9, 6); fillCircle(ctx, '#ffe0a0', x + 21, y + 8, 4); R(ctx, '#e0a850', x + 19, y + 10, 2, 1); }
+    for (let i = 0; i < 14; i++) { const a = i / 14 * Math.PI * 2 + now / 3000; R(ctx, i % 3 ? '#ffb040' : '#c890ff', Math.round(x + 30 - wi * 46 + Math.cos(a) * 8), Math.round(y + 8 + Math.sin(a) * 3), 1, 1); }
+    for (let i = 0; i < 2; i++) { const bx = x + ((i * 19 + now / 60) % (w + 10)) - 5, by = y + 6 + i * 5 + Math.round(Math.sin(now / 150 + i) * 2), fl = anim && Math.floor(now / 90 + i) % 2; R(ctx, '#140a14', bx, by, 1, 1); R(ctx, '#140a14', bx - 2, by - fl, 2, 1); R(ctx, '#140a14', bx + 1, by - fl, 2, 1); }
+    for (let xx = 0; xx < w; xx++) { const wx = xx + ox, hh = 10 + ((Math.floor(wx / 9) * 5) % 7) + (Math.floor(wx / 9) % 3 === 0 ? Math.max(0, 4 - Math.abs((wx % 9) - 4)) : 0); R(ctx, '#160e1c', x + xx, y + h - hh - 6, 1, hh + 6); if (((wx * 13) % 11) === 0) R(ctx, '#ffb040', x + xx, y + h - hh + 2, 1, 2); }
+    for (let xx = 0; xx < w; xx += 3) { const wx = xx + ox, on = !anim || (Math.floor(now / 400) + wx) % 4; R(ctx, on ? ((wx >> 1) % 2 ? '#ff8a20' : '#b060ff') : '#3a2a3a', x + xx, y + h - 17 + Math.round(Math.sin(wx / 8) * 2), 1, 1); }
+    R(ctx, '#3a2a28', x, y + h - 6, w, 6); for (let xx = 0; xx < w; xx += 4) R(ctx, '#2a1c1a', x + xx + ((y + h) % 2), y + h - 4, 1, 1);
+    for (let i = 0; i < 5; i++) { const span = 120, px = ((((i * 31) + now * (0.006 + i * 0.002) * (i % 2 ? 1 : -1)) % span) + span) % span - 20 - ox * 0.2, py = y + h - 7; if (px < -6 || px > w + 6) continue; const col = ['#1e1630', '#f4f0ea', '#4a1a2a', '#2a3a2a', '#e2802e'][i]; R(ctx, col, x + px, py - 6, 3, 7); fillCircle(ctx, '#e8c8a8', x + px + 1, py - 8, 1); if (i === 0) { R(ctx, '#1e1630', x + px - 1, py - 9, 5, 1); R(ctx, '#1e1630', x + px + 1, py - 12, 1, 3); } if (i === 1) R(ctx, '#f4f0ea', x + px - 1, py - 9, 5, 3); if (i === 4) R(ctx, '#e2802e', x + px + 3, py - 3, 2, 2); }
+    ctx.globalAlpha = 0.4; for (let k = -h; k < w + h; k += 7) for (let t = 0; t < h; t += 1) { R(ctx, '#2a2420', x + k + t, y + t, 1, 1); R(ctx, '#2a2420', x + k + h - t, y + t, 1, 1); } ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(x + w * 0.5, y + h - 4, 0, x + w * 0.5, y + h - 4, 14); g.addColorStop(0, 'rgba(255,160,60,0.25)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+  });
+}
+function salemOverlays(now, anim, ents) {
+  const add = (y, draw) => ents.push({ y, draw });
+  add(0, () => {
+    // the fire in the inglenook, the cauldron bubbling, embers and green sparks, candle flames, the string of lights
+    const boost = now - fireBoost < 2500 ? 3 : 0;
+    for (let i = 0; i < 12; i++) { const fx0 = 114 + i * 4, h = (anim ? 6 + Math.round(Math.sin(now / 90 + i * 1.7) * 2 + Math.sin(now / 53 + i) * 1.5) : 7) + (i > 2 && i < 9 ? 4 : 0) + boost; R(ctx, '#e04a20', fx0, 92 - h, 3, h); R(ctx, '#ff9a30', fx0 + 1, 92 - h + 2, 2, Math.max(1, h - 3)); if (h > 8) R(ctx, '#ffd860', fx0 + 1, 92 - Math.round(h / 2), 1, Math.round(h / 3)); }
+    for (const e of embers) R(ctx, e.green ? (e.life > 30 ? '#aaffb8' : '#3ac86a') : (e.life > 30 ? '#ffd860' : '#e04a20'), Math.round(e.x), Math.round(e.y), e.green ? 2 : 1, e.green ? 2 : 1);
+    for (const [x, yy] of [[95, 40], [177, 40], [297, 71], [343, 71]]) { const f = anim ? Math.round(Math.sin(now / 70 + x)) : 0; R(ctx, '#ffd860', x, yy - Math.max(0, f), 1, 2 + Math.max(0, f)); }
+    for (const [px, big] of [[282, 1], [306, 0], [330, 0], [352, 1]]) { const s = big ? 7 : 5, fl = anim && Math.floor(now / 110 + px) % 3 === 0; R(ctx, fl ? '#ffc040' : '#ffe070', px + 1, 80 - s + 2, 2, 1); R(ctx, fl ? '#ffc040' : '#ffe070', px + s - 2, 80 - s + 2, 2, 1); R(ctx, '#ffd040', px + 1, 77, s - 1, 1); }
+    for (const [bx, by, s] of ROOMS.salem.bulbs || []) { const on = !anim || (Math.floor(now / 450) + s / 6) % 5 !== 0; R(ctx, on ? ((s / 6) % 2 ? '#ff8a20' : '#b060ff') : '#3a2a3a', bx, by, 2, 2); }
+    for (let i = 0; i < 3; i++) { const t = ((now / 900) + i / 3) % 1; if (anim) R(ctx, '#8affa8', 129 + ((i * 7) % 16), 72 - Math.round(t * 3), 2, 1); }
+    const ca = age('cauldron', now); if (ca < 1600) for (let i = 0; i < 10; i++) { const t = (ca / 1600 + i / 10) % 1; ctx.globalAlpha = 1 - t; R(ctx, '#8affa8', 132 + Math.round(Math.sin(i * 2 + ca / 200) * 6), 70 - Math.round(t * 22), 2, 2); ctx.globalAlpha = 1; }
+    // the jars in the cupboard glow and pulse
+    ctx.globalCompositeOperation = 'lighter'; for (const [jx, col] of [[381, '90,255,140'], [386, '176,96,255']]) { const g = ctx.createRadialGradient(jx, 64, 0, jx, 64, 8); g.addColorStop(0, `rgba(${col},${anim ? 0.3 + 0.15 * Math.sin(now / 500 + jx) : 0.35})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(jx - 8, 56, 16, 16); } ctx.globalCompositeOperation = 'source-over';
+    // the owl on the newel post, blinking; ruffles when you say hello
+    { const oa = age('owl', now), hop = oa < 500 ? Math.round(Math.sin(oa / 500 * Math.PI) * 2) : 0, ox = 194, oy = 52 - hop, blink = anim && (now % 4200) < 140; R(ctx, '#6a4a30', ox, oy, 7, 9); R(ctx, '#8a6a48', ox + 1, oy + 3, 5, 5); for (let k = 0; k < 3; k++) R(ctx, '#5a3a24', ox + 2 + (k % 2), oy + 4 + k * 2, 2, 1); R(ctx, '#6a4a30', ox, oy - 1, 1, 2); R(ctx, '#6a4a30', ox + 6, oy - 1, 1, 2); if (blink) { R(ctx, '#3a2418', ox + 1, oy + 2, 2, 1); R(ctx, '#3a2418', ox + 4, oy + 2, 2, 1); } else { R(ctx, '#ffd040', ox + 1, oy + 1, 2, 2); R(ctx, '#ffd040', ox + 4, oy + 1, 2, 2); R(ctx, '#1a1018', ox + 2, oy + 2, 1, 1); R(ctx, '#1a1018', ox + 4, oy + 2, 1, 1); } R(ctx, '#e8a030', ox + 3, oy + 3, 1, 1); R(ctx, '#e8a030', ox + 2, oy + 9, 1, 1); R(ctx, '#e8a030', ox + 4, oy + 9, 1, 1); }
+    // the clock's pendulum swinging behind its glass
+    { const a = anim ? Math.sin(now / 500) * 3 : 0; R(ctx, '#3a2818', 272, 60, 8, 20); R(ctx, '#c8a050', 276 + Math.round(a), 72, 1, 10); fillCircle(ctx, '#e8c060', 276 + Math.round(a * 1.3), 82, 2); }
+    if (TOG.carved) { const fl = anim ? (Math.floor(now / 90) % 3) : 0; R(ctx, '#2a0e06', 101, 188, 3, 2); R(ctx, '#2a0e06', 108, 188, 3, 2); R(ctx, '#2a0e06', 101, 193, 10, 1); R(ctx, fl ? '#ffc040' : '#ffe070', 102, 188, 2, 1); R(ctx, fl ? '#ffc040' : '#ffe070', 109, 188, 2, 1); for (let x = 102; x < 110; x += 2) R(ctx, '#ffd040', x, 193, 1, 1); R(ctx, '#ffd040', 105, 190, 2, 1); }
+    const cr = age('crystal', now); fillCircle(ctx, cr < 2000 ? '#e8d8ff' : '#c8b0ff', 250, 132, 3); if (anim) R(ctx, '#ffffff', 248 + Math.round(Math.sin(now / 500)), 130, 1, 1); if (cr < 2000) for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + cr / 200; R(ctx, '#e8d8ff', Math.round(250 + Math.cos(a) * 7), Math.round(132 + Math.sin(a) * 4), 1, 1); }
+    R(ctx, '#ffd860', 395, 160 - (anim ? Math.max(0, Math.round(Math.sin(now / 80))) : 0), 1, 2);
+  });
+  // floating candles drifting above the fortune table
+  add(150, () => { for (let i = 0; i < 5; i++) { const x = 232 + i * 10, y = 102 + Math.round(Math.sin(now / 900 + i * 1.7) * 3 + (i % 2) * 4), f = anim ? Math.round(Math.sin(now / 70 + i * 3)) : 0; R(ctx, '#f4ecd8', x, y, 3, 7 - (i % 2)); R(ctx, '#ffffff', x, y, 1, 7 - (i % 2)); R(ctx, '#f4ecd8', x + 2, y + 2, 1, 2); R(ctx, '#ffd860', x + 1, y - 3 - Math.max(0, f), 1, 3 + Math.max(0, f)); R(ctx, '#fff6c0', x + 1, y - 2, 1, 1); } });
+  // the black cat on the rug, tail swishing; it hops when petted
+  add(152, () => { const ca2 = age('scat', now), hop = ca2 < 500 ? Math.round(Math.sin(ca2 / 500 * Math.PI) * 4) : 0, x = 134, y = 144 - hop, sw = anim ? Math.round(Math.sin(now / 300) * 2) : 0, K = '#14101a';
+    R(ctx, 'rgba(10,6,8,0.3)', x - 1, 151, 18, 2); R(ctx, K, x + 3, y, 10, 6); R(ctx, K, x, y - 4, 6, 6); R(ctx, K, x, y - 6, 1, 2); R(ctx, K, x + 5, y - 6, 1, 2); R(ctx, '#e8d040', x + 1, y - 3, 1, 1); R(ctx, '#e8d040', x + 4, y - 3, 1, 1); R(ctx, K, x + 4, y + 6, 1, 1); R(ctx, K, x + 10, y + 6, 1, 1);
+    for (let i = 0; i < 7; i++) R(ctx, K, x + 13 + Math.round(i * 0.4), y + 2 - i + Math.round(Math.sin(i / 2 + sw) * 1.2), 1, 1); R(ctx, '#e87a28', x + 1, y + 1, 4, 1); });
+  add(132.5, () => { const sa = age('skelly', now); if (sa < 900) { ctx.globalAlpha = 1 - sa / 900; R(ctx, '#ffffff', 220, 102 - Math.round(sa / 60), 2, 2); ctx.globalAlpha = 1; } });
+  // a low mist creeping across the floorboards, in front of everything
+  add(400, () => { if (!anim) return; ctx.save(); ctx.beginPath(); ctx.rect(80, 96, 320, 140); ctx.clip(); for (let i = 0; i < 9; i++) { const span = 420, x = 60 + ((((i * 97) + now * (0.006 + (i % 3) * 0.003)) % span) + span) % span, y = 196 + (i % 4) * 10 + Math.round(Math.sin(now / 1800 + i) * 3), rw = 40 + (i % 3) * 16; ctx.globalAlpha = 0.07; ctx.fillStyle = '#d8d0f0'; ctx.beginPath(); ctx.ellipse(x, y, rw, 5, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 0.05; ctx.beginPath(); ctx.ellipse(x + 10, y - 3, rw * 0.6, 3, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1; ctx.restore(); });
+}
+function salemInteract(p) {
+  const now = performance.now(), k = p.kind;
+  ANIM[p.id || k] = now;
+  if (k === 'cauldron') { fireBoost = now; Sound.water(); hint(['搅了搅坩埚：南瓜汤咕嘟咕嘟，冒出绿色的泡泡', '往坩埚里撒了一把肉桂，屋里一下子香了', '坩埚里浮起一行字：别忘了去回复等你的 AI'][Math.floor(now / 1000) % 3]); for (let i = 0; i < 16; i++) embers.push({ x: 128 + Math.random() * 16, y: 70, vx: (Math.random() - 0.5) * 0.3, life: 40 + Math.random() * 30, green: true }); }
+  else if (k === 'crystal') {
+    Sound.chime(); const need = needList();
+    const lines = need.length ? [`水晶球里浮现出「${need[0].name}」的影子……`, `它${STATUS[need[0].state]}，来自 ${need[0].src}。`, need.length > 1 ? `还有 ${need.length - 1} 个影子在后面排队。` : '其余的作物都在安静地生长。'] : ['水晶球一片澄澈。', '没有任务在等你，今晚可以安心过节。'];
+    openDialog({ title: '水晶球', portrait: { img: crystalIcon() }, lines });
+  }
+  else if (k === 'carve') {
+    if (!TOG.carved) { TOG.carved = true; Sound.wood(); hint('雕好了一个咧嘴笑的南瓜灯，点上蜡烛'); for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', grain: true, x: 106, y: 192, vx: (Math.random() - 0.5) * 1.6, vy: -Math.random() * 1.6, life: 30 }); }
+    else { TOG.carved = false; Sound.blip(); hint('吹灭了南瓜灯里的蜡烛'); }
+  }
+  else if (k === 'candy') {
+    const d = today();
+    if (tripGifts.salem !== d) {
+      tripGifts.salem = d; saveTrips();
+      const gift = !owned.hat.includes('witch') ? ['hat', 'witch', '巫师帽'] : !owned.shirt.includes('orange') ? ['shirt', 'orange', '南瓜橙衬衫'] : null;
+      if (gift) { owned[gift[0]].push(gift[1]); saveOutfit(); Sound.ding(); hint(`不给糖就捣蛋！糖果下面压着一件${gift[2]}，回家去衣柜就能换上`); }
+      else { coins += 50; coinPop = now; save(); Sound.coin(); hint('不给糖就捣蛋！翻到 50 金币，万圣节快乐'); }
+      for (let i = 0; i < 5; i++) hearts.push({ x: 294 + i * 4, y: 200, vy: -0.4, life: 50 + i * 8 });
+    } else { Sound.pop(); hint('抓了一把糖。今天的惊喜已经拿过了，明天再来'); }
+  }
+  else if (k === 'skelly') { Sound.clank(); Sound.clank(); hint(['骷髅先生向你点头致意，咔哒咔哒', '骷髅先生说：我只是来过节的，别怕', '骷髅先生的巫师帽歪了，你帮它扶正'][Math.floor(now / 1000) % 3]); }
+  else if (k === 'scat') { Sound.meow(); hint('黑猫伸了个懒腰，尾巴卷成一个问号'); for (let i = 0; i < 3; i++) hearts.push({ x: 136 + i * 4, y: 136, vy: -0.35, life: 50 + i * 8 }); }
+  else if (k === 'owl') { Sound.chime(); hint('猫头鹰歪着头看你：咕——咕——'); }
+  else if (k === 'sclock') { Sound.morning(); hint(`落地钟敲了几下，指针停在 ${nowHM()}`); }
+  else if (k === 'sbooks') { Sound.paper(); openDialog({ title: '旧橱柜', portrait: { img: bookIcon() }, lines: ['一本霍桑的《七个尖角阁的老宅》，书页发黄。', '一排药瓶，标签写着：月光、肉桂、勿忘回复。', '两只瓶子在暗处微微发光，一绿一紫。'] }); }
+  else if (k === 'broom') { Sound.cloth(); hint('骑上扫帚试了试……只离地一寸。还是走路吧'); for (let i = 0; i < 8; i++) fx.push({ kind: 'spark', x: 190, y: 90, vx: (Math.random() - 0.5) * 1.6, vy: -Math.random() * 1.8, life: 30 }); }
+  else if (k === 'chest') { Sound.wood(); openDialog({ title: '旧水手箱', portrait: { img: bookIcon() }, lines: ['箱子里有一卷旧航海图，标着从塞勒姆港出发的航线。', '一只黄铜罗盘，指针稳稳地指向北方。', '还有一包肉桂和胡椒，闻起来像很远的地方。'] }); }
+  else if (k === 'hay') { Sound.cloth(); hint('干草堆上的小灯笼晃了晃，南瓜们排得整整齐齐'); }
+  else return false;
+  return true;
+}
+let _crystal = null;
+function crystalIcon() { if (!_crystal) { const [c, g] = mk(20, 20); R(g, '#8a6a2a', 4, 15, 12, 4); R(g, '#c8a050', 4, 15, 12, 1); fillCircle(g, '#8a6aca', 10, 9, 7); fillCircle(g, '#b8a0f0', 10, 9, 5); fillCircle(g, '#e0d4ff', 8, 7, 2); R(g, '#ffffff', 7, 6, 1, 1); _crystal = outline(c, P.OL); } return _crystal; }
+
+/* ---- the rides from the airport: a yellow cab through Manhattan, an old woody wagon up the coast to Salem ---- */
+function cityVehicles() {
+  if (VEH.ycab) return;
+  const S = (w, h, fn) => { const [c, g] = mk(w, h); fn(g); return outline(c, P.OL); };
+  const wheel = (g, cx, cy, r, f) => { fillCircle(g, '#1a1820', cx, cy, r); fillCircle(g, '#6c6a82', cx, cy, Math.max(1, r - 2)); R(g, '#c8c4d2', cx - 1 + (f ? 1 : 0), cy - 1 + (f ? 0 : 1), 1, 1); };
+  const ycab = f => S(42, 22, g => {
+    R(g, '#f2c414', 1, 10, 40, 7); R(g, '#ffe46a', 1, 10, 40, 1); R(g, '#c89a10', 1, 15, 40, 2);
+    R(g, '#f2c414', 9, 3, 23, 8); R(g, '#ffe46a', 10, 3, 21, 1); R(g, '#8ab0d8', 11, 5, 8, 5); R(g, '#8ab0d8', 21, 5, 9, 5); R(g, '#c8e0f8', 11, 5, 2, 2); R(g, '#c89a10', 19, 5, 2, 6);
+    R(g, '#1a1820', 17, 0, 8, 3); R(g, '#fff4b0', 18, 1, 6, 1); for (let x = 3; x < 40; x += 4) R(g, '#1a1820', x, 13, 2, 1); R(g, '#1a1820', 3, 13, 36, 1);
+    R(g, '#fff4d0', 39, 11, 2, 2); R(g, '#e85a5a', 1, 11, 2, 2); R(g, '#8e8a9a', 0, 16, 42, 1); wheel(g, 9, 18, 3, f); wheel(g, 33, 18, 3, f);
+  });
+  VEH.ycab = [ycab(0), ycab(1)]; VEH.ycabL = VEH.ycab.map(flipX);
+  const wagon = f => S(48, 24, g => {
+    R(g, '#2e4a3a', 1, 11, 46, 7); R(g, '#4a6a52', 1, 11, 46, 1); R(g, '#1e3428', 1, 16, 46, 2);
+    R(g, '#2e4a3a', 3, 4, 32, 8); R(g, '#4a6a52', 4, 4, 30, 1); R(g, '#8ab0d8', 5, 6, 8, 5); R(g, '#8ab0d8', 15, 6, 8, 5); R(g, '#8ab0d8', 25, 6, 8, 5); R(g, '#c8e0f8', 5, 6, 2, 2);
+    R(g, '#9a6a3a', 3, 12, 30, 4); R(g, '#c8945a', 3, 12, 30, 1); R(g, '#6a4422', 3, 15, 30, 1); for (const x of [12, 22]) R(g, '#6a4422', x, 12, 1, 4);
+    R(g, '#2a2a30', 6, 2, 26, 1); R(g, '#2a2a30', 8, 1, 1, 2); R(g, '#2a2a30', 30, 1, 1, 2); R(g, '#e2802e', 14, -1, 7, 3); R(g, '#f7ae55', 15, -1, 3, 1); R(g, '#3a5a2a', 17, -2, 1, 1);
+    R(g, '#fff4d0', 45, 12, 2, 2); R(g, '#e85a5a', 1, 12, 2, 2); R(g, '#c8c4d2', 0, 17, 48, 1); wheel(g, 10, 19, 4, f); wheel(g, 38, 19, 4, f);
+  });
+  VEH.wagon = [wagon(0), wagon(1)];
+}
+// establishing shot outside, before you're shown to your seat
+function renderCityRideOut(now, el, k, kind) {
+  cityVehicles(); el = Math.max(0, el);
+  const x0 = -OX, x1 = VW - OX, wide = VW, anim = !REDUCE;
+  if (kind === 'nycTaxi') {
+    skyBands(now, '#070820', '#4a2050', 0);
+    const sk = el * 0.012;
+    for (let x = x0 - 20; x < x1 + 20; x += 7) { const wx = x + sk, h = 70 + Math.round(Math.sin(wx / 37) * 18 + ((Math.floor(wx / 7) * 37) % 26)); R(ctx, '#161430', x, h, 7, 300); for (let yy = h + 4; yy < 200; yy += 5) if (((Math.floor(wx) + yy) * 7) % 5 < 2) R(ctx, '#c8a868', x + 2, yy, 2, 2); if ((Math.floor(wx / 7) % 9) === 0 && (!anim || Math.floor(now / 600) % 2)) R(ctx, '#ff4040', x + 3, h - 2, 1, 1); }
+    // the Empire State Building, its crown lit in Halloween orange
+    { const ex = Math.round(250 - sk * 0.6), b = 214; R(ctx, '#1c1a36', ex - 14, b - 90, 28, 90); R(ctx, '#1c1a36', ex - 10, b - 112, 20, 22); R(ctx, '#1c1a36', ex - 6, b - 126, 12, 14); R(ctx, '#1c1a36', ex - 3, b - 134, 6, 8); R(ctx, '#2a2648', ex - 1, b - 150, 2, 16);
+      ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(ex, b - 124, 0, ex, b - 124, 34); g.addColorStop(0, 'rgba(255,140,40,0.45)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(ex - 34, b - 158, 68, 68); ctx.globalCompositeOperation = 'source-over';
+      R(ctx, '#ff9a3a', ex - 6, b - 126, 12, 2); R(ctx, '#ffb850', ex - 3, b - 134, 6, 3); R(ctx, '#ffd890', ex - 1, b - 150, 2, 14); for (let y = b - 86; y < b; y += 4) for (let x = ex - 12; x < ex + 12; x += 3) if (((x + y) * 13) % 7 < 3) R(ctx, '#e8c890', x, y, 1, 2); }
+    // brownstones and storefronts sliding past, neon signs
+    const hs = el * 0.09, off = hs % 70;
+    for (let i = -1; i < Math.ceil(wide / 70) + 2; i++) { const hx = Math.round(x0 + i * 70 - off), seed = Math.floor((hs + i * 70) / 70) + 300, r = rng(seed), hgt = 64 + Math.floor(r() * 30), col = ['#5a3a30', '#4a3036', '#6a4a3a', '#3a3440'][seed % 4];
+      R(ctx, col, hx, 214 - hgt, 68, hgt); R(ctx, mix(col, '#ffffff', 0.12), hx, 214 - hgt, 68, 2); for (let yy = 214 - hgt + 8; yy < 186; yy += 12) for (let xx = hx + 6; xx < hx + 62; xx += 12) { const on = r() < 0.6; R(ctx, on ? '#ffd890' : '#1c2030', xx, yy, 6, 8); }
+      const nc = NEON[seed % 6]; R(ctx, '#1a1820', hx + 4, 190, 60, 24); for (let yy = 0; yy < 18; yy++) R(ctx, mix('#fff0c8', '#f0a050', yy / 18), hx + 8, 194 + yy, 52, 1); R(ctx, nc, hx + 10, 184, 26, 4); R(ctx, mix(nc, '#ffffff', 0.5), hx + 10, 185, 26, 1); }
+    R(ctx, '#2a2834', x0, 214, wide, 60); R(ctx, '#8a8a96', x0, 214, wide, 2); for (let x = x0 - ((el * 0.3) % 40); x < x1 + 40; x += 40) R(ctx, '#f2c414', Math.round(x), 236, 18, 2);
+    // steam rising from a manhole
+    { const mx = Math.round(x1 + 60 - ((el * 0.3) % (wide + 160))); R(ctx, '#1a1820', mx, 226, 14, 2); for (let i = 0; i < 8; i++) { const t = ((now / 1400) + i / 8) % 1; ctx.globalAlpha = 0.45 * (1 - t); fillCircle(ctx, '#e8e6f0', mx + 7 + Math.round(Math.sin(now / 500 + i) * 4 + t * 10), 224 - Math.round(t * 40), 3 + Math.round(t * 5)); } ctx.globalAlpha = 1; R(ctx, '#e85a2a', mx + 18, 210, 3, 16); R(ctx, '#f4f0ea', mx + 18, 214, 3, 2); R(ctx, '#f4f0ea', mx + 18, 220, 3, 2); }
+    const ox = Math.round(x1 + 200 - ((el * 0.24) % (wide + 400))); ctx.drawImage(VEH.ycabL[Math.floor(el / 90) % 2], ox, 240);
+    const f = Math.floor(el / 90) % 2, cab = VEH.ycab[f]; ctx.drawImage(cab, 0, 0, cab.width, cab.height, 200, 196 + (anim && Math.floor(el / 160) % 2 ? -1 : 0), cab.width * 2, cab.height * 2);
+    ctx.globalCompositeOperation = 'lighter'; { const g = ctx.createRadialGradient(282, 220, 0, 300, 222, 46); g.addColorStop(0, 'rgba(255,240,180,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(250, 180, 120, 80); } ctx.globalCompositeOperation = 'source-over';
+  } else {
+    // dusk on the coast road north of Boston: sea, then maples in full colour and old clapboard houses
+    const t = Math.min(1, el / 4000); skyBands(now, mix('#3a2a6a', '#1a1238', t), mix('#ffa860', '#c8604a', t), 0);
+    fillCircle(ctx, '#f2c060', 360, 70, 16); fillCircle(ctx, '#ffe0a0', 358, 68, 12);
+    const sk = el * 0.02;
+    for (let x = x0 - 20; x < x1 + 20; x += 2) { const wx = x + sk, hh = 150 + Math.round(Math.sin(wx / 50) * 10 + Math.sin(wx / 19) * 4); R(ctx, '#3a2a4a', x, hh, 2, 300); }
+    R(ctx, '#2a3a5a', x0, 172, wide, 20); for (let x = x0; x < x1; x += 6) R(ctx, '#ffc890', x + ((Math.floor(el / 200) + x) % 5), 176 + ((x * 7) % 12), 3, 1);
+    const ts = el * 0.07, toff = ts % 46;
+    for (let i = -1; i < Math.ceil(wide / 46) + 2; i++) { const tx = Math.round(x0 + i * 46 - toff), seed = Math.floor((ts + i * 46) / 46) + 40, cols = [['#c8402a', '#e8702a'], ['#e8a030', '#f8c850'], ['#a83a2a', '#d85a3a'], ['#d87a2a', '#f0a040']][seed % 4];
+      R(ctx, '#3a2418', tx + 20, 176, 4, 30); fillCircle(ctx, cols[0], tx + 22, 168, 16); fillCircle(ctx, cols[1], tx + 17, 162, 9); fillCircle(ctx, cols[0], tx + 30, 172, 9); }
+    const hs = el * 0.1, off = hs % 110;
+    for (let i = -1; i < Math.ceil(wide / 110) + 2; i++) { const hx = Math.round(x0 + i * 110 - off), seed = Math.floor((hs + i * 110) / 110) + 50, col = ['#c8b878', '#7a3a2a', '#4a5a6a', '#e8e0d0'][seed % 4];
+      R(ctx, col, hx + 10, 176, 60, 34); for (let y = 178; y < 210; y += 3) R(ctx, mix(col, '#000000', 0.15), hx + 10, y, 60, 1); for (let k2 = 0; k2 < 20; k2++) { const rw = Math.max(1, Math.round(68 - k2 * 3.4)); R(ctx, '#2a2028', hx + 40 - Math.round(rw / 2), 176 - k2, rw, 1); }
+      for (const wx of [hx + 16, hx + 52]) { R(ctx, '#ffc060', wx, 184, 8, 10); R(ctx, '#2a2028', wx + 3, 184, 1, 10); } R(ctx, '#2a1a14', hx + 34, 192, 10, 18); const fl = anim && Math.floor(now / 120 + i) % 3 === 0; R(ctx, '#e2701e', hx + 28, 204, 6, 6); R(ctx, fl ? '#ffc040' : '#ffe070', hx + 29, 206, 4, 1); }
+    R(ctx, '#2a2830', x0, 214, wide, 60); R(ctx, '#8a8a96', x0, 214, wide, 2); for (let x = x0 - ((el * 0.3) % 40); x < x1 + 40; x += 40) R(ctx, '#f4e8c0', Math.round(x), 236, 18, 2);
+    const f = Math.floor(el / 90) % 2, wg = VEH.wagon[f]; ctx.drawImage(wg, 0, 0, wg.width, wg.height, 190, 190 + (anim && Math.floor(el / 150) % 2 ? -1 : 0), wg.width * 2, wg.height * 2);
+    for (let i = 0; i < 24; i++) { const span = wide + 40, lx = x0 + ((((i * 53) - el * (0.12 + (i % 4) * 0.04)) % span) + span) % span - 20, ly = -OY + ((i * 37 + el * 0.04 * (1 + i % 3)) % VH); R(ctx, ['#e8702a', '#c8402a', '#f0b040'][i % 3], Math.round(lx), Math.round(ly), 2, 1); }
+  }
+}
+
+// the shared car door around a side window: frame, door panel, handle, speaker, light sweeping in
+function carInterior(L, pal, lampX, extra) {
+  const x0 = -OX, y0 = -OY, w = VW, h = VH, { wl, wt, ww, wh, wb } = L;
+  ctx.beginPath(); ctx.rect(x0 - 2, y0 - 2, w + 4, h + 4); rrectPath(ctx, wl, wt, ww, wh, 18); ctx.fillStyle = pal.door; ctx.fill('evenodd');
+  R(ctx, pal.roof, x0, y0, w, wt - y0 - 8); R(ctx, pal.edge, x0, wt - 10, w, 2);
+  ctx.strokeStyle = '#0a0a0e'; ctx.lineWidth = 4; ctx.beginPath(); rrectPath(ctx, wl, wt, ww, wh, 18); ctx.stroke(); ctx.strokeStyle = pal.trim; ctx.lineWidth = 1; ctx.beginPath(); rrectPath(ctx, wl - 3, wt - 3, ww + 6, wh + 6, 21); ctx.stroke();
+  const dp = wb + 10; R(ctx, pal.trim, x0, wb + 4, w, 2); R(ctx, pal.panel, x0, dp, w, y0 + h - dp); for (let x = x0 + 20; x < x0 + w; x += 40) R(ctx, pal.seam, x, dp + 10, 1, h); R(ctx, pal.band, x0, dp + Math.round((y0 + h - dp) * 0.5), w, 6); R(ctx, pal.bandHi, x0, dp + Math.round((y0 + h - dp) * 0.5), w, 1);
+  { const hx = wl + Math.round(ww * 0.7), hy2 = dp + Math.round((y0 + h - dp) * 0.25); R(ctx, '#8a8a96', hx, hy2, 22, 6); R(ctx, '#d8d8e0', hx + 2, hy2 + 1, 18, 3); R(ctx, '#ffffff', hx + 3, hy2 + 1, 6, 1); }
+  { const sx = wl + Math.round(ww * 0.88), sy = dp + 8; for (let q = 0; q < 5; q++) for (let p = 0; p < 7; p++) R(ctx, '#0c0c10', sx + p * 3, sy + q * 3, 2, 2); }
+  if (extra) extra(dp);
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [x, col] of lampX) { const rx = x0 + (x - wl) / ww * w, g = ctx.createRadialGradient(rx, dp + 30, 0, rx, dp + 30, 70); g.addColorStop(0, `rgba(${col},0.13)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(rx - 70, y0, 140, h); }
+  ctx.globalCompositeOperation = 'source-over';
+}
+function rideLayout() { const x0 = -OX, y0 = -OY, w = VW, h = VH, wl = x0 + Math.round(w * 0.08), wr = x0 + Math.round(w * 0.9), wt = y0 + Math.round(h * 0.1), wb = y0 + Math.round(h * 0.68); return { x0, y0, w, h, wl, wr, wt, wb, ww: wr - wl, wh: wb - wt }; }
+
+/* ---- the yellow cab through Midtown: delis, theatre marquees, steam, and then the screens of Times Square ---- */
+function nycRideBuild(L) {
+  const r = rng(1964), { wh } = L, S = { marq: [], screens: [], steam: [] }, street = Math.round(wh * 0.82);
+  { const sw = 960, [c, g] = tvCanvas(sw, street + 2);
+    let ki = 0;
+    for (let x = 0; x < sw;) {
+      const kind = ['deli', 'theatre', 'pizza', 'glass', 'bodega', 'stone', 'theatre', 'cafe', 'glass', 'pizza'][ki++ % 10], bw = kind === 'theatre' ? 110 : 64 + Math.floor(r() * 30), face = kind === 'glass' ? '#2a3a5a' : kind === 'stone' ? '#8a8070' : ['#6a4038', '#5a3a40', '#7a5a48', '#4a3a3a'][Math.floor(r() * 4)];
+      R(g, face, x, 0, bw, street); R(g, mix(face, '#000000', 0.35), x + bw - 2, 0, 2, street);
+      if (kind === 'glass') { for (let y = 0; y < street - 36; y += 6) { R(g, mix('#3a5a8a', '#1a2a4a', (y % 18) / 18), x, y, bw, 5); for (let wx = x; wx < x + bw; wx += 8) if (r() < 0.35) R(g, '#e8d8a8', wx + 1, y + 1, 5, 3); } }
+      else for (let y = 6; y < street - 40; y += 16) { R(g, mix(face, '#000000', 0.15), x, y + 12, bw, 2); for (let wx = x + 5; wx < x + bw - 9; wx += 13) { const lit = r() < 0.6; R(g, '#2a1c18', wx - 1, y - 1, 9, 12); for (let yy = 0; yy < 10; yy++) R(g, lit ? mix('#ffe2a0', '#e8a050', yy / 10) : '#141a2c', wx, y + yy, 7, 1); } }
+      if (kind !== 'glass' && r() < 0.5) for (let y = 10; y < street - 46; y += 16) { R(g, '#14121a', x + bw - 22, y + 10, 16, 1); R(g, '#14121a', x + bw - 22, y + 4, 1, 7); R(g, '#14121a', x + bw - 7, y + 4, 1, 7); }
+      const sf = street - 34; R(g, '#1a1418', x + 2, sf, bw - 4, 34);
+      if (kind === 'theatre') {
+        R(g, '#2a1a2a', x + 4, sf - 30, bw - 8, 22); R(g, '#f4ecd8', x + 10, sf - 26, bw - 20, 14); g.drawImage(glyphs('BROADWAY', 12, '#c8282e'), x + 18, sf - 27); S.marq.push({ x: x + 4, y: sf - 30, w: bw - 8, h: 22 });
+        for (let yy = 0; yy < 28; yy++) R(g, mix('#ffe8b0', '#e89040', yy / 28), x + 8, sf + 4 + yy, bw - 16, 1); for (let k = 0; k < 4; k++) { R(g, '#2a1418', x + 14 + k * 22, sf + 8, 14, 22); R(g, ['#c8282e', '#2a5aa8', '#f2c414', '#8a5aff'][k], x + 16 + k * 22, sf + 10, 10, 14); }
+      } else {
+        for (let yy = 0; yy < 28; yy++) R(g, mix('#fff0c8', '#f0a050', yy / 28), x + 6, sf + 4 + yy, bw - 12, 1);
+        const aw = kind === 'deli' ? ['#1e5a3a', '#f4f0e6'] : kind === 'pizza' ? ['#c8282e', '#f4f0e6'] : ['#2a2a6a', '#f2c414']; for (let q = 0; q < bw; q += 5) { R(g, aw[(q / 5) % 2], x + q, sf - 6, 5, 7); R(g, mix(aw[(q / 5) % 2], '#000000', 0.3), x + q, sf + 1, 5, 1); }
+        const word = kind === 'deli' ? 'DELI' : kind === 'pizza' ? 'PIZZA' : kind === 'bodega' ? 'OPEN 24H' : 'CAFE'; S.marq.push({ x: x + 8, y: sf - 18, w: textW(word, 12) + 4, h: 12, neon: word, col: NEON[Math.floor(r() * 6)] });
+        if (kind === 'pizza') { for (let k = 0; k < 3; k++) { fillCircle(g, '#e8b860', x + 16 + k * 16, sf + 22, 6); fillCircle(g, '#d84a2a', x + 16 + k * 16, sf + 22, 4); R(g, '#f4e8c0', x + 14 + k * 16, sf + 21, 2, 1); } }
+        else if (kind === 'deli') { for (let k = 0; k < 8; k++) R(g, ['#c8282e', '#f2c414', '#5ac86a', '#e8d8b8'][k % 4], x + 10 + k * 6, sf + 18 + (k % 2) * 3, 5, 6); }
+      }
+      if (r() < 0.6) S.steam.push(x + Math.floor(bw / 2));
+      x += bw;
+    }
+    S.ave = c; }
+  { const sw = 900, [c, g] = tvCanvas(sw, street + 2);
+    for (let x = 0; x < sw;) { const bw = 90 + Math.floor(r() * 50); R(g, '#141224', x, 0, bw, street); R(g, '#0c0a18', x + bw - 2, 0, 2, street);
+      let y = 4; while (y < street - 40) { const sh = 22 + Math.floor(r() * 26); S.screens.push({ x: x + 4, y, w: bw - 8, h: sh, i: Math.floor(r() * 6), kind: Math.floor(r() * 4) }); y += sh + 4; }
+      R(g, '#1a1418', x + 2, street - 34, bw - 4, 34); for (let yy = 0; yy < 28; yy++) R(g, mix('#fff4d8', '#f0b060', yy / 28), x + 6, street - 30 + yy, bw - 12, 1);
+      x += bw; }
+    S.ts = c; }
+  S.street = street;
+  return S;
+}
+// a screen in Times Square: gradients, scrolling text, a ticker or a big pumpkin
+function drawScreen(x, y, w, h, s, now) {
+  x = Math.round(x); y = Math.round(y);
+  if (s.kind === 0) { for (let yy = 0; yy < h; yy++) R(ctx, neonAt(s.i, yy / h, now), x, y + yy, w, 1); }
+  else if (s.kind === 1) { R(ctx, '#0a0a18', x, y, w, h); const tw = textW('AGENT FARM', 12), tx = x + w - ((now / 30 + s.i * 70) % (w + tw)); ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); ctx.drawImage(glyphs('AGENT FARM', 12, NEON[s.i]), Math.round(tx), Math.round(y + h / 2 - 7)); ctx.restore(); }
+  else if (s.kind === 2) { R(ctx, '#08100c', x, y, w, h); const sft = Math.floor(now / 80); for (let xx = 0; xx < w; xx += 2) { const v = Math.abs(Math.sin((xx + sft) / 7 + s.i)) * (h - 4); R(ctx, (xx >> 1) % 2 ? '#3aff9a' : '#2ac87a', x + xx, y + h - 2 - Math.round(v), 1, Math.round(v)); } R(ctx, '#ff5a5a', x, y + 2, w, 1); }
+  else { for (let yy = 0; yy < h; yy++) R(ctx, mix('#1a0a2a', '#e2601e', yy / h), x, y + yy, w, 1); const pr = Math.min(w, h) * 0.32, cx = x + w / 2, cy = y + h / 2 + 1; fillCircle(ctx, '#e2802e', Math.round(cx), Math.round(cy), Math.round(pr)); R(ctx, '#3a5a2a', Math.round(cx - 1), Math.round(cy - pr - 2), 2, 3); const fl = Math.floor(now / 150) % 3 ? '#ffe070' : '#ffc040'; R(ctx, fl, Math.round(cx - pr * 0.5), Math.round(cy - pr * 0.3), 3, 2); R(ctx, fl, Math.round(cx + pr * 0.5 - 3), Math.round(cy - pr * 0.3), 3, 2); R(ctx, fl, Math.round(cx - pr * 0.5), Math.round(cy + pr * 0.3), Math.round(pr), 2); }
+}
+function renderNycCabWindow(now, el, k) {
+  cityVehicles(); el = Math.max(0, el);
+  const L = rideLayout(), { x0, y0, w, h, wl, wr, wt, wb, ww, wh } = L, anim = !REDUCE;
+  const key = ['nycride', x0, y0, w, h].join(','); if (!TVC.nyc || TVC.nyc.key !== key) TVC.nyc = { key, S: nycRideBuild(L) };
+  const S = TVC.nyc.S, sp = 0.06, sh = -el * sp, ts = smooth(0.62, 0.78, k), bob = anim ? Math.round(Math.sin(el / 110) * 0.4) + ((el % 1900) < 80 ? -1 : 0) : 0, st = wt + S.street;
+  const wrapX = (sx, sw) => { const base = wl + (((sh % sw) + sw) % sw) - sw; const out = []; for (let x = base + sx; x < wr + sw; x += sw) if (x > wl - 200 && x < wr + 200) out.push(x); return out; };
+  ctx.save(); ctx.translate(0, bob);
+  ctx.save(); ctx.beginPath(); rrectPath(ctx, wl, wt, ww, wh, 18); ctx.clip();
+  for (let y = wt; y < wb; y++) R(ctx, mix('#0a0a20', '#4a2050', Math.min(1, (y - wt) / wh * 1.4)), wl, y, ww, 1);
+  if (ts < 1) { ctx.globalAlpha = 1 - ts; stripAt(S.ave, wl, ww, wt, sh);
+    for (const m of S.marq) for (const mx of wrapX(m.x, S.ave.width)) { if (m.neon) { const on = !anim || Math.floor(now / 700 + m.x) % 6; if (on) { ctx.drawImage(glyphs(m.neon, 12, m.col), Math.round(mx + 2), Math.round(wt + m.y - 2)); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(mx + m.w / 2, wt + m.y + 5, 0, mx + m.w / 2, wt + m.y + 5, m.w * 0.7); g.addColorStop(0, `rgba(${hexRGB(m.col)},0.3)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(mx - m.w * 0.2, wt + m.y - m.w * 0.5, m.w * 1.4, m.w); ctx.globalCompositeOperation = 'source-over'; } }
+      else for (let q = 0; q < (m.w + m.h) * 2; q += 4) { const on = !anim || (Math.floor(now / 90) + q / 4) % 3 === 0; let bx, by; if (q < m.w) { bx = q; by = 0; } else if (q < m.w + m.h) { bx = m.w - 1; by = q - m.w; } else if (q < m.w * 2 + m.h) { bx = m.w - 1 - (q - m.w - m.h); by = m.h - 1; } else { bx = 0; by = m.h - 1 - (q - m.w * 2 - m.h); } R(ctx, on ? '#fff4c0' : '#c89040', Math.round(mx + bx), Math.round(wt + m.y + by), 1, 1); } }
+    ctx.globalAlpha = 1; }
+  if (ts > 0) { ctx.globalAlpha = ts; stripAt(S.ts, wl, ww, wt, sh); for (const s of S.screens) for (const sx of wrapX(s.x, S.ts.width)) drawScreen(sx, wt + s.y, s.w, s.h, s, now); ctx.globalAlpha = 1;
+    ctx.globalCompositeOperation = 'lighter'; const g = ctx.createLinearGradient(0, wt, 0, wb); g.addColorStop(0, `rgba(${hexRGB(neonAt(1, 0.5, now))},${0.12 * ts})`); g.addColorStop(1, `rgba(${hexRGB(neonAt(4, 0.5, now))},${0.18 * ts})`); ctx.fillStyle = g; ctx.fillRect(wl, wt, ww, wh); ctx.globalCompositeOperation = 'source-over'; }
+  // pavement, crowds, steam from the street, cabs overtaking
+  R(ctx, '#5a5866', wl, st, ww, 6); R(ctx, '#8a8896', wl, st, ww, 1); R(ctx, '#22202a', wl, st + 6, ww, wb - st);
+  const crowd = 9 + Math.round(ts * 14);
+  for (let i = 0; i < crowd; i++) { const span = ww + 80, px = wl - 40 + ((((i * 113) - el * (0.04 + (i % 3) * 0.012)) % span) + span) % span, py = st - 10, step = anim && Math.floor(el / 210 + i) % 2; R(ctx, '#1a1820', px + (step ? 0 : 2), py + 8, 1, 4); R(ctx, '#1a1820', px + (step ? 3 : 1), py + 8, 1, 4); R(ctx, ['#2a2430', '#5a2a2a', '#26303a', '#4a3a2a', '#2a4a5a', '#6a4a2a'][i % 6], px, py - 2, 5, 11); fillCircle(ctx, ['#e8c8a8', '#b8784e', '#7e4e30', '#dca47a'][i % 4], Math.round(px) + 2, py - 4, 2); if (i % 4 === 0) R(ctx, '#f4f0e6', px + 5, py + 2, 3, 4); if (i % 5 === 2) R(ctx, '#e2802e', px - 1, py - 7, 7, 2); }
+  for (const s0 of S.steam) for (const sx of wrapX(s0, S.ave.width)) for (let i = 0; i < 5; i++) { const t = ((now / 1500) + i / 5 + s0 * 0.01) % 1; ctx.globalAlpha = 0.28 * (1 - t) * (1 - ts * 0.5); fillCircle(ctx, '#e8e6f0', Math.round(sx + Math.sin(now / 600 + i) * 3 + t * 8), Math.round(st + 2 - t * wh * 0.4), 3 + Math.round(t * 6)); } ctx.globalAlpha = 1;
+  const lampX = []; for (let x = wl + ((((sh * 1.8) % 190) + 190) % 190) - 190; x < wr + 20; x += 190) { lampX.push([x, '255,210,140']); const lx = Math.round(x), top = wt + Math.round(wh * 0.28); R(ctx, '#2a3a2a', lx, top, 3, st - top); R(ctx, '#2a3a2a', lx, top - 2, 14, 2); R(ctx, '#ffe8b0', lx + 10, top, 5, 2); R(ctx, '#1a1a20', lx - 2, top + 30, 7, 14); R(ctx, (Math.floor(now / 3000) % 2) ? '#ff4040' : '#3aff8a', lx, top + (Math.floor(now / 3000) % 2 ? 32 : 40), 3, 3); }
+  ctx.globalCompositeOperation = 'lighter'; for (const [x] of lampX) { const top = wt + Math.round(wh * 0.28), g = ctx.createRadialGradient(x + 12, top + 2, 0, x + 12, top + 2, 30); g.addColorStop(0, 'rgba(255,220,150,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x - 20, top - 28, 64, 60); } ctx.globalCompositeOperation = 'source-over';
+  for (let n = 0; n < 2; n++) { const cw2 = VEH.ycab[0].width * 2, ch2 = VEH.ycab[0].height * 2, bt = (el - 1800 - n * 3600) * 0.11, bx = wr + 10 - bt; if (bx < wr + 10 && bx > wl - cw2 - 10) { const img = VEH.ycab[Math.floor(el / 90) % 2]; ctx.drawImage(img, 0, 0, img.width, img.height, Math.round(bx), Math.round(wb - ch2 + 6), cw2, ch2); } }
+  // neon smeared by speed and glass, droplets from a passing shower
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 18; i++) { const span = ww + 60, bx = wl - 30 + ((((i * 157) - el * (0.18 + (i % 4) * 0.05)) % span) + span) % span, by = wt + wh * (0.12 + ((i * 37) % 70) / 100), rr = 5 + (i % 4) * 3, col = hexRGB(NEON[i % 6]), g = ctx.createRadialGradient(bx, by, rr * 0.4, bx, by, rr); g.addColorStop(0, `rgba(${col},0.14)`); g.addColorStop(0.85, `rgba(${col},0.2)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(bx - rr, by - rr, rr * 2, rr * 2); }
+  ctx.globalCompositeOperation = 'source-over';
+  { const dr = rng(19); for (let i = 0; i < 30; i++) { const dx = wl + dr() * ww, yy = wt + dr() * wh, s = 1 + Math.floor(dr() * 2); R(ctx, 'rgba(10,10,20,0.35)', dx, yy + 1, s + 1, s + 1); R(ctx, `rgba(${hexRGB(NEON[i % 6])},0.45)`, dx, yy, s, s); R(ctx, '#ffffff', dx, yy, 1, 1); } }
+  ctx.restore();
+  carInterior(L, { door: '#141418', roof: '#1e1e26', edge: '#2e2e38', trim: '#8a8a96', panel: '#1a1a20', seam: '#141418', band: '#24242c', bandHi: '#34343e' }, lampX.concat([[wl + ww * 0.5, hexRGB(neonAt(2, 0.5, now)).join(',')]]), dp => {
+    // the little back-seat TV, glowing on the partition
+    const tx = x0 + w - Math.round(w * 0.2), ty = dp + 14; R(ctx, '#0a0a0e', tx - 2, ty - 2, 64, 40); for (let yy = 0; yy < 36; yy++) R(ctx, neonAt(2, yy / 36, now), tx, ty + yy, 60, 1); ctx.drawImage(glyphs('TAXI TV', 12, '#ffffff'), tx + 8, ty + 10); R(ctx, '#ffffff', tx + 4, ty + 30, Math.round(52 * k), 2);
+  });
+  ctx.restore();
+}
+
+/* ---- the woody wagon to Salem: the harbour and a lighthouse at dusk, then the old town dressed for Halloween ---- */
+function salemRideBuild(L) {
+  const r = rng(1626), { wh } = L, S = { lanterns: [], windows: [] }, street = Math.round(wh * 0.8);
+  // the harbour: water, a wharf, a little square lighthouse, moored boats
+  { const sw = 800, [c, g] = tvCanvas(sw, street + 2), sea = Math.round(street * 0.55);
+    for (let x = 0; x < sw; x += 1) { const hh = Math.round(street * 0.18 + Math.sin(x / 70) * 6 + Math.sin(x / 23) * 3); R(g, '#2a1e3a', x, sea - hh, 1, hh); }
+    for (let y = sea; y < street; y++) R(g, mix('#3a4a7a', '#1a2040', (y - sea) / (street - sea)), 0, y, sw, 1);
+    for (let i = 0; i < 160; i++) R(g, '#ffc890', Math.floor(r() * sw), sea + 2 + Math.floor(r() * (street - sea - 4)), 2 + Math.floor(r() * 4), 1);
+    for (let x = 60; x < sw; x += 260) { R(g, '#5a4030', x, sea - 4, 120, 6); for (let p = x; p < x + 120; p += 10) R(g, '#3a2818', p, sea + 2, 2, 12); R(g, '#f4f0e6', x + 100, sea - 20, 8, 16); R(g, '#2a2a30', x + 99, sea - 24, 10, 4); R(g, '#ffe8a0', x + 101, sea - 19, 6, 3); S.windows.push([x + 104, sea - 18, 40]); }
+    for (let x = 30; x < sw; x += 140) { R(g, '#e8e0d0', x, sea + 4, 24, 5); R(g, '#8a2a24', x, sea + 8, 24, 2); R(g, '#c8c0b0', x + 11, sea - 22, 1, 26); for (let k = 0; k < 16; k++) R(g, '#e8e0d0', x + 12, sea - 20 + k, Math.round(k * 0.6), 1); }
+    S.harbour = c; }
+  // the town: clapboard and brick, gambrels and saltboxes, porches with pumpkins, a burying ground behind a fence
+  { const sw = 1100, [c, g] = tvCanvas(sw, street + 2);
+    for (let x = 0; x < sw;) {
+      const kind = ['saltbox', 'gambrel', 'federal', 'yard', 'saltbox', 'gambrel', 'shop', 'federal'][Math.floor(r() * 8)], bw = kind === 'yard' ? 90 : 76 + Math.floor(r() * 24);
+      if (kind === 'yard') {
+        R(g, '#1a1424', x, street - 28, bw, 28); for (let k = 0; k < 6; k++) { const gx = x + 8 + k * 14 + Math.floor(r() * 4), gh = 10 + Math.floor(r() * 6); R(g, '#6a6670', gx, street - 6 - gh, 8, gh); R(g, '#6a6670', gx + 1, street - 7 - gh, 6, 1); R(g, '#8a8690', gx, street - 6 - gh, 1, gh); R(g, '#4a4650', gx + 2, street - 2 - gh, 4, 1); }
+        for (let q = x; q < x + bw; q += 4) { R(g, '#14121a', q, street - 12, 1, 12); R(g, '#14121a', q - 1, street - 13, 3, 1); } R(g, '#14121a', x, street - 9, bw, 1);
+        R(g, '#2a1a14', x + 60, street - 70, 5, 64); for (const [dx, dy, l] of [[-1, 0, 20], [1, 6, 22], [-1, 18, 14], [1, 24, 12], [1, -6, 10]]) for (let q = 0; q < l; q++) R(g, '#2a1a14', x + 62 + dx * q, street - 64 + dy - Math.round(q * 0.7), 2, 1);
+      } else {
+        const hh = Math.round(wh * (kind === 'federal' ? 0.48 : 0.36 + r() * 0.08)), top = street - hh, col = kind === 'federal' ? ['#7a3a2a', '#6a3428'][Math.floor(r() * 2)] : ['#c8b070', '#7a2a24', '#3a4a5a', '#e8e0d0', '#5a3a2a', '#4a5a3a'][Math.floor(r() * 6)];
+        R(g, col, x, top, bw, hh); if (kind !== 'federal') for (let y = top + 3; y < street; y += 3) R(g, mix(col, '#000000', 0.16), x, y, bw, 1); else for (let y = top + 3; y < street; y += 3) R(g, mix(col, '#000000', 0.12), x, y, bw, 1);
+        R(g, mix(col, '#000000', 0.35), x + bw - 2, top, 2, hh);
+        const roof = '#2a2028';
+        if (kind === 'gambrel') { for (let i = 0; i < 24; i++) { const ins = i < 12 ? Math.round(i * 0.3) : 4 + Math.round((i - 12) * 1.8); R(g, roof, x + ins - 2, top - i, bw - ins * 2 + 4, 1); } }
+        else if (kind === 'saltbox') { for (let i = 0; i < 26; i++) R(g, roof, x - 2 + Math.round(i * 1.4), top - i, Math.max(2, bw + 4 - Math.round(i * 1.4) - Math.round(i * 2.2)), 1); R(g, '#3a2a2a', x + bw - 22, top - 30, 8, 14); }
+        else { R(g, '#e8e0d0', x - 1, top - 4, bw + 2, 4); R(g, roof, x, top - 10, bw, 6); R(g, '#3a2a2a', x + 8, top - 18, 8, 10); R(g, '#3a2a2a', x + bw - 16, top - 18, 8, 10); }
+        const rows = kind === 'federal' ? 3 : 2, ww2 = 9, gap = Math.floor((bw - 3 * ww2) / 4);
+        for (let rw = 0; rw < rows; rw++) for (let k = 0; k < 3; k++) { const wx = x + gap + k * (ww2 + gap), wy = top + 8 + rw * Math.round((hh - 38) / rows), lit = r() < 0.75; R(g, '#e8e0d0', wx - 1, wy - 1, ww2 + 2, 14); for (let yy = 0; yy < 12; yy++) R(g, lit ? mix('#ffd890', '#e8903a', yy / 12) : '#1a1a2a', wx, wy + yy, ww2, 1); R(g, '#e8e0d0', wx + 4, wy, 1, 12); R(g, '#e8e0d0', wx, wy + 6, ww2, 1); R(g, '#2a2a3a', wx - 4, wy - 1, 3, 14); R(g, '#2a2a3a', wx + ww2 + 1, wy - 1, 3, 14); if (lit) S.windows.push([wx + 4, wy + 6, 12]); if (lit && r() < 0.3) { R(g, '#14101a', wx + 2, wy + 7, 4, 4); R(g, '#14101a', wx + 2, wy + 5, 1, 2); R(g, '#14101a', wx + 5, wy + 5, 1, 2); } }
+        const dX = x + Math.round(bw / 2) - 6; R(g, '#e8e0d0', dX - 3, street - 26, 18, 26); R(g, ['#1a1a20', '#5a1a1a', '#1e3a2a'][Math.floor(r() * 3)], dX, street - 22, 12, 22); R(g, '#ffd890', dX + 1, street - 25, 10, 2); R(g, '#c8a050', dX + 9, street - 11, 1, 2);
+        if (kind === 'shop') { R(g, '#1a1418', x + 4, street - 30, bw - 8, 6); g.drawImage(glyphs(['MAGIC', 'CANDY', 'BOOKS', 'POTIONS'][Math.floor(r() * 4)], 12, '#f2c060'), x + 8, street - 34); }
+        for (let q = 0; q < 4; q++) { const sx = dX - 10 + (q % 2) * 26 + Math.floor(q / 2) * 2; R(g, '#c25a18', sx, street - 7, 7, 6); R(g, '#e2802e', sx + 1, street - 7, 5, 5); R(g, '#3a5a2a', sx + 3, street - 9, 1, 2); S.lanterns.push([sx, street - 7]); }
+        if (r() < 0.5) { R(g, '#c8a050', x + 4, street - 30, 4, 24); for (let k = 0; k < 6; k++) R(g, '#e0bc6a', x + 3 + (k % 3), street - 34 + k, 1, 4); }
+      }
+      x += bw;
+    }
+    S.town = c; }
+  S.street = street;
+  return S;
+}
+function renderSalemRideWindow(now, el, k) {
+  cityVehicles(); el = Math.max(0, el);
+  const L = rideLayout(), { x0, y0, w, h, wl, wr, wt, wb, ww, wh } = L, anim = !REDUCE;
+  const key = ['salemride', x0, y0, w, h].join(','); if (!TVC.salem || TVC.salem.key !== key) TVC.salem = { key, S: salemRideBuild(L) };
+  const S = TVC.salem.S, sh = -el * 0.055, town = smooth(0.3, 0.42, k), dusk = Math.min(1, k * 1.3), bob = anim ? Math.round(Math.sin(el / 95) * 0.5) + ((el % 1500) < 80 ? -1 : 0) : 0, st = wt + S.street;
+  const wrapX = (sx, sw) => { const base = wl + (((sh % sw) + sw) % sw) - sw, out = []; for (let x = base + sx; x < wr + sw; x += sw) if (x > wl - 50 && x < wr + 50) out.push(x); return out; };
+  ctx.save(); ctx.translate(0, bob);
+  ctx.save(); ctx.beginPath(); rrectPath(ctx, wl, wt, ww, wh, 18); ctx.clip();
+  for (let y = wt; y < wb; y++) { const t = (y - wt) / wh; R(ctx, mix(mix('#4a3a7a', '#120a28', dusk), mix('#ffa860', '#7a3040', dusk), Math.pow(t, 1.3)), wl, y, ww, 1); }
+  if (dusk > 0.5) { ctx.globalAlpha = (dusk - 0.5) * 2; const sr = rng(4); for (let i = 0; i < 60; i++) R(ctx, '#e0d8ff', wl + sr() * ww, wt + sr() * wh * 0.4); ctx.globalAlpha = 1; }
+  // the harvest moon rising, a witch crossing it once
+  { const mx = wl + ww * 0.72, my = wt + wh * (0.42 - dusk * 0.26), mr = Math.round(wh * 0.07); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(mx, my, 0, mx, my, mr * 5); g.addColorStop(0, 'rgba(255,200,120,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10); ctx.globalCompositeOperation = 'source-over';
+    fillCircle(ctx, '#f2c060', Math.round(mx), Math.round(my), mr); fillCircle(ctx, '#ffe0a0', Math.round(mx - 1), Math.round(my - 1), mr - 2); R(ctx, '#e0a850', Math.round(mx - mr * 0.4), Math.round(my + 2), 3, 2); R(ctx, '#e0a850', Math.round(mx + mr * 0.3), Math.round(my - mr * 0.3), 2, 2);
+    const wt2 = (el - 5200) / 1800; if (wt2 > 0 && wt2 < 1) { const bx = Math.round(mx - mr * 2.4 + wt2 * mr * 4.8), by = Math.round(my - 2 + Math.sin(wt2 * 6) * 2), K = '#140a14'; R(ctx, K, bx, by + 3, 14, 1); for (let q = 0; q < 4; q++) R(ctx, K, bx - 3 - q, by + 2 + q, 1, 1); R(ctx, K, bx + 5, by - 2, 4, 5); R(ctx, K, bx + 6, by - 5, 3, 3); R(ctx, K, bx + 7, by - 8, 1, 3); R(ctx, K, bx + 3, by - 4, 7, 1); R(ctx, K, bx + 4, by + 3, 2, 3); } }
+  if (town < 1) { ctx.globalAlpha = 1 - town; stripAt(S.harbour, wl, ww, wt, sh * 0.6); ctx.globalAlpha = 1; }
+  if (town > 0) { ctx.globalAlpha = town; stripAt(S.town, wl, ww, wt, sh);
+    ctx.globalCompositeOperation = 'lighter';
+    for (const [lx, ly] of S.lanterns) for (const x of wrapX(lx, S.town.width)) { const fl = anim ? 0.8 + 0.2 * Math.sin(now / 90 + lx) : 1, g = ctx.createRadialGradient(x + 3, wt + ly + 3, 0, x + 3, wt + ly + 3, 12); g.addColorStop(0, `rgba(255,170,60,${0.5 * fl})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x - 10, wt + ly - 10, 26, 26); }
+    for (const [wx, wy, rr] of S.windows) for (const x of wrapX(wx, S.town.width)) { const g = ctx.createRadialGradient(x, wt + wy, 0, x, wt + wy, rr); g.addColorStop(0, 'rgba(255,190,100,0.18)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x - rr, wt + wy - rr, rr * 2, rr * 2); }
+    ctx.globalCompositeOperation = 'source-over';
+    for (const [lx, ly] of S.lanterns) for (const x of wrapX(lx, S.town.width)) { const fl = anim && Math.floor(now / 110 + lx) % 3 === 0; R(ctx, fl ? '#ffc040' : '#ffe070', Math.round(x + 1), Math.round(wt + ly + 1), 1, 1); R(ctx, fl ? '#ffc040' : '#ffe070', Math.round(x + 4), Math.round(wt + ly + 1), 1, 1); R(ctx, '#ffd040', Math.round(x + 1), Math.round(wt + ly + 3), 4, 1); }
+    ctx.globalAlpha = 1; }
+  // brick sidewalk, trick-or-treaters and witches, a string of orange lights overhead
+  R(ctx, '#5a3a32', wl, st, ww, 6); for (let x = wl; x < wr; x += 4) R(ctx, '#3a2420', x + ((st >> 1) % 2) * 2, st + 2, 1, 1); R(ctx, '#2a2428', wl, st + 6, ww, wb - st);
+  if (town > 0.2) for (let i = 0; i < 12; i++) { const span = ww + 80, px = wl - 40 + ((((i * 113) - el * (0.04 + (i % 3) * 0.012)) % span) + span) % span, py = st - 10, step = anim && Math.floor(el / 230 + i) % 2, kid = i % 3 === 1, hgt = kid ? 7 : 11, cos = i % 5;
+    R(ctx, '#1a1820', px + (step ? 0 : 2), py + 8, 1, 4); R(ctx, '#1a1820', px + (step ? 3 : 1), py + 8, 1, 4);
+    if (cos === 1) { R(ctx, '#f4f0ea', px - 1, py + 9 - hgt - 4, 7, hgt + 3); R(ctx, '#1a1820', px + 1, py + 9 - hgt - 2, 1, 1); R(ctx, '#1a1820', px + 3, py + 9 - hgt - 2, 1, 1); }
+    else { R(ctx, ['#1e1630', '#2a2430', '#4a1a2a', '#1e1630', '#2a4a2a'][cos], px, py + 9 - hgt, 5, hgt); fillCircle(ctx, ['#e8c8a8', '#b8784e', '#dca47a'][i % 3], Math.round(px) + 2, py + 7 - hgt, 2); if (cos === 0 || cos === 3) { R(ctx, '#1e1630', px - 2, py + 5 - hgt, 9, 1); for (let q = 0; q < 4; q++) R(ctx, '#1e1630', px + 1 + Math.round(q * 0.4), py + 4 - hgt - q, 3 - Math.round(q * 0.6), 1); } if (cos === 2) { R(ctx, '#1a1018', px - 2, py + 9 - hgt, 2, hgt); R(ctx, '#c8282e', px - 1, py + 9 - hgt, 1, hgt - 2); } }
+    if (kid) { R(ctx, '#e2802e', px + 5, py + 4, 4, 4); R(ctx, '#2a1a10', px + 6, py + 3, 2, 1); } }
+  if (town > 0.3) { ctx.globalAlpha = town; const ya = wt + Math.round(wh * 0.12); for (let i = 0; i < 60; i++) { const xx = wl + ((((i * 12) + sh * 1.3) % (ww + 24)) + ww + 24) % (ww + 24) - 12, yy = ya + Math.round(Math.abs(Math.sin((i % 12) / 12 * Math.PI)) * 10); R(ctx, '#1a1018', xx, yy, 6, 1); const on = !anim || (Math.floor(now / 400) + i) % 5; if (on) R(ctx, i % 2 ? '#ff8a20' : '#b060ff', xx + 2, yy + 1, 2, 2); } ctx.globalAlpha = 1; }
+  // leaves whirling past the glass
+  for (let i = 0; i < 26; i++) { const span = ww + 40, lx = wl - 20 + ((((i * 97) - el * (0.16 + (i % 4) * 0.05)) % span) + span) % span, ly = wt + ((i * 53 + el * (0.02 + (i % 3) * 0.01)) % wh), sp2 = anim ? Math.floor(el / 120 + i) % 2 : 0; R(ctx, ['#e8702a', '#c8402a', '#f0b040', '#a85a2a'][i % 4], Math.round(lx), Math.round(ly), sp2 ? 3 : 2, sp2 ? 1 : 2); }
+  ctx.restore();
+  carInterior(L, { door: '#3a2a1e', roof: '#4a3828', edge: '#6a5038', trim: '#c8a070', panel: '#5a4230', seam: '#4a3424', band: '#8a5a30', bandHi: '#c8945a' }, [[wl + ww * 0.3, '255,170,90'], [wl + ww * 0.8, '255,190,120']], dp => {
+    // a paper bag of candy and a little pumpkin on the seat
+    const bx = x0 + Math.round(w * 0.12), by = dp + 18; R(ctx, '#c8a878', bx, by, 26, 30); R(ctx, '#a8885a', bx, by, 26, 3); for (let i = 0; i < 6; i++) R(ctx, ['#e2802e', '#8a5aaa', '#f4f0e0', '#c8282e'][i % 4], bx + 3 + i * 4, by - 3 + (i % 2), 3, 3); blob(ctx, bx + 46, by + 16, 9, 7, P.PK, 1, 4); R(ctx, P.T[2], bx + 45, by + 7, 2, 3);
+  });
+  ctx.restore();
+}
+
+/* ---- the view from the New York window: looking down into the canyon of Times Square ----
+   built in perspective: a horizon line, the avenue converging on the narrow tower at its head, building faces lined with screens.
+   a point at depth scale s (1 = at the glass, smaller = further) and height z sits at y = vy + (E - z) * s */
+let TSV = null;
+function tsLayout(x0, y0, w, h) {
+  const side = Math.max(12, Math.round(w * 0.04)), top = Math.max(8, Math.round(h * 0.03)), ledge = Math.max(28, Math.round(h * 0.13));
+  const gx = x0 + side, gy = y0 + top, gw = w - side * 2, gh = h - top - ledge, vx = gx + Math.round(gw / 2), vy = gy + Math.round(gh * 0.4), E = gy + gh - vy;
+  return { x0, y0, w, h, side, top, ledge, gx, gy, gw, gh, vx, vy, E, sb: gy + gh };
+}
+const TS_BLOCKS = {
+  L: [[1, 0.6, 3.1, 0], [0.6, 0.41, 2.3, 1], [0.41, 0.3, 2.9, 2], [0.3, 0.22, 1.9, 3], [0.22, 0.16, 2.5, 4], [0.16, 0.13, 1.7, 5]],
+  R: [[1, 0.68, 2.7, 6], [0.68, 0.47, 3.4, 7], [0.47, 0.34, 2.1, 8], [0.34, 0.25, 2.8, 9], [0.25, 0.17, 2.1, 10], [0.17, 0.13, 3, 11]]
+};
+function tsBuild(x0, y0, w, h) {
+  const L = tsLayout(x0, y0, w, h), { gx, gy, gw, gh, vx, vy, E } = L, r = rng(1904);
+  // back: the sky glowing from below, a hazy moon, the far skyline over the head of the square
+  const [bc, b] = tvCanvas(w, h); b.translate(-x0, -y0);
+  for (let y = y0; y < vy + 4; y++) { const t = Math.max(0, (y - gy) / (vy - gy)); R(b, t < 0.6 ? mix('#06071c', '#24184a', t / 0.6) : mix('#24184a', '#8a3a6a', (t - 0.6) / 0.4), x0, y, w, 1); }
+  { const mx = gx + gw * 0.62, my = gy + gh * 0.08, mr = Math.max(4, Math.round(gh * 0.025)); const g = b.createRadialGradient(mx, my, 0, mx, my, mr * 7); g.addColorStop(0, 'rgba(230,220,255,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = g; b.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14); fillCircle(b, '#f0ecf8', Math.round(mx), Math.round(my), mr); }
+  for (let y = vy + 4; y < y0 + h; y++) R(b, mix('#3a1a40', '#16101e', Math.min(1, (y - vy) / (E * 0.3))), x0, y, w, 1);
+  for (let i = 0; i < 260; i++) R(b, NEON[i % 6], vx - gw * 0.12 + r() * gw * 0.24, vy + r() * E * 0.16, 1, 1);
+  for (let x = vx - Math.round(gw * 0.3); x < vx + Math.round(gw * 0.3);) { const bw = 4 + Math.floor(r() * 9), bh = Math.round(gh * (0.06 + r() * 0.2) * (1 - Math.abs(x - vx) / (gw * 0.4))), top = vy - bh; R(b, '#141230', x, top, bw, bh + 6); if (r() < 0.3) { R(b, '#141230', x + (bw >> 1), top - 6, 1, 6); } for (let yy = top + 2; yy < vy; yy += 2) for (let xx = x + 1; xx < x + bw - 1; xx += 2) if (r() < 0.3) R(b, r() < 0.8 ? '#a88a58' : '#e8e0c8', xx, yy, 1, 1); x += bw; }
+  // front: the building faces and the street, solid; screens are painted live over them
+  const [fc, f] = tvCanvas(w, h); f.translate(-x0, -y0);
+  const cols = [];
+  for (const side of ['L', 'R']) for (const [s0, s1, Z, id] of TS_BLOCKS[side]) {
+    const rb = rng(500 + id), face = ['#14122a', '#1a1626', '#121a2a', '#1e1a2e'][id % 4], xa = vx + (side === 'L' ? -1 : 1) * gw / 2 * s0, xb = vx + (side === 'L' ? -1 : 1) * gw / 2 * s1;
+    const bands = []; let z = 0.16; while (z < Z - 0.2) { const hgt = 0.25 + rb() * 0.45; if (rb() < 0.78) bands.push([z, Math.min(Z - 0.1, z + hgt), Math.floor(rb() * 4), Math.floor(rb() * 6)]); z += hgt + 0.06 + rb() * 0.12; }
+    const x1 = Math.round(Math.min(xa, xb)), x2 = Math.round(Math.max(xa, xb));
+    for (let x = x1; x < x2; x++) {
+      const s = Math.abs(x + 0.5 - vx) / (gw / 2), u = (s0 - s) / (s0 - s1), yb = vy + E * s, yt = vy + (E - Z * E) * s;
+      R(f, face, x, yt, 1, yb - yt); if (x === x1 || x === x2 - 1) R(f, '#0a0814', x, yt, 1, yb - yt);
+      R(f, '#3a3450', x, yt, 1, 1);
+      for (let zz = 0.3; zz < Z; zz += 0.1) if (rb() < 0.22) R(f, rb() < 0.8 ? '#c8a868' : '#f0e6c8', x, vy + (E - zz * E) * s, 1, 1);
+      for (let yy = 0; yy < Math.max(2, 0.11 * E * s); yy++) R(f, mix('#fff0c0', '#e8903a', yy / (0.11 * E * s + 1)), x, yb - yy - 1, 1, 1);
+      cols.push({ x, s, u, Z, bands, id });
+    }
+    // a water tower on the near roofs
+    if (Z > 2.6 && s1 > 0.25) { const s = (s0 + s1) / 2, wx = vx + (side === 'L' ? -1 : 1) * gw / 2 * s, wy = vy + (E - Z * E) * s, ws = Math.max(3, Math.round(16 * s)); R(f, '#3a2a22', wx - ws / 2, wy - ws * 1.2, ws, ws); R(f, '#2a1c16', wx - ws / 2 - 1, wy - ws * 1.6, ws + 2, ws * 0.45); R(f, '#2a1c16', wx - ws / 2 + 1, wy - ws * 0.2, 1, ws * 0.3); R(f, '#2a1c16', wx + ws / 2 - 2, wy - ws * 0.2, 1, ws * 0.3); }
+  }
+  // the avenue: asphalt, the pedestrian plaza down the middle, lane markings
+  const sMin = 0.13;
+  for (let y = Math.round(vy + E * sMin); y < gy + gh; y++) { const s = (y - vy) / E, half = gw / 2 * s; R(f, '#1c1a24', vx - half, y, half * 2, 1); R(f, '#2a2632', vx - half * 0.4, y, half * 0.8, 1); R(f, '#3a3644', vx - half * 0.94, y, half * 0.06, 1); R(f, '#3a3644', vx + half * 0.88, y, half * 0.06, 1); }
+  for (let p = 0; p < 1; p += 0.06) { const s = 1 / (1 + 7 * p); for (const lat of [-0.66, 0.66]) R(f, '#8a8890', vx + lat * gw / 2 * s, vy + E * s, Math.max(1, 3 * s), Math.max(1, 6 * s)); }
+  return { key: [x0, y0, w, h].join(','), L, back: bc, front: fc, cols };
+}
+function renderTimesSquare(now) {
+  const x0 = -OX, y0 = -OY, w = VW, h = VH, anim = !REDUCE, key = [x0, y0, w, h].join(',');
+  if (!TSV || TSV.key !== key) TSV = tsBuild(x0, y0, w, h);
+  const V = TSV, L = V.L, { gx, gy, gw, gh, vx, vy, E, sb } = L, at = (s, lat, z = 0) => [vx + lat * gw / 2 * s, vy + (E - z * E) * s];
+  ctx.drawImage(V.back, x0, y0);
+  ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gh); ctx.clip();
+  // red beacons on the far towers
+  for (let i = 0; i < 6; i++) if (!anim || Math.floor(now / 800 + i) % 2) R(ctx, '#ff3a3a', vx - gw * 0.25 + i * gw * 0.1, vy - gh * (0.12 + (i % 3) * 0.05), 1, 1);
+  // the narrow tower at the head of the square: stacked screens, the ball on its mast
+  { const s = 0.125, [xl, yb] = at(s, -0.62), [xr] = at(s, 0.62), Z = 4.6, yt = vy + (E - Z * E) * s, tw = xr - xl;
+    R(ctx, '#16142a', xl, yt, tw, yb - yt);
+    const fr = [[0.2, 0.9, 1], [0.95, 1.6, 3], [1.65, 2.3, 0], [2.35, 3.1, 1], [3.15, 3.7, 2], [3.75, 4.4, 0]];
+    fr.forEach(([z1, z2, kind], i) => { const y1 = vy + (E - z2 * E) * s, y2 = vy + (E - z1 * E) * s; drawScreen(xl + 1, y1, tw - 2, y2 - y1, { kind, i: (i * 2 + 1) % 6 }, now); });
+    const my = yt, mx = Math.round(vx); R(ctx, '#a8a8c0', mx - 1, my - 14, 2, 14); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(mx, my - 15, 0, mx, my - 15, 16); g.addColorStop(0, 'rgba(200,230,255,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(mx - 16, my - 31, 32, 32); ctx.globalCompositeOperation = 'source-over';
+    fillCircle(ctx, '#e8f4ff', mx, my - 15, 3); for (let i = 0; i < 6; i++) R(ctx, NEON[(i + Math.floor(now / 300)) % 6], mx - 2 + (i % 3) * 2, my - 17 + Math.floor(i / 3) * 3, 1, 1); }
+  ctx.drawImage(V.front, x0, y0);
+  // screens on the building faces, each column painted in perspective
+  for (const c of V.cols) for (const [z1, z2, kind, ci] of c.bands) {
+    const y1 = vy + (E - z2 * E) * c.s, y2 = vy + (E - z1 * E) * c.s, hh = y2 - y1; if (hh < 1) continue;
+    if (kind === 0) { const n = Math.max(1, Math.min(4, Math.round(hh / 6))); for (let q = 0; q < n; q++) R(ctx, neonAt(ci, q / n, now), c.x, y1 + hh * q / n, 1, hh / n + 1); }
+    else if (kind === 1) { const v = Math.sin(c.u * 9 + now / 420 + ci) * 0.5 + 0.5; R(ctx, mix(NEON[ci], NEON[(ci + 2) % 6], v), c.x, y1, 1, hh); }
+    else if (kind === 2) { R(ctx, '#0a0a14', c.x, y1, 1, hh); const on = ((c.u * 60 + now / 90) % 6) < 3; R(ctx, on ? '#3aff9a' : '#ff5a5a', c.x, y1 + hh * 0.35, 1, Math.max(1, hh * 0.3)); }
+    else { const pulse = 0.55 + 0.45 * Math.sin(now / 700 + ci * 2); R(ctx, mix('#0a0a14', NEON[ci], pulse), c.x, y1, 1, hh); if (((c.u * 24) | 0) % 5 === 0) R(ctx, '#ffffff', c.x, y1 + hh * 0.45, 1, Math.max(1, hh * 0.1)); }
+  }
+  // the light the screens throw down into the square
+  ctx.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 6; i++) { const col = hexRGB(neonAt(i, 0.5, now)), s = 0.2 + i * 0.13, [lx, ly] = at(s, i % 2 ? 0.7 : -0.7, 0.4), rr = gw * 0.22 * s + 20, g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr); g.addColorStop(0, `rgba(${col},0.22)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lx - rr, ly - rr, rr * 2, rr * 2); }
+  ctx.globalCompositeOperation = 'source-over';
+  // the red glass steps in the middle of the plaza, glowing, people sitting on them
+  { const s1 = 0.3, s2 = 0.42, n = 8; for (let k = 0; k < n; k++) { const sa = s1 + (s2 - s1) * k / n, sbb = s1 + (s2 - s1) * (k + 1) / n, [xa, ya] = at(sa, -0.24, 0.18 * (1 - k / n)), [xb2] = at(sa, 0.24), [, yb2] = at(sbb, 0, 0.18 * (1 - (k + 1) / n)); R(ctx, k % 2 ? '#b0202e' : '#ff4a5a', xa, ya, xb2 - xa, Math.max(1, yb2 - ya)); }
+    ctx.globalCompositeOperation = 'lighter'; const [cx, cy] = at(0.36, 0, 0.1), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, gw * 0.12); g.addColorStop(0, 'rgba(255,60,80,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - gw * 0.12, cy - gw * 0.12, gw * 0.24, gw * 0.24); ctx.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < 26; i++) { const k = (i * 7) % 8, sa = 0.3 + 0.12 * (k + 0.5) / 8, [px, py] = at(sa, -0.2 + ((i * 37) % 40) / 100, 0.18 * (1 - (k + 0.5) / 8)), sz = Math.max(1, Math.round(4 * sa)); R(ctx, NEON[i % 6], px, py - sz * 2, sz, sz * 2); R(ctx, '#e8c8a8', px, py - sz * 3, sz, sz); } }
+  // the crowd on the plaza and the pavements
+  const t = now / 1000;
+  for (let i = 0; i < 170; i++) {
+    const side = i % 5 === 0 ? (i % 2 ? 0.93 : -0.93) : 0, dir = i % 2 ? 1 : -1, p = ((((i * 0.6180339) % 1) + t * (0.004 + (i % 4) * 0.002) * dir) % 1 + 1) % 1, s = 1 / (1 + 7 * p);
+    if (s > 0.29 && s < 0.43 && !side && Math.abs(((i * 0.37) % 0.6) - 0.3) < 0.24) continue;
+    const lat = side || (((i * 0.7548776) % 1) - 0.5) * 0.74 + Math.sin(t / 2 + i) * 0.02, [px, py] = at(s, lat), sz = Math.max(1, Math.round(7 * s)), step = anim && Math.floor(now / 260 + i) % 2;
+    R(ctx, ['#2a2430', '#5a2a2a', '#26303a', '#d84a3a', '#2a5aa8', '#f2c414', '#e8e6ec', '#4a2a6a'][i % 8], px, py - sz * 3, sz + (sz > 2 ? 1 : 0), sz * 2 + 1); R(ctx, ['#e8c8a8', '#b8784e', '#7e4e30', '#dca47a'][i % 4], px, py - sz * 4, Math.max(1, sz), Math.max(1, sz)); if (sz > 2) { R(ctx, '#14121a', px + (step ? 0 : 1), py - sz + 1, 1, sz); R(ctx, '#14121a', px + sz - (step ? 1 : 0), py - sz + 1, 1, sz); }
+    if (i % 23 === 0 && sz > 1) R(ctx, '#ffffff', px + sz, py - sz * 4, 1, 1);
+  }
+  // yellow cabs and a bus streaming along the avenue: headlights coming, tail lights going
+  for (let i = 0; i < 16; i++) {
+    const lane = [-0.84, -0.56, 0.56, 0.84][i % 4], dir = lane < 0 ? 1 : -1, p = ((((i * 0.371) % 1) + t * (0.05 + (i % 3) * 0.012) * dir) % 1 + 1) % 1, s = 1 / (1 + 7 * p), [cx, cy] = at(s, lane), cw = Math.max(2, Math.round(34 * s)), ch = Math.max(1, Math.round(15 * s)), bus = i === 7;
+    R(ctx, bus ? '#2a5aa8' : '#f2c414', cx - cw / 2, cy - ch, bus ? cw * 1.2 : cw, ch); R(ctx, bus ? '#4a7ac8' : '#ffe46a', cx - cw / 2, cy - ch, bus ? cw * 1.2 : cw, Math.max(1, ch * 0.25)); if (cw > 6) { R(ctx, '#1a1820', cx - cw / 2 + 1, cy - ch * 0.4, Math.max(1, cw * 0.2), 1); R(ctx, '#8ab0d8', cx - cw / 4, cy - ch * 0.85, cw / 2, Math.max(1, ch * 0.3)); }
+    ctx.globalCompositeOperation = 'lighter'; const lc = dir > 0 ? '255,60,50' : '255,240,190', g = ctx.createRadialGradient(cx, cy - ch * 0.3, 0, cx, cy - ch * 0.3, cw * 1.2); g.addColorStop(0, `rgba(${lc},0.55)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - cw * 1.2, cy - ch * 0.3 - cw * 1.2, cw * 2.4, cw * 2.4); ctx.globalCompositeOperation = 'source-over';
+  }
+  // steam out of the street, lit pink by the screens
+  for (const [s, lat] of [[0.55, -0.5], [0.24, 0.6]]) { const [mx, my] = at(s, lat); for (let i = 0; i < 6; i++) { const tt = ((now / 1800) + i / 6) % 1; ctx.globalAlpha = 0.25 * (1 - tt); fillCircle(ctx, '#f0d8ec', Math.round(mx + Math.sin(now / 700 + i) * 4 * s + tt * 12 * s), Math.round(my - tt * gh * 0.3 * s), Math.max(1, Math.round((3 + tt * 7) * s * 2))); } ctx.globalAlpha = 1; }
+  // the glass: a faint reflection of the room's lamp and two diagonal sheens
+  ctx.globalCompositeOperation = 'lighter'; { const g = ctx.createRadialGradient(gx + gw * 0.85, gy + gh * 0.7, 0, gx + gw * 0.85, gy + gh * 0.7, gh * 0.3); g.addColorStop(0, 'rgba(255,200,130,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(gx, gy, gw, gh); } ctx.globalCompositeOperation = 'source-over';
+  ctx.globalAlpha = 0.05; ctx.fillStyle = '#ffffff'; for (const [a, bw] of [[0.1, 0.06], [0.55, 0.03]]) { ctx.beginPath(); ctx.moveTo(gx + gw * a, gy); ctx.lineTo(gx + gw * (a + bw), gy); ctx.lineTo(gx + gw * (a + bw - 0.18), gy + gh); ctx.lineTo(gx + gw * (a - 0.18), gy + gh); ctx.fill(); } ctx.globalAlpha = 1;
+  ctx.restore();
+  // the frame: black steel mullions, concrete columns either side, the soffit and the wide walnut ledge
+  const bars = [gx + Math.round(gw / 3), gx + Math.round(gw * 2 / 3)], rail = gy + Math.round(gh * 0.82);
+  for (const bx of bars) { R(ctx, '#0a0a0e', bx - 2, gy, 4, gh); R(ctx, '#3a3a46', bx - 2, gy, 1, gh); }
+  R(ctx, '#0a0a0e', gx, rail, gw, 3); R(ctx, '#3a3a46', gx, rail, gw, 1);
+  R(ctx, '#0a0a0e', gx - 3, gy - 3, gw + 6, 3); R(ctx, '#0a0a0e', gx - 3, gy, 3, gh); R(ctx, '#0a0a0e', gx + gw, gy, 3, gh);
+  const neonWash = hexRGB(neonAt(0, 0.5, now));
+  for (const [ax, aw] of [[x0, gx - 3 - x0], [gx + gw + 3, x0 + w - gx - gw - 3]]) { R(ctx, '#2a2a32', ax, y0, aw, h); for (let y = y0; y < y0 + h; y += 7) R(ctx, '#24242c', ax, y, aw, 1); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = `rgba(${neonWash},0.1)`; ctx.fillRect(ax, y0, aw, h); ctx.globalCompositeOperation = 'source-over'; }
+  R(ctx, '#1e1e26', x0, y0, w, gy - 3 - y0);
+  const sy = gy + gh; R(ctx, NYC.walnut[3], x0, sy, w, 5); R(ctx, NYC.walnut[4], x0, sy, w, 1); R(ctx, NYC.walnut[1], x0, sy + 5, w, y0 + h - sy - 5); for (let x = x0; x < x0 + w; x += 48) R(ctx, NYC.walnut[0], x, sy + 8, 1, h);
+  // on the ledge: coffee steaming, a succulent, a record sleeve, headphones, a little pumpkin for the season
+  const base = sy + 1, mX = gx + Math.round(gw * 0.14);
+  R(ctx, '#f4f0e6', mX, base - 11, 10, 11); R(ctx, '#d8d0c0', mX + 8, base - 11, 2, 11); R(ctx, '#f4f0e6', mX + 10, base - 8, 3, 5); R(ctx, '#4a2a1a', mX + 1, base - 10, 8, 2);
+  for (let i = 0; i < 4; i++) { const k = ((now / 1500) + i / 4) % 1; ctx.globalAlpha = 0.5 * (1 - k); R(ctx, '#f4f0ea', mX + 4 + Math.round(Math.sin(now / 300 + i * 2) * 2 * (1 + k)), base - 14 - Math.round(k * 22), 1, 2); } ctx.globalAlpha = 1;
+  const pX = gx + Math.round(gw * 0.26); R(ctx, '#e8e6ec', pX, base - 8, 12, 8); R(ctx, '#c8c4cc', pX + 10, base - 8, 2, 8); for (const [dx, dy] of [[1, -12], [4, -15], [7, -13], [3, -10], [8, -10], [5, -18]]) { R(ctx, '#5aa890', pX + dx, base + dy, 3, 4); R(ctx, '#8ad0b8', pX + dx, base + dy, 1, 1); }
+  const vX = gx + Math.round(gw * 0.7); R(ctx, '#d84a3a', vX, base - 26, 22, 26); R(ctx, '#f2c414', vX + 4, base - 22, 14, 14); fillCircle(ctx, '#1a1418', vX + 11, base - 15, 4); R(ctx, '#d84a3a', vX + 10, base - 16, 2, 2); R(ctx, '#1a1418', vX + 22, base - 24, 2, 24);
+  const hX = gx + Math.round(gw * 0.82); for (let i = 0; i < 16; i++) R(ctx, '#1e1e26', hX + i, base - 14 + Math.round(Math.abs(i - 7.5) * 1.2), 2, 2); R(ctx, '#2a2a34', hX - 2, base - 8, 5, 8); R(ctx, '#2a2a34', hX + 14, base - 8, 5, 8); R(ctx, '#5ad0c0', hX - 1, base - 6, 2, 3);
+  const kX = gx + Math.round(gw * 0.9); blob(ctx, kX, base - 5, 6, 4.5, P.PK, 1, 4); R(ctx, P.T[2], kX - 1, base - 11, 2, 3);
+  // the neon washes over the ledge; a soft vignette
+  ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 3; i++) { const col = hexRGB(neonAt(i * 2, 0.5, now)), lx = gx + gw * (0.2 + i * 0.3), g = ctx.createRadialGradient(lx, sy, 0, lx, sy, gw * 0.25); g.addColorStop(0, `rgba(${col},0.18)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lx - gw * 0.25, sy - gw * 0.25, gw * 0.5, gw * 0.5); } ctx.globalCompositeOperation = 'source-over';
+  { const vg = ctx.createRadialGradient(x0 + w / 2, y0 + h * 0.45, Math.min(w, h) * 0.38, x0 + w / 2, y0 + h * 0.45, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(6,4,14,0)'); vg.addColorStop(1, 'rgba(6,4,14,0.5)'); ctx.fillStyle = vg; ctx.fillRect(x0, y0, w, h); }
+}
+
+/* ---- the view from the Salem window: Essex Street on Halloween night ----
+   the harvest moon, the anniversary drone show over the rooftops, the timber-framed witch house and the brick shops across the way,
+   pumpkins on every step, costumed crowds on the bricks, leaves and bats; all seen through old leaded glass */
+let SLV = null;
+const DRONE_SHAPES = {
+  hat: ['..........#..........', '.........###.........', '........####.........', '.......######........', '.......#######.......', '......########.......', '......#########......', '.....##########......', '.....###########.....', '....####OOOOOO###....', '#####################', '.###################.'],
+  lantern: ['..........G..........', '.......#######.......', '....#############....', '..#################..', '.###...#######...###.', '.####.#########.####.', '##########.##########', '#####################', '.##.#.#.#.#.#.#.#.##.', '.###.#.#.#.#.#.#.###.', '..#################..', '....#############....'],
+  bat: ['#.......#...#.......#', '##......#####......##', '###....#######....###', '####..#########..####', '#####################', '.###################.', '..####.#######.####..', '...#....#####....#...', '.........###.........', '..........#..........'],
+  n400: ['#...#..#####..#####', '#...#..#...#..#...#', '#...#..#...#..#...#', '#####..#...#..#...#', '....#..#...#..#...#', '....#..#...#..#...#', '....#..#####..#####'],
+  cat: ['#...........#', '##.........##', '###.......###', '#############', '#############', '##..#####..##', '##..#####..##', '#############', '######.######', '.###########.', '..#########..']
+};
+const DRONE_ORDER = [['hat', '#b070ff', '#ff8a20'], ['lantern', '#ff8a20', '#5aff8a'], ['n400', '#fff4d0', '#fff4d0'], ['bat', '#c890ff', '#c890ff'], ['cat', '#f4f0ff', '#f4f0ff']];
+const N_DRONES = 210;
+const DRONE_PTS = (() => { const out = {}; for (const k in DRONE_SHAPES) { const rows = DRONE_SHAPES[k], pts = []; rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') pts.push({ x: (x - (row.length - 1) / 2) / 10, y: (y - (rows.length - 1) / 2) / 10, alt: ch !== '#' }); })); pts.sort((a, b) => a.x - b.x || a.y - b.y); const res = []; for (let i = 0; i < N_DRONES; i++) res.push(pts[Math.floor(i * pts.length / N_DRONES)]); out[k] = res; } return out; })();
+function slvLayout(x0, y0, w, h) {
+  const cw = Math.max(24, Math.round(w * 0.075)), ph = Math.max(14, Math.round(h * 0.06)), sh = Math.max(16, Math.round(h * 0.075));
+  const T = 7, fx = x0 + cw - 4, fy = y0 + ph, fw = w - 2 * (cw - 4), fh = h - ph - sh, gx = fx + T, gy = fy + T, gw = fw - 2 * T, gh = fh - T - 5;
+  return { x0, y0, w, h, cw, ph, sh, T, fx, fy, fw, fh, gx, gy, gw, gh, pave: gy + Math.round(gh * 0.74), sill: y0 + h - sh };
+}
+function slvBuild(x0, y0, w, h) {
+  const L = slvLayout(x0, y0, w, h), r = rng(1692), { gx, gy, gw, gh, pave } = L;
+  const [bc, b] = tvCanvas(w, h); b.translate(-x0, -y0);
+  const stops = [[0, '#06041a'], [0.35, '#160c34'], [0.62, '#3a1a4a'], [0.82, '#7a3040'], [1, '#c45a32']];
+  for (let y = y0; y < pave; y++) { const t = Math.max(0, (y - gy) / (pave - gy)); let i = 0; while (i < stops.length - 2 && t > stops[i + 1][0]) i++; const [t0, c0] = stops[i], [t1, c1] = stops[i + 1], d = ((y * 7) % 4) / 4 * 0.1; R(b, mix(c0, c1, Math.min(1, (t - t0) / (t1 - t0) + d)), x0, y, w, 1); }
+  for (let i = 0; i < 70; i++) R(b, r() < 0.3 ? '#e0d8ff' : '#6a5a9a', gx + r() * gw, gy + r() * gh * 0.35);
+  // the harvest moon, huge and low
+  const mx = gx + Math.round(gw * 0.74), my = gy + Math.round(gh * 0.2), mr = Math.max(10, Math.round(gh * 0.09));
+  { const g = b.createRadialGradient(mx, my, 0, mx, my, mr * 5); g.addColorStop(0, 'rgba(255,200,120,0.45)'); g.addColorStop(0.35, 'rgba(255,150,90,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = g; b.fillRect(mx - mr * 5, my - mr * 5, mr * 10, mr * 10); }
+  fillCircle(b, '#f2b850', mx, my, mr); fillCircle(b, '#ffd890', mx - 1, my - 1, mr - 2); fillCircle(b, '#ffe8b8', mx - 3, my - 3, Math.round(mr * 0.6));
+  for (const [dx, dy, rr] of [[-0.3, 0.1, 0.18], [0.25, -0.3, 0.14], [0.1, 0.35, 0.12], [-0.45, -0.25, 0.08]]) fillCircle(b, '#e8b060', Math.round(mx + dx * mr), Math.round(my + dy * mr), Math.max(1, Math.round(rr * mr)));
+  // far: the white steeple, roofs with chimneys, bare trees
+  const [fc, f] = tvCanvas(w, h); f.translate(-x0, -y0);
+  const farBase = gy + Math.round(gh * 0.5), chims = [];
+  for (let x = gx - 20; x < gx + gw + 20;) { const rw = 26 + Math.floor(r() * 30), rh = Math.round(gh * (0.05 + r() * 0.06)), top = farBase - rh; for (let i = 0; i < rh; i++) R(f, '#1c1028', x + Math.round(i * 0.7), top + i, rw - Math.round(i * 1.4), 1); R(f, '#1c1028', x, farBase, rw, 60); if (r() < 0.6) { const cx = x + 4 + Math.floor(r() * (rw - 12)); R(f, '#241430', cx, top - 8, 6, 10); chims.push([cx + 3, top - 9]); } for (let k = 0; k < 3; k++) if (r() < 0.5) R(f, '#ffb040', x + 4 + Math.floor(r() * (rw - 8)), farBase + 3 + Math.floor(r() * 6), 2, 2); x += rw - 6; }
+  { const sx = gx + Math.round(gw * 0.12), sw2 = Math.max(8, Math.round(gw * 0.018)), st = gy + Math.round(gh * 0.14); R(f, '#d8d0e0', sx, st + sw2 * 5, sw2, farBase - st - sw2 * 5 + 10); R(f, '#b8b0c8', sx + sw2 - 2, st + sw2 * 5, 2, farBase - st); R(f, '#d8d0e0', sx - 2, st + sw2 * 5, sw2 + 4, 2); R(f, '#d8d0e0', sx + 1, st + sw2 * 2, sw2 - 2, sw2 * 3); R(f, '#3a2a4a', sx + Math.floor(sw2 / 2) - 1, st + sw2 * 3, 2, 4); for (let i = 0; i < sw2 * 2; i++) R(f, '#d8d0e0', sx + 1 + Math.round(i * (sw2 - 2) / (sw2 * 4)), st + sw2 * 2 - i, Math.max(1, sw2 - 2 - Math.round(i * (sw2 - 2) / (sw2 * 2))), 1); R(f, '#c8a050', sx + Math.floor(sw2 / 2), st - 4, 1, 4); }
+  const tree = (tx, base, hgt, seed) => { const tr = rng(seed); R(f, '#140a18', tx, base - hgt, 3, hgt); const br = (x, y, a, len, d) => { if (d > 4 || len < 3) return; for (let q = 0; q < len; q++) R(f, '#140a18', Math.round(x + Math.cos(a) * q), Math.round(y + Math.sin(a) * q), d < 2 ? 2 : 1, 1); const ex = x + Math.cos(a) * len, ey = y + Math.sin(a) * len; br(ex, ey, a - 0.4 - tr() * 0.3, len * 0.7, d + 1); br(ex, ey, a + 0.4 + tr() * 0.3, len * 0.65, d + 1); }; br(tx + 1, base - hgt, -Math.PI / 2, hgt * 0.4, 0); for (let k = 0; k < 10; k++) R(f, ['#c8502a', '#e8902a'][k % 2], tx - 10 + Math.floor(tr() * 22), base - hgt - Math.floor(tr() * hgt * 0.5), 2, 2); };
+  tree(gx + Math.round(gw * 0.08), farBase + 6, Math.round(gh * 0.22), 3); tree(gx + Math.round(gw * 0.56), farBase + 8, Math.round(gh * 0.2), 9); tree(gx + Math.round(gw * 0.94), farBase + 4, Math.round(gh * 0.24), 17);
+  const hz = f.createLinearGradient(0, gy + gh * 0.35, 0, farBase + 6); hz.addColorStop(0, 'rgba(120,60,90,0)'); hz.addColorStop(1, 'rgba(140,70,80,0.3)'); f.fillStyle = hz; f.fillRect(x0, gy + gh * 0.35, w, farBase + 6 - (gy + gh * 0.35));
+  // across the street: the dark witch house with its many gables, brick shops, a white clapboard house; pumpkins on every step
+  const wins = [], lanterns = [], signs = [];
+  const ORDER = ['clap', 'brick', 'witch', 'shop', 'clap', 'brick', 'shop', 'clap', 'brick'];
+  let oi = 0;
+  for (let x = gx - 30; x < gx + gw + 30;) {
+    const kind = ORDER[oi++ % ORDER.length], hw = kind === 'witch' ? 96 + Math.floor(r() * 20) : 58 + Math.floor(r() * 22), hh = Math.round(gh * (kind === 'witch' ? 0.36 : kind === 'brick' ? 0.42 : 0.34 + r() * 0.04)), top = pave - hh;
+    if (kind === 'witch') {
+      const D = ['#140c10', '#1e1418', '#2a1c1e'];
+      R(f, D[1], x, top, hw, hh); for (let y = top + 2; y < pave; y += 3) R(f, D[0], x, y, hw, 1);
+      const gab = [[x + 4, 34], [x + Math.round(hw * 0.38), 40], [x + Math.round(hw * 0.7), 32]]; for (const [g0, gwid] of gab) for (let i = 0; i < gwid * 0.9; i++) R(f, i < 1 ? '#3a2a30' : D[0], g0 + Math.round(i * 0.55), top - i, Math.max(1, gwid - Math.round(i * 1.1)), 1);
+      R(f, D[2], x + Math.round(hw * 0.45), top - 44, 7, 16);
+      for (const [wx, wy, ww3, wh3] of [[x + 10, top + 10, 14, 12], [x + Math.round(hw * 0.42), top + 8, 16, 12], [x + Math.round(hw * 0.74), top + 10, 14, 12], [x + 14, top + 34, 18, 12], [x + Math.round(hw * 0.68), top + 34, 18, 12]]) { R(f, '#0a0608', wx - 1, wy - 1, ww3 + 2, wh3 + 2); for (let yy = 0; yy < wh3; yy++) R(f, mix('#ffb040', '#d8601a', yy / wh3), wx, wy + yy, ww3, 1); for (let k = -wh3; k < ww3; k += 4) for (let q = 0; q < wh3; q++) { if (k + q >= 0 && k + q < ww3) R(f, '#2a1408', wx + k + q, wy + q, 1, 1); if (k + wh3 - q >= 0 && k + wh3 - q < ww3) R(f, '#2a1408', wx + k + wh3 - q, wy + q, 1, 1); } wins.push([wx + ww3 / 2, wy + wh3 / 2, 22]); }
+      const dX = x + Math.round(hw * 0.45); R(f, '#0a0608', dX, pave - 24, 14, 24); R(f, '#3a2418', dX + 1, pave - 23, 12, 23); R(f, '#c8a050', dX + 10, pave - 12, 1, 2);
+      for (let i = 0; i < 9; i++) { R(f, '#4a3446', gab[0][0] + Math.round(i * 0.55), top - Math.round(i * 3.4), 1, 1); R(f, '#4a3446', gab[1][0] + Math.round(i * 0.55), top - Math.round(i * 4), 1, 1); }
+      R(f, '#1a1012', dX - 14, pave - 30, 10, 7); R(f, '#c8a050', dX - 13, pave - 29, 8, 1); R(f, '#3a2a1c', dX - 10, pave - 33, 1, 3);
+    } else if (kind === 'brick' || kind === 'shop') {
+      const face = ['#6a2e22', '#7a3828', '#5a2a22'][Math.floor(r() * 3)];
+      R(f, face, x, top, hw, hh); for (let y = top + 3; y < pave; y += 3) R(f, mix(face, '#000000', 0.14), x, y, hw, 1); R(f, '#e8e0d0', x - 1, top - 3, hw + 2, 3); R(f, mix(face, '#000000', 0.4), x + hw - 2, top, 2, hh);
+      const cols = Math.max(2, Math.floor((hw - 6) / 16)), sp = (hw - cols * 9) / (cols + 1);
+      for (let k = 0; k < 2; k++) for (let c = 0; c < cols; c++) { const wx = Math.round(x + sp + c * (9 + sp)), wy = top + 6 + k * Math.round((hh * 0.55) / 2), lit = r() < 0.8; R(f, '#e8e0d0', wx - 1, wy - 2, 11, 2); R(f, '#1a1012', wx - 1, wy - 1, 11, 15); for (let yy = 0; yy < 13; yy++) R(f, lit ? mix('#ffd890', '#e8903a', yy / 13) : '#1a1428', wx, wy + yy, 9, 1); R(f, '#e8e0d0', wx + 4, wy, 1, 13); R(f, '#e8e0d0', wx, wy + 6, 9, 1); if (lit && r() < 0.35) { R(f, '#14101a', wx + 1, wy + 8, 3, 5); R(f, '#14101a', wx + 1, wy + 7, 1, 1); R(f, '#14101a', wx + 3, wy + 7, 1, 1); } if (lit) wins.push([wx + 4, wy + 6, 14]); }
+      const gf = Math.round(hh * 0.34), gTop = pave - gf; R(f, '#1a1012', x + 3, gTop, hw - 6, gf); for (let yy = 0; yy < gf - 4; yy++) R(f, mix('#fff0c8', '#e88a30', yy / gf), x + 6, gTop + 3 + yy, hw - 12, 1);
+      const word = kind === 'shop' ? ['PSYCHIC', 'MAGIC', 'POTIONS'][(oi >> 1) % 3] : ['OLDE BOOKS', 'CANDY', 'MUSEUM', 'CAFE'][(oi >> 1) % 4];
+      if (word === 'CANDY') { for (let k = 0; k < 10; k++) R(f, ['#e2802e', '#8a5aaa', '#f4f0e0', '#c8282e', '#5ac86a'][k % 5], x + 9 + (k * 5) % (hw - 18), gTop + gf - 10 - (k % 3) * 3, 3, 3); }
+      else if (word === 'MAGIC' || word === 'POTIONS') { for (let k = 0; k < 5; k++) { const jx = x + 10 + k * Math.round((hw - 20) / 5), col = ['#5ac86a', '#8a5aaa', '#e2802e', '#3ae0ff', '#c8282e'][k]; R(f, col, jx, gTop + gf - 14, 5, 9); R(f, mix(col, '#ffffff', 0.4), jx, gTop + gf - 14, 1, 9); R(f, '#c8b898', jx + 1, gTop + gf - 16, 3, 2); } }
+      else if (word === 'PSYCHIC') { fillCircle(f, '#8a6aca', x + Math.round(hw / 2), gTop + gf - 10, 5); R(f, '#c8a050', x + Math.round(hw / 2) - 4, gTop + gf - 5, 9, 2); for (let k = 0; k < 3; k++) R(f, '#f4ecd8', x + 10 + k * 5, gTop + gf - 10, 4, 6); }
+      else { for (let k = 0; k < 7; k++) for (let q = 0; q < 3; q++) R(f, ['#7a1a20', '#2e4a7a', '#c8a050', '#2e6a3a', '#5a2a5a'][(k + q) % 5], x + 9 + k * 6, gTop + gf - 8 - q * 3, 5, 2); }
+      for (let q = x + 6; q < x + hw - 6; q += Math.round((hw - 12) / 3)) R(f, '#1a1012', q, gTop + 3, 1, gf - 4);
+      const awc = kind === 'shop' ? ['#3a1a4a', '#e2802e'] : ['#1e1a14', '#c8a050']; R(f, awc[0], x + 2, gTop - 8, hw - 4, 8); R(f, awc[1], x + 2, gTop - 8, hw - 4, 1); signs.push({ x: x + Math.round(hw / 2), y: gTop - 9, text: word, col: kind === 'shop' ? (word === 'PSYCHIC' ? '#c890ff' : '#ff9a3a') : '#f4e0b0', neon: kind === 'shop' });
+      wins.push([x + hw / 2, gTop + gf / 2, 30]);
+    } else {
+      const face = ['#e0d8c8', '#c8b878', '#3a4a5a'][Math.floor(r() * 3)];
+      R(f, face, x, top, hw, hh); for (let y = top + 3; y < pave; y += 3) R(f, mix(face, '#000000', 0.15), x, y, hw, 1); R(f, mix(face, '#000000', 0.4), x + hw - 2, top, 2, hh);
+      for (let i = 0; i < 18; i++) R(f, '#2a2028', x - 2 + Math.round(i * 1.6), top - i, Math.max(1, hw + 4 - Math.round(i * 3.2)), 1); R(f, '#3a2a2a', x + Math.round(hw / 2) - 3, top - 22, 6, 10);
+      for (let k = 0; k < 2; k++) for (const fx2 of [0.16, 0.44, 0.72]) { const wx = x + Math.round(hw * fx2), wy = top + 6 + k * Math.round(hh * 0.36), lit = r() < 0.75; R(f, '#f4f0e6', wx - 1, wy - 1, 11, 15); for (let yy = 0; yy < 13; yy++) R(f, lit ? mix('#ffd890', '#e8903a', yy / 13) : '#1a1428', wx, wy + yy, 9, 1); R(f, '#f4f0e6', wx + 4, wy, 1, 13); R(f, '#2a2a3a', wx - 4, wy - 1, 3, 15); R(f, '#2a2a3a', wx + 10, wy - 1, 3, 15); if (lit) wins.push([wx + 4, wy + 6, 14]); }
+      const dX = x + Math.round(hw * 0.44); R(f, '#f4f0e6', dX - 3, pave - 26, 18, 26); R(f, ['#1a1a20', '#5a1a1a', '#1e3a2a'][Math.floor(r() * 3)], dX, pave - 22, 12, 22); R(f, '#ffd890', dX + 1, pave - 25, 10, 2); wins.push([dX + 6, pave - 24, 12]);
+      for (let k = 0; k < 4; k++) R(f, '#cfc6b4', dX - 6 - k * 2, pave - 2 - k * 0, 24 + k * 4, 2);
+      // a scarecrow on the porch
+      if (r() < 0.6) { const sx = x + Math.round(hw * 0.14); R(f, '#6a4a2a', sx + 3, pave - 26, 2, 26); R(f, '#6a4a2a', sx - 4, pave - 20, 16, 2); R(f, '#3a5a8a', sx, pave - 18, 8, 10); R(f, '#c8a050', sx - 4, pave - 18, 3, 2); R(f, '#c8a050', sx + 9, pave - 18, 3, 2); fillCircle(f, '#e8d8a8', sx + 4, pave - 22, 3); R(f, '#6a4a20', sx, pave - 26, 9, 2); R(f, '#6a4a20', sx + 2, pave - 29, 5, 3); }
+    }
+    // pumpkins on the steps and the kerb; corn stalks by the door
+    const nP = 2 + Math.floor(r() * 3); for (let k = 0; k < nP; k++) { const px = x + 6 + Math.floor(r() * (hw - 16)), big = r() < 0.4, s = big ? 8 : 6; R(f, '#a84a14', px, pave - s, s + 2, s); R(f, '#e2802e', px + 1, pave - s, s, s - 1); R(f, '#f7ae55', px + 2, pave - s, 2, 1); R(f, '#3a5a2a', px + Math.floor(s / 2), pave - s - 2, 2, 2); lanterns.push([px, pave - s, s]); }
+    x += hw + (r() < 0.3 ? 4 : 0);
+  }
+  return { key: [x0, y0, w, h].join(','), L, back: bc, front: fc, chims, wins, lanterns, signs, moon: [mx, my, mr] };
+}
+function renderSalemView(now) {
+  const x0 = -OX, y0 = -OY, w = VW, h = VH, anim = !REDUCE, key = [x0, y0, w, h].join(',');
+  if (!SLV || SLV.key !== key) SLV = slvBuild(x0, y0, w, h);
+  const V = SLV, L = V.L, { gx, gy, gw, gh, pave } = L, gb = gy + gh, road = pave + Math.round((gb - pave) * 0.12);
+  ctx.drawImage(V.back, x0, y0);
+  ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gh); ctx.clip();
+  // wisps of cloud across the moon
+  for (let i = 0; i < 6; i++) { const span = gw + 200, cx = gx - 100 + ((((i * 191 + now * (0.003 + i * 0.001)) % span) + span) % span), cy = gy + gh * (0.08 + (i % 3) * 0.08), cw2 = 70 + (i * 41) % 60; ctx.globalAlpha = 0.18; ctx.fillStyle = '#2a1a3a'; ctx.beginPath(); ctx.ellipse(cx, cy, cw2 * 0.5, cw2 * 0.07, 0, 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#e8a070'; ctx.beginPath(); ctx.ellipse(cx, cy + 2, cw2 * 0.42, cw2 * 0.03, 0, 0, Math.PI * 2); ctx.fill(); } ctx.globalAlpha = 1;
+  // a witch on her broom crosses the moon now and then
+  { const [mx, my, mr] = V.moon, tt = (now % 26000) / 26000; if (tt < 0.22) { const k = tt / 0.22, bx = Math.round(mx - mr * 3 + k * mr * 6), by = Math.round(my + mr * 0.2 - Math.sin(k * Math.PI) * mr * 0.5), K = '#120810'; R(ctx, K, bx - 6, by + 4, 22, 2); for (let q = 0; q < 6; q++) R(ctx, K, bx - 8 - q, by + 3 + Math.round(q * 0.6), 2, 2 + Math.round(q * 0.4)); R(ctx, K, bx + 2, by - 4, 7, 8); R(ctx, K, bx + 4, by - 9, 5, 5); for (let q = 0; q < 6; q++) R(ctx, K, bx + 5 + Math.round(q * 0.4), by - 10 - q, Math.max(1, 4 - Math.round(q * 0.6)), 1); R(ctx, K, bx + 1, by - 6, 10, 1); R(ctx, K, bx + 4, by + 4, 2, 5); for (let q = 0; q < 5; q++) R(ctx, K, bx - 2 - q * 2, by - 3 + q, 2, 2); } }
+  // the drone show: a few hundred lights drawing hats, a jack-o'-lantern, the anniversary, a bat, a cat
+  { const cyc = 6500, per = now / cyc, a = Math.floor(per) % DRONE_ORDER.length, b2 = (a + 1) % DRONE_ORDER.length, ph = per % 1, mk2 = smooth(0.72, 1, ph), A = DRONE_ORDER[a], B = DRONE_ORDER[b2], pa = DRONE_PTS[A[0]], pb = DRONE_PTS[B[0]];
+    const cx = gx + gw * 0.3, cy = gy + gh * 0.2, sc = gh * 0.15;
+    ctx.globalCompositeOperation = 'lighter'; { const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, sc * 1.4); g.addColorStop(0, `rgba(${hexRGB(A[1])},0.1)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - sc * 1.4, cy - sc * 1.4, sc * 2.8, sc * 2.8); } ctx.globalCompositeOperation = 'source-over';
+    for (let i = 0; i < N_DRONES; i++) { const p1 = pa[i], p2 = pb[i], k = mk2, jx = anim ? Math.sin(now / 700 + i) * 0.4 : 0, x = cx + (p1.x + (p2.x - p1.x) * k) * sc + jx, y = cy + (p1.y + (p2.y - p1.y) * k) * sc + (k > 0 && k < 1 ? Math.sin(k * Math.PI) * sc * 0.15 * ((i % 3) - 1) : 0), col = mix(p1.alt ? A[2] : A[1], p2.alt ? B[2] : B[1], k), tw = !anim || (Math.floor(now / 200) + i) % 13; if (tw) { R(ctx, col, Math.round(x), Math.round(y), 2, 2); R(ctx, '#ffffff', Math.round(x), Math.round(y), 1, 1); } }
+    ctx.globalAlpha = 0.5; ctx.drawImage(glyphs('SALEM 400', 12, '#e8d8ff'), Math.round(cx - textW('SALEM 400', 12) / 2), Math.round(cy + sc * 0.9)); ctx.globalAlpha = 1; }
+  ctx.drawImage(V.front, x0, y0);
+  // chimney smoke, windows glowing, signs (some in neon), the jack-o'-lanterns flickering
+  for (const [cx, cy] of V.chims) for (let k = 0; k < 5; k++) { const tt = ((now / 2800 + k / 5 + cx * 0.013) % 1); ctx.globalAlpha = 0.25 * (1 - tt); fillCircle(ctx, '#6a5070', cx + Math.round(tt * 12 + Math.sin(now / 700 + k) * 2), cy - Math.round(tt * 24), 1 + Math.round(tt * 3)); } ctx.globalAlpha = 1;
+  for (const s of V.signs) { const tw = textW(s.text, 12); if (s.plaque) { R(ctx, '#1a1012', s.x - 2, s.y - 9, tw + 6, 12); ctx.drawImage(glyphs(s.text, 12, s.col), s.x + 1, s.y - 11); } else { const on = !s.neon || !anim || Math.floor(now / 1700 + s.x) % 9; if (on) { ctx.drawImage(glyphs(s.text, 12, s.col), Math.round(s.x - tw / 2), s.y - 11); if (s.neon) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(s.x, s.y - 5, 0, s.x, s.y - 5, tw * 0.7); g.addColorStop(0, `rgba(${hexRGB(s.col)},0.3)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(s.x - tw, s.y - 5 - tw * 0.7, tw * 2, tw * 1.4); ctx.globalCompositeOperation = 'source-over'; } } } }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [wx, wy, rr] of V.wins) { const g = ctx.createRadialGradient(wx, wy, 0, wx, wy, rr); g.addColorStop(0, 'rgba(255,160,70,0.16)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(wx - rr, wy - rr, rr * 2, rr * 2); }
+  for (const [px, py, s] of V.lanterns) { const fl = anim ? 0.75 + 0.25 * Math.sin(now / 80 + px) * Math.sin(now / 47 + px * 2) : 1, g = ctx.createRadialGradient(px + s / 2, py + s / 2, 0, px + s / 2, py + s / 2, s * 2.6); g.addColorStop(0, `rgba(255,150,40,${0.55 * fl})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(px - s * 2, py - s * 2, s * 5, s * 5); }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const [px, py, s] of V.lanterns) { const fl = anim && Math.floor(now / 100 + px) % 3 === 0, c1 = fl ? '#ffc040' : '#ffe070'; R(ctx, c1, px + 2, py + 2, 2, 1); R(ctx, c1, px + s - 2, py + 2, 2, 1); R(ctx, '#ffd040', px + 2, py + s - 3, s - 2, 1); if (s > 6) R(ctx, '#2a0e06', px + 3, py + s - 3, 1, 1); }
+  // the brick street, cornstalk-wrapped lamp posts, and bunting of orange and purple lights strung across
+  R(ctx, '#4a2a26', x0, pave, w, gb - pave); for (let y = pave; y < gb; y += 3) for (let x = gx + ((y / 3) % 2) * 3; x < gx + gw; x += 6) { R(ctx, '#5a3430', x, y, 5, 2); if (bay(x, y) > 0.8) R(ctx, '#6a4038', x, y, 3, 1); }
+  R(ctx, '#7a5a50', x0, pave, w, 1);
+  const lamps = [0.12, 0.38, 0.64, 0.88].map(t => ({ x: gx + Math.round(gw * t), top: pave - Math.round(gh * 0.24) }));
+  for (const lp of lamps) { R(ctx, '#0e0a10', lp.x, lp.top, 2, road - lp.top); R(ctx, '#0e0a10', lp.x - 2, road - 3, 6, 3); R(ctx, '#0e0a10', lp.x - 3, lp.top - 8, 8, 2); R(ctx, '#ffd890', lp.x - 2, lp.top - 6, 6, 6); R(ctx, '#0e0a10', lp.x - 3, lp.top, 8, 1); R(ctx, '#0e0a10', lp.x, lp.top - 11, 2, 2); for (let i = 0; i < 14; i++) R(ctx, i % 3 ? '#c8a050' : '#a8823c', lp.x - 3 + Math.round(Math.sin(i / 2) * 1.5), road - 18 + i - 10, 3, 1); }
+  ctx.globalCompositeOperation = 'lighter'; for (const lp of lamps) { const g = ctx.createRadialGradient(lp.x + 1, lp.top - 3, 0, lp.x + 1, lp.top - 3, 34); g.addColorStop(0, 'rgba(255,190,110,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lp.x - 34, lp.top - 37, 70, 70); const cg = ctx.createLinearGradient(0, lp.top, 0, road); cg.addColorStop(0, 'rgba(255,190,110,0.14)'); cg.addColorStop(1, 'rgba(255,190,110,0.04)'); ctx.fillStyle = cg; ctx.beginPath(); ctx.moveTo(lp.x - 2, lp.top); ctx.lineTo(lp.x + 4, lp.top); ctx.lineTo(lp.x + 24, road); ctx.lineTo(lp.x - 22, road); ctx.closePath(); ctx.fill(); } ctx.globalCompositeOperation = 'source-over';
+  for (let s = 0; s < 2; s++) { const ya = gy + Math.round(gh * (0.42 + s * 0.07)), sag = Math.round(gh * 0.05), n = Math.round(gw / 5); for (let i = 0; i <= n; i++) { const k = i / n, x = gx - 10 + k * (gw + 20), y = ya + Math.round(Math.sin(k * Math.PI * 3 + s) ** 2 * sag); R(ctx, '#1a1018', x, y, 5, 1); if (i % 2 === 0) { const on = !anim || (Math.floor(now / 420) + i + s * 3) % 6; if (on) R(ctx, (i / 2 + s) % 2 ? '#ff8a20' : '#b060ff', x, y + 1, 2, 2); } } }
+  // costumed crowds on the bricks: witches with brooms, a ghost in a sheet, a vampire, a skeleton, kids with pumpkin pails, a dog dressed as a pumpkin
+  const walk = (i, sp, dir, row, draw) => { const span = gw + 80, px = Math.round(gx - 40 + ((((i * 211 + now * sp * dir) % span) + span) % span)), step = anim && Math.floor(now / 240 + i) % 2; draw(px, pave + 5 + row, step, dir); };
+  const body = (px, py, step, coat, hgt = 11) => { R(ctx, '#1a1820', px + (step ? 0 : 2), py + 8, 1, 4); R(ctx, '#1a1820', px + (step ? 3 : 1), py + 8, 1, 4); R(ctx, coat, px, py + 9 - hgt, 5, hgt); fillCircle(ctx, '#e8c8a8', px + 2, py + 7 - hgt, 2); };
+  const hat = (px, py, hgt = 11) => { R(ctx, '#1e1630', px - 2, py + 5 - hgt, 9, 1); for (let q = 0; q < 5; q++) R(ctx, '#1e1630', px + 1 + Math.round(q * 0.5), py + 4 - hgt - q, Math.max(1, 3 - Math.round(q * 0.6)), 1); R(ctx, '#e2802e', px, py + 4 - hgt, 5, 1); };
+  walk(0, 0.008, 1, 0, (px, py, st) => { body(px, py, st, '#1e1630'); hat(px, py); for (let q = 0; q < 12; q++) R(ctx, '#6a4a2a', px - 4 + q, py + 1 - Math.round(q * 0.3), 1, 1); for (let q = 0; q < 4; q++) R(ctx, '#c8a050', px - 7 + q, py + 1 + Math.round(q * 0.3), 1, 3); });
+  walk(1, 0.006, -1, 3, (px, py, st) => { const bob = anim ? Math.round(Math.sin(now / 300) * 1) : 0; R(ctx, '#f4f0ea', px - 1, py - 3 + bob, 8, 13); fillCircle(ctx, '#f4f0ea', px + 3, py - 3 + bob, 4); R(ctx, '#1a1820', px + 1, py - 4 + bob, 1, 2); R(ctx, '#1a1820', px + 4, py - 4 + bob, 1, 2); for (let q = 0; q < 8; q += 2) R(ctx, '#d8d4cc', px - 1 + q, py + 10 + bob, 1, 1); });
+  walk(2, 0.007, 1, 6, (px, py, st) => { body(px, py, st, '#141018'); R(ctx, '#c8282e', px - 2, py, 2, 8); R(ctx, '#c8282e', px + 5, py, 2, 8); R(ctx, '#141018', px - 1, py - 4, 7, 2); R(ctx, '#f4f0ea', px + 1, py - 1, 1, 1); R(ctx, '#f4f0ea', px + 3, py - 1, 1, 1); });
+  walk(3, 0.009, -1, 2, (px, py, st) => { body(px, py, st, '#141018'); R(ctx, '#ece6d8', px + 2, py - 1, 1, 8); for (let q = 0; q < 4; q++) R(ctx, '#ece6d8', px, py + q * 2, 5, 1); R(ctx, '#1a1418', px + 1, py - 5, 1, 1); R(ctx, '#1a1418', px + 3, py - 5, 1, 1); });
+  walk(4, 0.006, 1, 7, (px, py, st) => { body(px, py, st, '#4a2a6a', 7); hat(px, py, 7); R(ctx, '#e2802e', px + 5, py + 4, 4, 4); R(ctx, '#2a1a10', px + 6, py + 3, 2, 1); R(ctx, '#ffe070', px + 6, py + 5, 1, 1); });
+  walk(5, 0.0065, 1, 7, (px, py, st) => { body(px, py, st, '#2a4a2a', 7); R(ctx, '#3a5a2a', px, py - 4, 5, 2); R(ctx, '#f4f0ea', px + 5, py + 4, 4, 4); });
+  walk(6, 0.005, -1, 4, (px, py, st) => { body(px, py, st, '#3a2a40'); R(ctx, '#1e1630', px, py - 7, 1, 2); R(ctx, '#1e1630', px + 4, py - 7, 1, 2); R(ctx, '#3a2a1c', px + 5, py + 3, 7, 1); R(ctx, '#e2802e', px + 11, py + 6, 7, 5); R(ctx, '#f7ae55', px + 12, py + 6, 3, 1); R(ctx, '#3a5a2a', px + 13, py + 4, 2, 2); R(ctx, '#2a1810', px + 11, py + 10, 1, 2); R(ctx, '#2a1810', px + 16, py + 10, 1, 2); fillCircle(ctx, '#8a5a30', px + 18, py + 5, 2); });
+  walk(7, 0.0075, 1, 1, (px, py, st) => { body(px, py, st, '#1e1630'); hat(px, py); body(px + 7, py + 1, !st, '#5a1a2a'); hat(px + 7, py + 1); });
+  walk(8, 0.0085, -1, 5, (px, py, st) => { body(px, py, st, '#e2802e'); R(ctx, '#1a1820', px + 1, py - 1, 3, 1); R(ctx, '#3a5a2a', px + 1, py - 7, 3, 2); });
+  // a black cat on the low wall, tail twitching, and bats flitting
+  { const cx = gx + Math.round(gw * 0.52), cy = pave - 2, sw = anim ? Math.round(Math.sin(now / 400) * 2) : 0, K = '#0c0810'; R(ctx, '#2a1a1e', cx - 20, pave - 4, 50, 4); R(ctx, K, cx, cy - 6, 6, 5); R(ctx, K, cx + 1, cy - 9, 4, 4); R(ctx, K, cx + 1, cy - 10, 1, 1); R(ctx, K, cx + 4, cy - 10, 1, 1); if (!anim || Math.floor(now / 3000) % 5) { R(ctx, '#e8d040', cx + 2, cy - 8, 1, 1); R(ctx, '#e8d040', cx + 4, cy - 8, 1, 1); } for (let i = 0; i < 6; i++) R(ctx, K, cx + 6 + Math.round(i * 0.5), cy - 2 - i + Math.round(Math.sin(i / 2 + sw) * 1.4), 1, 1); }
+  for (let i = 0; i < 6; i++) { const span = gw + 60, bx = gx - 30 + ((((i * 157) + now * (0.03 + (i % 3) * 0.01) * (i % 2 ? 1 : -1)) % span) + span) % span, by = gy + gh * (0.06 + (i * 0.07) % 0.3) + Math.sin(now / 160 + i * 2) * 4, fl = anim && Math.floor(now / 90 + i) % 2, K = '#0c0810'; R(ctx, K, bx, by, 2, 2); R(ctx, K, bx - 3, by - (fl ? 2 : 0), 3, 1); R(ctx, K, bx + 2, by - (fl ? 2 : 0), 3, 1); R(ctx, K, bx - 4, by - (fl ? 3 : -1), 1, 1); R(ctx, K, bx + 5, by - (fl ? 3 : -1), 1, 1); }
+  // autumn leaves blowing down the street and past the glass
+  const gust = anim ? Math.sin(now / 3000) * 0.5 + 0.6 : 0.5;
+  for (let i = 0; i < 70; i++) { const f = SNOW[i], sp = 0.008 + f.s * 0.008, y = gy + ((f.y * gh + now * sp) % gh), x = gx + ((((f.x * gw + now * gust * 0.02 * (0.5 + f.s) + Math.sin(now / 700 + i) * 6) % gw) + gw) % gw), turn = anim && Math.floor(now / 140 + i) % 2; R(ctx, ['#e8702a', '#c8402a', '#f0b040', '#a85a2a', '#d8902a'][i % 5], Math.round(x), Math.round(y), turn ? 2 : 1, turn ? 1 : 2); }
+  for (let i = 0; i < 8; i++) { const f = SNOW[(i * 13 + 3) % SNOW.length], sp = 0.03 + f.s * 0.015, y = gy - 10 + ((f.y * (gh + 20) + now * sp) % (gh + 20)), x = gx + ((((f.x * gw + now * gust * 0.05 + Math.sin(now / 500 + i) * 18) % gw) + gw) % gw), rot = anim ? Math.floor(now / 160 + i) % 4 : 0, c1 = ['#e8702a', '#c8402a', '#f0b040'][i % 3]; ctx.globalAlpha = 0.85; R(ctx, c1, Math.round(x), Math.round(y), rot % 2 ? 5 : 3, rot % 2 ? 3 : 5); R(ctx, mix(c1, '#000000', 0.3), Math.round(x) + 1, Math.round(y) + 1, 1, 1); ctx.globalAlpha = 1; }
+  // the old glass: leaded diamonds, a little bloom of candlelight from the sill
+  ctx.globalAlpha = 0.2; const dd = Math.max(20, Math.round(gw / 18)); for (let k = -gh; k < gw + gh; k += dd) for (let t = 0; t < gh; t++) { R(ctx, '#2a2028', gx + k + t, gy + t, 1, 1); R(ctx, '#2a2028', gx + k + gh - t, gy + t, 1, 1); } ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = 'lighter'; { const fl = anim ? 0.04 * Math.sin(now / 130) + 0.03 * Math.sin(now / 57) : 0, g = ctx.createRadialGradient(gx + gw * 0.15, gb, 0, gx + gw * 0.15, gb, gh * 0.6); g.addColorStop(0, `rgba(255,140,50,${0.18 + fl})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(gx, gy, gw, gh); } ctx.globalCompositeOperation = 'source-over';
+  ctx.restore();
+  // the casement: dark oak frame, a centre post and a transom, timber and plaster walls, cobwebs in the corners
+  const F = SLM.oak[2], FH = SLM.oak[4], FD = SLM.oak[0], T = L.T, rail = gy + Math.round(gh * 0.36), bar = gx + Math.round(gw / 2);
+  R(ctx, F, L.fx, L.fy, L.fw, T); R(ctx, F, L.fx, L.fy, T, L.fh); R(ctx, F, L.fx + L.fw - T, L.fy, T, L.fh); R(ctx, F, L.fx, gb, L.fw, L.sill - gb);
+  R(ctx, F, gx, rail, gw, 5); R(ctx, FH, gx, rail, gw, 1); R(ctx, FD, gx, rail + 5, gw, 1); R(ctx, F, bar - 3, gy, 6, gh); R(ctx, FH, bar - 3, gy, 1, gh); R(ctx, FD, bar + 3, gy, 1, gh);
+  R(ctx, FH, L.fx, L.fy, L.fw, 1); R(ctx, FD, L.fx + L.fw - 1, L.fy, 1, L.fh);
+  for (const [ax, aw] of [[x0, L.fx - x0], [L.fx + L.fw, x0 + w - L.fx - L.fw]]) { R(ctx, SLM.plaster[2], ax, y0, aw, h); for (let y = y0; y < y0 + h; y += 3) for (let x = ax; x < ax + aw; x += 5) if (bay(x, y) > 0.86) R(ctx, SLM.plaster[1], x, y, 2, 1); R(ctx, SLM.oak[1], ax + (ax < L.fx ? 4 : aw - 12), y0, 8, h); }
+  R(ctx, SLM.oak[1], x0, y0, w, L.fy - y0); R(ctx, SLM.oak[3], x0, y0 + L.ph - 4, w, 1);
+  const web = (cx, cy, sx, sy, sz) => { for (let k = 0; k < 5; k++) for (let i = 0; i < sz; i++) { const a = k / 4 * Math.PI / 2; R(ctx, 'rgba(240,236,228,0.5)', cx + sx * Math.round(Math.cos(a) * i), cy + sy * Math.round(Math.sin(a) * i)); } for (let rr = 5; rr < sz; rr += 5) for (let t = 0; t <= 1; t += 0.05) R(ctx, 'rgba(240,236,228,0.4)', cx + sx * Math.round(Math.cos(t * Math.PI / 2) * rr), cy + sy * Math.round(Math.sin(t * Math.PI / 2) * rr)); };
+  web(gx, gy, 1, 1, 26); web(gx + gw - 1, gy, -1, 1, 20);
+  { const sx = gx + 20, sy0 = gy, len = 18 + (anim ? Math.round(Math.sin(now / 1500) * 4) : 0); R(ctx, 'rgba(240,236,228,0.5)', sx, sy0, 1, len); R(ctx, '#140c10', sx - 1, sy0 + len, 3, 3); R(ctx, '#140c10', sx - 2, sy0 + len + 1, 1, 1); R(ctx, '#140c10', sx + 2, sy0 + len + 1, 1, 1); }
+  // the sill: a big grinning jack-o'-lantern, dripping candles, a crystal, a sprig of dried flowers
+  const sy = L.sill; R(ctx, SLM.oak[2], x0, sy, w, 4); R(ctx, SLM.oak[4], x0, sy, w, 1); R(ctx, SLM.oak[1], x0, sy + 4, w, h - (sy - y0) - 4); for (let x = x0; x < x0 + w; x += 36) R(ctx, SLM.oak[0], x, sy + 8, 1, h);
+  const base = sy + 1, jX = gx + Math.round(gw * 0.78), js = Math.max(16, Math.round(gh * 0.08));
+  blob(ctx, jX, base - js / 2, js * 0.75, js / 2, P.PK, 1, 4); R(ctx, P.T[2], jX - 1, base - js - 4, 3, 5);
+  { const fl = anim && Math.floor(now / 100) % 3 === 0, c1 = fl ? '#ffc040' : '#ffe070', ey = base - Math.round(js * 0.7); for (const ex of [jX - Math.round(js * 0.38), jX + Math.round(js * 0.2)]) for (let q = 0; q < 4; q++) R(ctx, c1, ex + q, ey + 3 - q, 4 - q, 1); R(ctx, '#2a0e06', jX - 2, ey + 4, 3, 2); R(ctx, c1, jX - 1, ey + 4, 1, 1); for (let x = -Math.round(js * 0.45); x < Math.round(js * 0.45); x++) { const my2 = base - Math.round(js * 0.16) - Math.round((x * x) / (js * 0.9)); R(ctx, c1, jX + x, my2, 1, 3); if ((x + 50) % 4 === 0) R(ctx, '#c25a18', jX + x, my2, 1, 1); } }
+  const cX = gx + Math.round(gw * 0.1); for (const [dx, hh] of [[0, 18], [8, 12], [14, 15]]) { R(ctx, '#f4ecd8', cX + dx, base - hh, 4, hh); R(ctx, '#ffffff', cX + dx, base - hh, 1, hh); R(ctx, '#f4ecd8', cX + dx + 3, base - hh + 3, 1, 3); const fl = anim ? Math.round(Math.sin(now / 70 + dx) + Math.sin(now / 41 + dx)) : 0; R(ctx, '#ffd860', cX + dx + 1, base - hh - 6 - Math.max(0, fl), 2, 5 + Math.max(0, fl)); R(ctx, '#fff6c0', cX + dx + 1, base - hh - 3, 1, 2); }
+  const kX = gx + Math.round(gw * 0.3); fillCircle(ctx, '#8a6aca', kX, base - 6, 5); fillCircle(ctx, '#c8b0ff', kX - 1, base - 7, 3); R(ctx, '#8a6a2a', kX - 5, base - 2, 11, 2);
+  const fX = gx + Math.round(gw * 0.6); R(ctx, '#5a3a24', fX, base - 8, 8, 8); for (let i = 0; i < 9; i++) { R(ctx, '#7a6a3a', fX + 3 + Math.round((i - 4) * 0.8), base - 9 - i, 1, 1); if (i > 4) R(ctx, ['#8a4a6a', '#c8a050', '#a8582a'][i % 3], fX + 2 + (i - 4) * 2 - 4, base - 16 - (i % 3), 2, 2); }
+  ctx.globalCompositeOperation = 'lighter';
+  for (const [lx, ly, rr, a] of [[cX + 8, base - 18, 70, 0.35], [jX, base - js * 0.6, 60, 0.4]]) { const g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr); g.addColorStop(0, `rgba(255,160,60,${a + (anim ? 0.05 * Math.sin(now / 90) : 0)})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lx - rr, ly - rr, rr * 2, rr * 2); }
+  ctx.globalCompositeOperation = 'source-over';
+  { const vg = ctx.createRadialGradient(x0 + w / 2, y0 + h * 0.45, Math.min(w, h) * 0.35, x0 + w / 2, y0 + h * 0.45, Math.max(w, h) * 0.75); vg.addColorStop(0, 'rgba(10,4,8,0)'); vg.addColorStop(1, 'rgba(10,4,8,0.6)'); ctx.fillStyle = vg; ctx.fillRect(x0, y0, w, h); }
+}
+
 /* ---- walking through doorways (keyboard): stepping into a door's mouth takes you inside ---- */
 function doorZones() {
   if (scene === 'farm') return [
@@ -4534,7 +5625,10 @@ function doorZones() {
     { x: CX + 16, y: CY + 40, w: 20, h: 12, dir: 'up', go: () => enterRoom('coop') },
     { x: MX + 20, y: MY + 22, w: 22, h: 30, dir: 'up', go: () => enterMine() }];
   if (scene === 'house') return [{ x: 318, y: 92, w: 24, h: 14, dir: 'up', go: () => enterRoom('bedroom') }];
-  if (scene === 'airport') return [{ x: 250, y: 148, w: 24, h: 16, dir: 'up', go: () => flyLondon() }];
+  if (scene === 'airport') return [{ x: 250, y: 148, w: 24, h: 16, dir: 'up', go: () => openDest() }];
+  if (scene === 'nyc' || scene === 'salem') { const rm = ROOMS[scene]; return [
+    { x: rm.door.x + 2, y: 226, w: rm.door.w - 4, h: 12, dir: 'down', go: () => flyHome() },
+    { ...rm.look, dir: 'up', go: () => lookOutside() }]; }
   if (scene === 'london') return [
     { x: 226, y: 226, w: 28, h: 12, dir: 'down', go: () => flyHome() },
     { x: 102, y: 96, w: 100, h: 36, dir: 'up', go: () => lookOutside() }];
@@ -4546,7 +5640,7 @@ function checkDoors(dir) {
   for (const z of doorZones()) if (z.dir === dir && farmer.x >= z.x && farmer.x < z.x + z.w && farmer.y >= z.y && farmer.y < z.y + z.h) { doorCool = tick + 90; z.go(); return; }
 }
 /* ---- London: stand at the bay window and look out ---- */
-function lookOutside() { standUp(); Sound.paper(); playCut('window', 1e12, '窗外的伦敦 · 点击或按 Esc 回到屋里', () => { scene = 'london'; farmer.dir = 'up'; rebuildWalk(); }); }
+function lookOutside() { const city = DEST[scene] ? scene : 'london'; standUp(); Sound.paper(); playCut('window', 1e12, DEST[city].win, () => { scene = city; farmer.dir = 'up'; rebuildWalk(); }); cut.city = city; }
 const WALKERS = [{ x: 0, sp: 0.018, col: '#c8282e', d: 1 }, { x: 260, sp: 0.012, col: '#2e6a3a', d: -1 }, { x: 140, sp: 0.015, col: '#40589a', d: 1 }];
 /* ---- the view from the London window: laid out to the screen, painted in depth layers ----
    back (sky, moon) -> drifting clouds -> the Eye -> front (far city, Big Ben, roofs, the terrace across the street)
