@@ -11,9 +11,9 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "agent-farm",
-      // replace with the id printed by: npx wrangler d1 create agent-farm
-      "database_id": "ef88b806-1b40-4fdd-b7b4-a00f3c94af0c",
+      "database_name": "agent-farm-apac",
+      // in Asia-Pacific, near the users: npx wrangler d1 create agent-farm-apac --location apac
+      "database_id": "35d7831c-6491-4777-991d-f899222cbe44",
       "migrations_dir": "migrations"
     }
   ],

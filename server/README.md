@@ -33,6 +33,7 @@ npm run deploy                         # 得到 https://agent-farm.<你的子域
 ## 当前线上状态
 
 - 地址：https://agentfarm.lloydev.site （备用：https://agent-farm.lloyd666.workers.dev）
+- 数据库：D1 `agent-farm-apac`，建在亚太（`--location apac`），离用户近；旧的美东库 `agent-farm` 已停用，确认无误后可删除。
 - 账户：任何人都能在 `/login.html` 用邮箱 + 密码注册，每个账户各自一个农场，设备、任务、收获互不可见。
   - 密码用 PBKDF2-SHA256（10 万次、每人独立盐）保存；登录后发一个随机会话令牌放在 HttpOnly Cookie 里，数据库只存它的哈希，90 天有效。
   - 同一邮箱 15 分钟内输错 10 次会被锁 15 分钟；改密码会让其他浏览器全部退出。

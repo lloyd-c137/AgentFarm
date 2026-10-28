@@ -76,16 +76,20 @@ async function checkPassword(password, stored) {
 }
 function cookieOf(req, name) { const m = (req.headers.get('Cookie') || '').match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)')); return m ? decodeURIComponent(m[1]) : null; }
 const sessionCookie = (v, maxAge) => `${COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
-async function sessionEmail(req, env) {
+// one round trip: the session and its farm come back together
+async function sessionUser(req, env) {
   const c = cookieOf(req, COOKIE); if (!c) return null;
-  const row = await env.DB.prepare('SELECT email, expires_at FROM sessions WHERE token_hash = ?').bind(await sha256hex(c)).first();
-  return row && row.expires_at > Date.now() ? row.email : null;
+  const row = await env.DB.prepare('SELECT s.email, s.expires_at, f.key, f.version FROM sessions s LEFT JOIN farms f ON f.email = s.email WHERE s.token_hash = ?').bind(await sha256hex(c)).first();
+  if (!row || row.expires_at <= Date.now()) return null;
+  return { email: row.email, farm: row.key ? { key: row.key, version: row.version } : null };
 }
-async function startSession(env, email, body, status = 200) {
+// extra statements ride in the same batch as the session insert, so a login costs one more round trip, not several
+async function startSession(env, email, body, status = 200, extra = []) {
   const token = b64url(crypto.getRandomValues(new Uint8Array(32))), now = Date.now();
-  await env.DB.prepare('INSERT INTO sessions (token_hash, email, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(await sha256hex(token), email, now, now + SESSION_DAYS * 864e5).run();
+  await env.DB.batch([...extra, env.DB.prepare('INSERT INTO sessions (token_hash, email, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(await sha256hex(token), email, now, now + SESSION_DAYS * 864e5)]);
   return json(body, status, { 'Set-Cookie': sessionCookie(token, SESSION_DAYS * 86400) });
 }
+const farmKeyOf = async email => (await sha256hex(email)).slice(0, 24);
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 async function credentials(req) {
   const b = await req.json().catch(() => ({}));
@@ -97,15 +101,17 @@ async function register(req, env) {
   if (password.length < 8 || password.length > 200) return json({ error: 'weak_password' }, 400);
   const res = await env.DB.prepare('INSERT OR IGNORE INTO users (email, pw, created_at) VALUES (?, ?, ?)').bind(email, await hashPassword(password), Date.now()).run();
   if (!res.meta.changes) return json({ error: 'email_taken' }, 409);
-  await farmOf(env, email);
-  return startSession(env, email, { email }, 201);
+  return startSession(env, email, { email }, 201, [env.DB.prepare('INSERT OR IGNORE INTO farms (key, email, created_at) VALUES (?, ?, ?)').bind(await farmKeyOf(email), email, Date.now())]);
 }
 async function login(req, env) {
   const { email, password } = await credentials(req), now = Date.now();
   if (!EMAIL_RE.test(email) || !password) return json({ error: 'bad_login' }, 403);
-  const fails = await env.DB.prepare('SELECT count, first_at FROM login_fails WHERE email = ?').bind(email).first();
+  const [f, u] = await env.DB.batch([
+    env.DB.prepare('SELECT count, first_at FROM login_fails WHERE email = ?').bind(email),
+    env.DB.prepare('SELECT pw FROM users WHERE email = ?').bind(email)
+  ]);
+  const fails = f.results[0], user = u.results[0];
   if (fails && now - fails.first_at < FAIL_WINDOW && fails.count >= MAX_FAILS) return json({ error: 'locked', retryAfterMin: Math.ceil((fails.first_at + FAIL_WINDOW - now) / 60e3) }, 429);
-  const user = await env.DB.prepare('SELECT pw FROM users WHERE email = ?').bind(email).first();
   // hash something even for unknown emails so the response time doesn't reveal which emails exist
   const ok = user ? await checkPassword(password, user.pw) : (await hashPassword(password), false);
   if (!ok) {
@@ -113,8 +119,7 @@ async function login(req, env) {
       .bind(email, now, now, FAIL_WINDOW, now, FAIL_WINDOW, now).run();
     return json({ error: 'bad_login' }, 403);
   }
-  await env.DB.prepare('DELETE FROM login_fails WHERE email = ?').bind(email).run();
-  return startSession(env, email, { email });
+  return startSession(env, email, { email }, 200, fails ? [env.DB.prepare('DELETE FROM login_fails WHERE email = ?').bind(email)] : []);
 }
 async function logout(req, env) {
   const c = cookieOf(req, COOKIE);
@@ -135,15 +140,16 @@ async function changePassword(req, env, email) {
 }
 const accessOn = env => !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD);
 
-async function userEmail(req, env) {
-  if (env.DEV_USER) return String(env.DEV_USER).toLowerCase();
-  if (!accessOn(env)) return sessionEmail(req, env);
+// who is asking: { email, farm } (farm may be null and is then looked up or created by the caller)
+async function currentUser(req, env) {
+  if (env.DEV_USER) return { email: String(env.DEV_USER).toLowerCase(), farm: null };
+  if (!accessOn(env)) return sessionUser(req, env);
   const jwt = req.headers.get('Cf-Access-Jwt-Assertion'); if (!jwt) return null;
   const claims = await verifyAccessJwt(jwt, env).catch(() => null);
-  return claims && claims.email ? String(claims.email).toLowerCase() : null;
+  return claims && claims.email ? { email: String(claims.email).toLowerCase(), farm: null } : null;
 }
 async function farmOf(env, email) {
-  const key = (await sha256hex(email)).slice(0, 24);
+  const key = await farmKeyOf(email);
   let row = await env.DB.prepare('SELECT key, version FROM farms WHERE key = ?').bind(key).first();
   if (!row) { await env.DB.prepare('INSERT OR IGNORE INTO farms (key, email, created_at) VALUES (?, ?, ?)').bind(key, email, Date.now()).run(); row = { key, version: 1 }; }
   return row;
@@ -159,9 +165,9 @@ async function api(req, env, url) {
     return path0 === '/api/login' ? login(req, env) : register(req, env);
   }
   if (accounts && req.method === 'POST' && path0 === '/api/logout') return logout(req, env);
-  const email = await userEmail(req, env);
-  if (!email) return json({ error: 'not_signed_in', login: accounts ? 'login.html' : null }, 401);
-  const farm = await farmOf(env, email), path = url.pathname, m = req.method;
+  const user = await currentUser(req, env);
+  if (!user) return json({ error: 'not_signed_in', login: accounts ? 'login.html' : null }, 401);
+  const email = user.email, farm = user.farm || await farmOf(env, email), path = url.pathname, m = req.method;
   // writes need our own header: a cross-site form or script can't add it without a CORS preflight we never allow
   if (m !== 'GET' && req.headers.get('X-Agent-Farm') !== '1') return json({ error: 'missing_header' }, 403);
 
