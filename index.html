@@ -888,9 +888,10 @@ SPR.soilWet = makeSoilTile(P.SW);
 /* ---------- world layout: a farm bigger than the screen, in zones with room to breathe; the camera follows the farmer ----------
    home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
 const FW = 800, FH = 464;
-const SCENE = { mine: [680, 362], house: [72, 28], mailbox: [186, 92], bin: [288, 170], coop: [56, 300], lampA: [316, 244], lampB: [138, 150], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [92, 114], well: [52, 140], woodpile: [30, 92] };
-const PETH = { x: 176, y: 138 };
-const SIGN = { x: 210, y: 92, w: 26, h: 28 };
+// the homestead sits right beside the field: cabin above the road, coop just below it
+const SCENE = { mine: [680, 362], house: [196, 40], mailbox: [306, 100], bin: [288, 170], coop: [186, 262], lampA: [316, 244], lampB: [222, 150], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [206, 128], well: [118, 142], woodpile: [160, 96] };
+const PETH = { x: 166, y: 166 };
+const SIGN = { x: 324, y: 96, w: 26, h: 28 };
 const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
 const DIRT = { x: 368, y: 184, w: 232, h: 172 };
 // the field: one row per source, eight plots a row, a wooden sign at the head of each
@@ -911,17 +912,17 @@ let bg = mk(FW, FH), BGX = 0, BGY = 0;
 let PROPS = [], TUFTS = [], CANOPIES = [];
 let fenceTop = null, fenceBot = null;
 
-const TREES = [[250, -50, 3], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [176, 300, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
-const PINES = [[226, 268, 5], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
-const BUSHES = [[176, 182], [248, 62], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186], [200, 120]];
-const ROCKS = [[214, 252, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
-const MUSH = [[198, 254], [646, 258], [424, 444], [30, 196], [710, 150]];
+const TREES = [[96, -40, 3], [20, 300, 91], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [96, 330, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
+const PINES = [[40, 4, 5], [130, 250, 37], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
+const BUSHES = [[92, 196], [60, 108], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186], [120, 40]];
+const ROCKS = [[106, 268, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
+const MUSH = [[70, 280], [646, 258], [424, 444], [30, 196], [710, 150]];
 // paths: polylines with a half width; the gravel road runs west off the map toward the airport
 const PATHS = [
-  { pts: [[121, 110], [121, 222]], hw: 7 },
+  { pts: [[245, 118], [245, 222]], hw: 7 },
   { pts: [[-12, 222], [346, 222]], hw: 10, gravel: true },
-  { pts: [[130, 222], [130, 356], [64, 356]], hw: 7 },
-  { pts: [[256, 222], [256, 142], [580, 142], [580, 124]], hw: 7 },
+  { pts: [[212, 222], [212, 316]], hw: 7 },
+  { pts: [[245, 142], [580, 142], [580, 124]], hw: 7 },
   { pts: [[300, 222], [300, 420], [MX + 28, 420], [MX + 28, MY + 50]], hw: 7 }
 ];
 
@@ -1112,11 +1113,14 @@ const DSPR = {};
 const item = type => SHOP.find(i => i.type === type);
 let coins = 675, decor = [];
 const SAVE_KEY = 'ai-farm-decor-v2';
-function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== 2 && decor.length) decorMoved = true; } } catch (e) { /* storage unavailable: start fresh */ } }
-let decorMoved = false;
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: 2 })); } catch (e) { /* storage unavailable */ } }
-// decorations saved on the old, smaller map get a free spot on the new one, as close to where they were as fits
-function migrateDecor() { if (!decorMoved) return; decorMoved = false; const kept = [], tmp = decor; decor = []; for (const d of tmp) { const sx = Math.round(d.x * FW / W), sy = Math.round(d.y * FH / H); let ok = null; for (let rr = 0; rr < 260 && !ok; rr += 6) for (let a = 0; a < 16 && !ok; a++) { const x = Math.round(sx + Math.cos(a / 16 * Math.PI * 2) * rr), y = Math.round(sy + Math.sin(a / 16 * Math.PI * 2) * rr); if (canPlace(d.type, x, y, -1)) ok = { x, y }; } if (ok) { d.x = ok.x; d.y = ok.y; decor.push(d); } } save(); }
+function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== LAYOUT && decor.length) { decorMoved = true; decorScaled = !(s.layout >= 2); } } } catch (e) { /* storage unavailable: start fresh */ } }
+// layout 2 = the bigger map; layout 3 = the homestead moved next to the field
+const LAYOUT = 3;
+let decorMoved = false, decorScaled = false;
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: LAYOUT })); } catch (e) { /* storage unavailable */ } }
+// after a layout change, each decoration keeps its spot if it still fits there, otherwise moves to the nearest free one
+// (saves from the old, smaller map are scaled up first)
+function migrateDecor() { if (!decorMoved) return; decorMoved = false; const kept = [], tmp = decor; decor = []; for (const d of tmp) { const sx = decorScaled ? Math.round(d.x * FW / W) : d.x, sy = decorScaled ? Math.round(d.y * FH / H) : d.y; let ok = null; for (let rr = 0; rr < 260 && !ok; rr += 6) for (let a = 0; a < 16 && !ok; a++) { const x = Math.round(sx + Math.cos(a / 16 * Math.PI * 2) * rr), y = Math.round(sy + Math.sin(a / 16 * Math.PI * 2) * rr); if (canPlace(d.type, x, y, -1)) ok = { x, y }; } if (ok) { d.x = ok.x; d.y = ok.y; decor.push(d); } } save(); }
 const hitR = (a, b) => a.x < b[0] + b[2] && a.x + a.w > b[0] && a.y < b[1] + b[3] && a.y + a.h > b[1];
 const inRect = (p, r) => p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
 function footprint(type, x, y) { const s = DSPR[type]; return item(type).ground ? { x, y, w: 16, h: 16 } : { x, y: y + s.height - 6, w: s.width, h: 6 }; }
@@ -1345,13 +1349,13 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMo
 let daily = { date: today(), mail: false, egg: false, pets: 0 };
 function loadDaily() { try { const s = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); if (s && s.date === today()) daily = Object.assign(daily, s); } catch (e) { /* storage unavailable */ } }
 function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) { /* storage unavailable */ } }
-const CHICK_AREA = { x: 22, y: 366, w: 86, h: 26 };
-const chickens = [{ x: 30, y: 370, tx: 70, ty: 380, dir: 1, wait: 0, t: 0 }, { x: 80, y: 384, tx: 40, ty: 372, dir: -1, wait: 80, t: 5 }, { x: 56, y: 376, tx: 30, ty: 388, dir: -1, wait: 160, t: 9 }, { x: 96, y: 372, tx: 60, ty: 368, dir: -1, wait: 40, t: 3 }];
+const CHICK_AREA = { x: 150, y: 326, w: 92, h: 26 };
+const chickens = [{ x: 158, y: 330, tx: 198, ty: 340, dir: 1, wait: 0, t: 0 }, { x: 208, y: 344, tx: 168, ty: 332, dir: -1, wait: 80, t: 5 }, { x: 184, y: 336, tx: 158, ty: 348, dir: -1, wait: 160, t: 9 }, { x: 224, y: 332, tx: 188, ty: 328, dir: -1, wait: 40, t: 3 }];
 const ducks = [{ a: 0, sp: 0.003, rx: 42, ry: 14 }, { a: 2.6, sp: 0.0024, rx: 30, ry: 9 }, { a: 4.4, sp: 0.0026, rx: 34, ry: 11 }];
 const flies = Array.from({ length: 30 }, (_, i) => ({ x: (i * 197) % (FW - 20) + 10, y: (i * 61) % (FH - 24) + 12, p: i * 1.7 }));
 const smoke = [], hearts = [], eggs = [], leaves = [], snow = [];
 let birds = null, nextBirds = 600;
-const farmer = { x: 121, y: 150, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
+const farmer = { x: 245, y: 150, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
 const keys = new Set();
 
 const CELL = 8, GC = Math.ceil(Math.max(W, FW) / CELL), GR = Math.ceil(Math.max(H, FH) / CELL), walk = new Uint8Array(GC * GR);
