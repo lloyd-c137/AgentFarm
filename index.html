@@ -888,10 +888,10 @@ SPR.soilWet = makeSoilTile(P.SW);
 /* ---------- world layout: a farm bigger than the screen, in zones with room to breathe; the camera follows the farmer ----------
    home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
 const FW = 800, FH = 464;
-// the homestead sits right beside the field: cabin above the road, coop just below it
-const SCENE = { mine: [680, 362], house: [196, 40], mailbox: [306, 100], bin: [288, 170], coop: [186, 262], lampA: [316, 244], lampB: [222, 150], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [206, 128], well: [118, 142], woodpile: [160, 96] };
-const PETH = { x: 166, y: 166 };
-const SIGN = { x: 324, y: 96, w: 26, h: 28 };
+// the cabin stands against the field's north-west corner (its east wall a step from the fence); the coop sits just below the road
+const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 118], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [200, 74] };
+const PETH = { x: 172, y: 168 };
+const SIGN = { x: 186, y: 108, w: 26, h: 28 };
 const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
 const DIRT = { x: 368, y: 184, w: 232, h: 172 };
 // the field: one row per source, eight plots a row, a wooden sign at the head of each
@@ -919,10 +919,10 @@ const ROCKS = [[106, 268, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434
 const MUSH = [[70, 280], [646, 258], [424, 444], [30, 196], [710, 150]];
 // paths: polylines with a half width; the gravel road runs west off the map toward the airport
 const PATHS = [
-  { pts: [[245, 118], [245, 222]], hw: 7 },
+  { pts: [[293, 140], [293, 222]], hw: 7 },
   { pts: [[-12, 222], [346, 222]], hw: 10, gravel: true },
   { pts: [[212, 222], [212, 316]], hw: 7 },
-  { pts: [[245, 142], [580, 142], [580, 124]], hw: 7 },
+  { pts: [[293, 150], [580, 150], [580, 124]], hw: 7 },
   { pts: [[300, 222], [300, 420], [MX + 28, 420], [MX + 28, MY + 50]], hw: 7 }
 ];
 
@@ -1355,7 +1355,7 @@ const ducks = [{ a: 0, sp: 0.003, rx: 42, ry: 14 }, { a: 2.6, sp: 0.0024, rx: 30
 const flies = Array.from({ length: 30 }, (_, i) => ({ x: (i * 197) % (FW - 20) + 10, y: (i * 61) % (FH - 24) + 12, p: i * 1.7 }));
 const smoke = [], hearts = [], eggs = [], leaves = [], snow = [];
 let birds = null, nextBirds = 600;
-const farmer = { x: 245, y: 150, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
+const farmer = { x: 293, y: 172, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
 const keys = new Set();
 
 const CELL = 8, GC = Math.ceil(Math.max(W, FW) / CELL), GR = Math.ceil(Math.max(H, FH) / CELL), walk = new Uint8Array(GC * GR);
