@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>连接设备 · Agent Farm</title>
+<style>
+:root { --bg: #f6efdc; --card: #fffaf0; --ink: #2b2238; --muted: #6d6478; --line: #e2d6b8; --accent: #3f7a3a; --accent-ink: #fff; --code: #241a3e; --code-ink: #f3ead2; --warn: #b2452d; }
+@media (prefers-color-scheme: dark) { :root { --bg: #1b1528; --card: #251d36; --ink: #f1e9d6; --muted: #a99fb8; --line: #3a2f52; --accent: #6fb562; --accent-ink: #13210f; --code: #120d1d; --code-ink: #efe4c6; --warn: #ff8a6b; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 32px 16px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
+h1 { font-size: 24px; margin: 0; }
+h2 { font-size: 18px; margin: 0 0 8px; }
+h3 { font-size: 15px; margin: 20px 0 6px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+input[type=text] { flex: 1 1 220px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
+button { padding: 9px 16px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; padding: 5px 12px; }
+button.danger { color: var(--warn); }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tabs { display: flex; gap: 6px; margin: 16px 0 4px; flex-wrap: wrap; }
+.tabs button { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
+.tabs button[aria-selected=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+pre { position: relative; margin: 8px 0; padding: 14px 16px; background: var(--code); color: var(--code-ink); border-radius: 8px; overflow-x: auto; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+pre .copy { position: absolute; top: 8px; right: 8px; padding: 3px 10px; font-size: 12px; background: rgba(255,255,255,.12); color: var(--code-ink); }
+code { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(127,110,90,.14); padding: 1px 5px; border-radius: 4px; }
+pre code { background: none; padding: 0; }
+.token { padding: 12px 14px; border: 2px dashed var(--accent); border-radius: 8px; word-break: break-all; font: 13px ui-monospace, monospace; }
+ol { padding-left: 22px; } li { margin: 4px 0; }
+table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; border-top: 1px solid var(--line); vertical-align: middle; } td:last-child { text-align: right; }
+[hidden] { display: none !important; }
+.err { color: var(--warn); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>连接设备</h1>
+    <div class="row"><span class="muted" id="who">正在确认登录……</span><a href="./">← 回农场</a></div>
+  </header>
+
+  <section class="card">
+    <h2>1 · 给这台电脑生成一把钥匙</h2>
+    <p class="muted">每台电脑一把。钥匙只显示这一次，丢了就删掉重新生成。</p>
+    <form class="row" id="new-form">
+      <label for="dev-name" class="muted">设备名</label>
+      <input type="text" id="dev-name" maxlength="40" placeholder="比如：公司 MacBook" required>
+      <button type="submit">生成钥匙</button>
+    </form>
+    <p class="err" id="new-err" role="alert"></p>
+    <div id="new-out" hidden>
+      <p>这台设备的钥匙：</p>
+      <div class="token" id="token"></div>
+      <p class="muted">下面的配置已经填好了这把钥匙，直接复制。</p>
+    </div>
+  </section>
+
+  <section class="card" id="cfg" hidden>
+    <h2>2 · 把 AI 工具接进来</h2>
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="true" data-tab="cc">Claude Code</button>
+      <button role="tab" aria-selected="false" data-tab="codex">Codex</button>
+    </div>
+
+    <div data-panel="cc">
+      <ol>
+        <li>打开 <code>~/.claude/settings.json</code>（没有就新建）。</li>
+        <li>把下面的 <code>"hooks"</code> 合并进去；已经有 hooks 的话，把每个事件里的条目追加进对应数组。</li>
+        <li>新开一个 Claude Code 会话，发一句话，农场里就会冒出一株新苗。</li>
+      </ol>
+      <pre><button class="copy ghost">复制</button><code id="cc-json"></code></pre>
+      <p class="muted">这些 hook 只上报，不替你做任何决定：服务器总是回空的 200，授权弹窗照常出现；服务器连不上时 Claude Code 也照常工作。</p>
+    </div>
+
+    <div data-panel="codex" hidden>
+      <ol>
+        <li>保存下面的转发脚本为 <code>~/.codex/agent-farm.sh</code>，然后执行 <code>chmod +x ~/.codex/agent-farm.sh</code>。</li>
+        <li>把 hooks 写进 <code>~/.codex/hooks.json</code>（已有的话合并进去）。</li>
+        <li>启动 Codex，输入 <code>/hooks</code>，把这几个 hook 标记为信任。改动过脚本或配置后要重新信任一次。</li>
+      </ol>
+      <h3>转发脚本 · agent-farm.sh</h3>
+      <pre><button class="copy ghost">复制</button><code id="codex-sh"></code></pre>
+      <h3>~/.codex/hooks.json</h3>
+      <pre><button class="copy ghost">复制</button><code id="codex-json"></code></pre>
+      <p class="muted">脚本在后台发送、立刻退出，不往终端打印任何东西，所以不会拖慢 Codex，也不会给它塞额外上下文。目前适用于 macOS / Linux。</p>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>已连接的设备</h2>
+    <table><tbody id="devices"><tr><td class="muted">加载中……</td></tr></tbody></table>
+  </section>
+</main>
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const ORIGIN = location.origin;
+const H = { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' };
+const fmt = ms => ms ? new Date(ms).toLocaleString() : '还没上报过';
+
+async function me() {
+  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; }
+  catch (e) { $('who').textContent = '没有登录，或服务器没有开'; }
+}
+async function list() {
+  const tb = $('devices');
+  try {
+    const r = await fetch('/api/devices', { cache: 'no-store' }); const j = await r.json();
+    tb.replaceChildren();
+    if (!j.devices.length) { tb.innerHTML = '<tr><td class="muted">还没有设备</td></tr>'; return; }
+    for (const d of j.devices) {
+      const tr = document.createElement('tr');
+      const a = document.createElement('td'); a.textContent = d.name;
+      const b = document.createElement('td'); b.className = 'muted'; b.textContent = '最近上报：' + fmt(d.last_seen);
+      const c = document.createElement('td'); const del = document.createElement('button'); del.className = 'ghost danger'; del.textContent = '删除';
+      del.onclick = async () => { del.disabled = true; await fetch('/api/devices/' + d.id, { method: 'DELETE', headers: H }); list(); };
+      c.appendChild(del); tr.append(a, b, c); tb.appendChild(tr);
+    }
+  } catch (e) { tb.innerHTML = '<tr><td class="err">读取设备失败</td></tr>'; }
+}
+
+function ccConfig(token) {
+  const hook = { type: 'http', url: `${ORIGIN}/ingest/claude-code`, timeout: 5, headers: { Authorization: `Bearer ${token}` } };
+  const ev = ['UserPromptSubmit', 'PermissionRequest', 'Notification', 'PostToolUse', 'Stop', 'StopFailure', 'SessionEnd'];
+  const hooks = {}; for (const e of ev) hooks[e] = [{ hooks: [hook] }];
+  return JSON.stringify({ hooks }, null, 2);
+}
+function codexScript(token) {
+  return `#!/bin/sh
+# Agent Farm forwarder for Codex: reads the hook event on stdin and posts it in the background.
+# Prints nothing and always exits 0, so Codex never reads anything from it.
+body=$(cat)
+( printf '%s' "$body" | curl -s -m 5 -o /dev/null -X POST "${ORIGIN}/ingest/codex" \\
+    -H "Authorization: Bearer ${token}" -H "Content-Type: application/json" --data-binary @- ) >/dev/null 2>&1 &
+exit 0
+`;
+}
+function codexConfig() {
+  const cmd = (t) => [{ hooks: [{ type: 'command', command: '~/.codex/agent-farm.sh', timeout: t }] }];
+  return JSON.stringify({ hooks: { UserPromptSubmit: cmd(5), PermissionRequest: cmd(5), PostToolUse: cmd(5), Stop: cmd(5), Interrupt: cmd(3), SessionEnd: cmd(3) } }, null, 2);
+}
+
+$('new-form').addEventListener('submit', async e => {
+  e.preventDefault(); $('new-err').textContent = '';
+  const btn = e.submitter; if (btn) btn.disabled = true;
+  try {
+    const r = await fetch('/api/devices', { method: 'POST', headers: H, body: JSON.stringify({ name: $('dev-name').value }) });
+    const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status);
+    $('token').textContent = j.token; $('new-out').hidden = false; $('cfg').hidden = false;
+    $('cc-json').textContent = ccConfig(j.token);
+    $('codex-sh').textContent = codexScript(j.token);
+    $('codex-json').textContent = codexConfig();
+    $('cfg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    list();
+  } catch (err) { $('new-err').textContent = '生成失败：' + err.message; }
+  finally { if (btn) btn.disabled = false; }
+});
+document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === t));
+  document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== t.dataset.tab);
+}));
+document.querySelectorAll('pre .copy').forEach(b => b.addEventListener('click', async () => {
+  const code = b.parentElement.querySelector('code').textContent;
+  try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; } catch (e) { b.textContent = '请手动选中复制'; }
+  setTimeout(() => b.textContent = '复制', 1600);
+}));
+me(); list();
+})();
+</script>
+</body>
+</html>

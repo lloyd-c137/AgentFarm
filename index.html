@@ -25,6 +25,8 @@ body { background: #2a5634; color: var(--ink); font-family: var(--font-ui); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* loading intro: pixel sunrise, title, block progress bar, then a stepped iris that opens onto the farm */
+#setup-link { position: fixed; right: 12px; bottom: 12px; z-index: 20; padding: 6px 12px; border-radius: 6px; background: rgba(36, 26, 62, .82); color: #fff4d6; font: 13px/1.4 system-ui, sans-serif; text-decoration: none; }
+#setup-link:hover, #setup-link:focus-visible { background: #241a3e; outline: 2px solid #ffd27a; }
 #intro { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #241a3e; overflow: hidden; }
 #intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; image-rendering: crisp-edges; }
 .intro-card { position: relative; text-align: center; transform: translateY(-12vh); font-family: "Fusion Pixel 12", monospace; color: #fbefd2; }
@@ -1183,7 +1185,7 @@ function harvest(id, q = 'normal') {
   say(`「${t.name}」收获了，${QUAL[q].label} +${QUAL[q].coins} 金币`);
 }
 function plant(t) {
-  const used = new Set(tasks.map(x => x.slot)), s = freeSlot(t.src, used); if (s < 0) { say(`田里种满了，「${t.name}」先记在委托板上`); return; }
+  const used = new Set(tasks.map(x => x.slot)), s = Number.isInteger(t.slot) && t.slot >= 0 && t.slot < NSLOT && !used.has(t.slot) ? t.slot : freeSlot(t.src, used); if (s < 0) { say(`田里种满了，「${t.name}」先记在委托板上`); return; }
   t.slot = s; t.plantT = performance.now(); tasks.push(t);
   const { tx, ty } = slotPos(s); for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', x: tx + 8, y: ty + 8, vx: (Math.random() - 0.5) * 1.6, vy: -Math.random() * 1.6, life: 30 });
   Sound.plant(); say(`新任务「${t.name}」播种了`);
@@ -1204,6 +1206,67 @@ const EVENTS = [
   () => water('T6'),
   () => resetDemo()
 ];
+
+/* ---------- live mode: served by the Agent Farm server, the field shows your real AI tasks ----------
+   Opened as a plain file (or with ?demo) the demo above keeps playing. Otherwise the page asks /api/me;
+   if that answers, it polls /api/farm every 5 s (paused while the tab is hidden) and turns each change
+   into the same animations the demo uses: plant, ding, water, crow, harvest. */
+const live = { on: false, version: 0, skew: 0, timer: 0, first: true, failing: 0 };
+const ago = ms => { const m = Math.max(0, Math.round(ms / 60e3)); return m < 1 ? '刚刚' : m < 60 ? `${m} 分钟` : m < 1440 ? `${Math.floor(m / 60)} 小时` : `${Math.floor(m / 1440)} 天`; };
+function liveSince(t) { const at = NEEDS.has(t.state) ? (t.needSince || t.lastEventAt) : t.lastEventAt; return at ? ago(Date.now() + live.skew - at) : ''; }
+function fromServer(s) { return { id: s.id, name: s.name, full: s.full, src: s.src, state: s.state, round: s.round, slot: s.slot, msg: s.msg, needSince: s.needSince, lastEventAt: s.lastEventAt, url: s.url, cwd: s.cwd }; }
+function applyFarm(d) {
+  live.skew = d.now - Date.now();
+  const incoming = new Map(d.tasks.map(s => [s.id, fromServer(s)]));
+  if (live.first) { // the first load just lays the field out; no fanfare
+    live.first = false; tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
+    for (const t of tasks) t.since = liveSince(t);
+    announce(tasks.length ? '已连上你的农场' : '已连上你的农场，还没有任务');
+    if (!tasks.length) setTimeout(() => hint('田里还空着 · 打开「连接设备」把 Claude Code / Codex 接进来'), 2500);
+    return;
+  }
+  // gone from the field: harvested (the newest entries on today's shipping list say with what quality)
+  const fresh = d.shipped.slice(shipped.length);
+  for (const t of tasks.slice()) if (!incoming.has(t.id)) { const s = fresh.find(x => x.name === t.name); harvest(t.id, s ? s.q : 'normal'); }
+  shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
+  for (const n of incoming.values()) {
+    const t = find(n.id);
+    if (!t) { plant(n); continue; }
+    const was = t.state;
+    if (n.state !== was) {
+      if (was === 'stalled' && n.state === 'working') revive(t.id);
+      else if (NEEDS.has(was) && n.state === 'working') water(t.id);
+      else if (n.state === 'reply') finishRound(t.id, n.msg);
+      else if (n.state === 'approval') { t.state = 'approval'; t.popT = performance.now(); Sound.ding(); say(`「${t.name}」请求授权，等你点头`); }
+      else if (n.state === 'error') { t.state = 'error'; Sound.ding(); say(`「${t.name}」出错了`); }
+      else if (n.state === 'stalled') { t.state = 'stalled'; say(`「${t.name}」很久没上报，乌鸦落下来了`); }
+    }
+    Object.assign(t, n, { slot: t.slot });
+  }
+  for (const t of tasks) t.since = liveSince(t);
+}
+async function pollFarm() {
+  clearTimeout(live.timer);
+  if (document.hidden) return;
+  try {
+    const r = await fetch(`/api/farm?v=${live.version}&tz=${-new Date().getTimezoneOffset()}`, { credentials: 'same-origin', cache: 'no-store' });
+    if (r.status === 200) { const d = await r.json(); live.version = d.version; applyFarm(d); }
+    else if (r.status !== 204) throw new Error('HTTP ' + r.status);
+    else for (const t of tasks) t.since = liveSince(t);
+    if (live.failing > 2) hint('又连上服务器了'); live.failing = 0;
+  } catch (e) { if (++live.failing === 3) hint('暂时连不上服务器，农场先停在这一刻'); }
+  live.timer = setTimeout(pollFarm, live.failing > 2 ? 20000 : 5000);
+}
+async function goLive() {
+  if (!/^https?:$/.test(location.protocol) || new URLSearchParams(location.search).has('demo')) return false;
+  try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (!r.ok) return false; await r.json(); } catch (e) { return false; }
+  live.on = true; tasks = []; shipped = []; harvestToday = 0; harvestWeek = 0;
+  await new Promise(r => document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', r) : r());
+  const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '连接设备'; document.body.appendChild(a);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFarm(); });
+  await pollFarm();
+  return true;
+}
 
 /* ---------- accessibility mirror ---------- */
 const sr = document.getElementById('farm-status');
@@ -1419,6 +1482,7 @@ function cropDialog(t) {
   else if (t.state === 'error') { lines.push(`出错了：${t.msg}`); lines.push(`去 ${t.src} 看看报错，处理完它会重新长起来。`); }
   else if (t.state === 'stalled') { lines.push(`乌鸦：嘎！这里 ${t.since} 没人上报了。`); lines.push(`等 ${t.src} 重新上报，我就飞走。`); }
   else { lines.push(`AI 说：「${t.msg}」`); lines.push(`去 ${t.src} ${t.state === 'approval' ? '授权' : '回复'}它，作物就会继续长。`); lines.push('气泡出现 10 分钟内回复，收获时能拿金星。'); }
+  if (t.cwd) lines.push(`项目文件夹：${t.cwd}`);
   return { title: t.full, portrait: { crop: t.id }, lines };
 }
 function interact(p) {
@@ -1428,7 +1492,7 @@ function interact(p) {
   else if (p.kind === 'bin') { panelView = 'ship'; hover = null; Sound.paper(); }
   else if (p.kind === 'mail') {
     const need = needList(), first = need[0] ? `最急的是「${need[0].name}」。` : '没有要你处理的事。';
-    const lines = ['早上好！昨晚 AI 帮你收获了 6 个任务。', `现在有 ${need.length} 个任务在等你，${first}`, '祝今天顺利。'];
+    const lines = [live.on ? `早上好！今天已经收获了 ${harvestToday} 个任务。` : '早上好！昨晚 AI 帮你收获了 6 个任务。', `现在有 ${need.length} 个任务在等你，${first}`, '祝今天顺利。'];
     if (daily.mail) lines.push('（今天的早报已经读过了）');
     daily.mail = true; saveDaily(); Sound.paper(); openDialog({ title: '早报', portrait: 'mail', lines });
   }
@@ -6090,7 +6154,7 @@ function introStep(p, tip) {
   const t = document.getElementById('intro-tip'); if (t && tip) t.textContent = tip;
 }
 async function start() {
-  const t0 = performance.now();
+  const t0 = performance.now(), liveP = goLive();
   introStep(0.08, '翻土中……'); await nextFrame();
   textCache.clear();
   Object.assign(DSPR, { flower: makeFlowerbed(), barrel: makeBarrel(), pumpkins: makePumpkins(), bench: makeBench(), lamp: makeLamp(), scarecrow: makeScarecrow(), dog: makeDog(), stone: makeStone() });
@@ -6114,7 +6178,7 @@ async function start() {
   if (intro) { intro.classList.add('out'); const done = () => { intro.remove(); ucv.focus({ preventScroll: true }); }; intro.addEventListener('animationend', e => { if (e.target === intro) done(); }); setTimeout(() => intro.isConnected && done(), 1400); }
   announce('农场已载入');
   setTimeout(() => hint('点地面让农夫走过去 · 按 H 看图例和操作'), 1100);
-  setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
+  if (!(await liveP)) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
 }
 const fontsReady = document.fonts ? Promise.all([document.fonts.load(`12px ${FONT_CJK}`, '农场委托0123456789'), document.fonts.load(`24px ${FONT_CJK}`, '0123456789:?')]) : Promise.resolve();
 let started = false;

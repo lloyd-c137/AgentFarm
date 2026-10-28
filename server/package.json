@@ -1,0 +1,15 @@
+{
+  "name": "agent-farm-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "db:local": "wrangler d1 migrations apply agent-farm --local",
+    "db:remote": "wrangler d1 migrations apply agent-farm --remote",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.154.0"
+  }
+}
