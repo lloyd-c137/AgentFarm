@@ -889,7 +889,7 @@ SPR.soilWet = makeSoilTile(P.SW);
    home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
 const FW = 800, FH = 464;
 // the cabin stands against the field's north-west corner (its east wall a step from the fence); the coop sits just below the road
-const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 118], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [200, 74] };
+const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 118], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [200, 74] };
 const PETH = { x: 172, y: 168 };
 const SIGN = { x: 186, y: 108, w: 26, h: 28 };
 const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
@@ -902,7 +902,7 @@ function freeSlot(src, used) { const r = rowFor(src); for (const row of [r, FROW
 function assignSlots(list) { const used = new Set(); for (const t of list) { t.slot = freeSlot(t.src, used); used.add(t.slot); } }
 const [HX, HY] = SCENE.house, [CX, CY] = SCENE.coop, [MX, MY] = SCENE.mine;
 const BASE_BLOCK = [[HX + 2, HY + 30, 94, 52], [SCENE.bin[0] + 2, SCENE.bin[1] + 10, 32, 16], [CX + 2, CY + 20, 48, 22], [SCENE.mailbox[0] + 4, SCENE.mailbox[1] + 14, 6, 8], [SIGN.x + 10, SIGN.y + 16, 8, 10],
-  [SCENE.woodpile[0], SCENE.woodpile[1] + 8, 28, 12], [SCENE.well[0], SCENE.well[1] + 18, 30, 18], [SCENE.cat[0], SCENE.cat[1], 16, 8], ...[SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 2, y + 34, 6, 10])];
+  [SCENE.woodpile[0], SCENE.woodpile[1] + 8, 28, 12], [SCENE.well[0], SCENE.well[1] + 18, 30, 18], [SCENE.cat[0], SCENE.cat[1], 16, 8], ...[SCENE.lampA, SCENE.lampB].map(([x, y]) => [x + 2, y + 34, 6, 10])];
 const BLOCK = [];
 const FENCE = [[FEN.x0 - 2, FEN.top + 4, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.bot + 2, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.top + 10, 10, FEN.gy0 - FEN.top - 10], [FEN.x0 - 2, FEN.gy1, 10, FEN.bot - FEN.gy1 + 6], [FEN.x1 - 2, FEN.top + 10, 10, FEN.bot - FEN.top]];
 const FIELD = [FEN.x0, FEN.top, FEN.x1 - FEN.x0 + 8, FEN.bot - FEN.top + 14];
@@ -1029,8 +1029,8 @@ function buildWorld() {
   prop(VEH.truck[0], TRUCK_POS.x, TRUCK_POS.y, [40, 5]); BLOCK.push([TRUCK_POS.x + 2, TRUCK_POS.y + 14, 40, 10]);
   prop(makePetHouse(), PETH.x, PETH.y, [28, 5]); BLOCK.push([PETH.x + 2, PETH.y + 14, 26, 12]); prop(makeBowl(), PETH.x + 28, PETH.y + 24, [12, 3]);
   const lamp = makeLamp();
-  for (const [x, y] of [SCENE.lampA, SCENE.lampB, SCENE.lampC]) prop(lamp, x, y, [10, 4]);
-  lampGlass = [SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 3, y + 6, 4, 4]);
+  for (const [x, y] of [SCENE.lampA, SCENE.lampB]) prop(lamp, x, y, [10, 4]);
+  lampGlass = [SCENE.lampA, SCENE.lampB].map(([x, y]) => [x + 3, y + 6, 4, 4]);
   const leafRamps = LEAF[season];
   TREES.forEach(([x, y, seed], i) => {
     const ramp = season === 'winter' ? null : leafRamps[i % leafRamps.length];
