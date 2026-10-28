@@ -1,0 +1,60 @@
+/* Agent Farm pixel UI: the game's palette and font, wooden boards with paper insides, notched pixel corners.
+   Fusion Pixel 12px Proportional SC, Copyright (c) 2022 TakWolf, SIL Open Font License 1.1 (extracted unmodified from the game page). */
+@font-face { font-family: "Fusion Pixel 12"; src: url(fusion-pixel-12.woff2) format("woff2"); font-display: swap; }
+
+:root {
+  --ol: #20141c;
+  --wood-0: #341b22; --wood-1: #5a2f28; --wood-2: #844b33; --wood-3: #ad7044; --wood-4: #d39c60;
+  --paper: #f3dfb6; --paper-hi: #fbefd2; --paper-lo: #dcc193;
+  --ink: #3a2420; --ink-muted: #6b4e3c; --alert: #b3302a;
+  --g-0: #1d3a2b; --g-1: #2a5634; --g-2: #3b7438; --g-3: #56943f; --g-4: #7fb450; --g-5: #b4d872;
+  --y-2: #f2c14e; --y-3: #ffe58a;
+  --night: #1b1530;
+  --code: #241a2c; --code-ink: #fbefd2;
+  --px: "Fusion Pixel 12", "PingFang SC", "Microsoft YaHei", monospace;
+}
+* { box-sizing: border-box; }
+html { background: var(--night); }
+body { margin: 0; min-height: 100vh; color: var(--ink); font: 12px/1.75 var(--px); -webkit-font-smoothing: none; font-smooth: never; image-rendering: pixelated; }
+.big { font-size: 24px; line-height: 1.25; }
+[hidden] { display: none !important; }
+
+/* the farm at night behind everything */
+#farm-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: -1; image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+
+/* wooden board: outline, wood rim, paper inside; corners notched one pixel step */
+.board { position: relative; padding: 6px; background: var(--ol); clip-path: polygon(0 6px, 6px 6px, 6px 0, calc(100% - 6px) 0, calc(100% - 6px) 6px, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 6px calc(100% - 6px), 0 calc(100% - 6px)); }
+.board > .rim { padding: 6px; background: var(--wood-3); box-shadow: inset 0 3px 0 var(--wood-4), inset 0 -3px 0 var(--wood-1), inset 3px 0 0 var(--wood-2), inset -3px 0 0 var(--wood-2); }
+.board .paper { padding: 18px 18px 14px; background: var(--paper); box-shadow: inset 0 3px 0 var(--paper-hi), inset 0 -3px 0 var(--paper-lo), 0 0 0 3px var(--wood-1); }
+.nail { position: absolute; width: 6px; height: 6px; background: var(--wood-0); box-shadow: inset 3px 3px 0 var(--wood-4); }
+.nail.tl { top: 9px; left: 9px; } .nail.tr { top: 9px; right: 9px; } .nail.bl { bottom: 9px; left: 9px; } .nail.br { bottom: 9px; right: 9px; }
+
+/* fields */
+.px-label { display: block; margin: 12px 0 3px; color: var(--ink-muted); }
+.px-input { width: 100%; padding: 9px 10px 7px; border: 0; background: var(--paper-hi); color: var(--ink); font: 12px/1.5 var(--px); outline: none; box-shadow: inset 0 0 0 3px var(--ink), inset 3px 3px 0 3px var(--paper-lo); }
+.px-input::placeholder { color: #a88e70; }
+.px-input:focus { box-shadow: inset 0 0 0 3px var(--g-1), inset 3px 3px 0 3px var(--g-5); }
+
+/* buttons: chunky, with a pressed state */
+.px-btn { position: relative; display: inline-block; padding: 9px 18px 12px; border: 0; background: var(--g-3); color: var(--paper-hi); font: 12px/1.5 var(--px); cursor: pointer; text-shadow: 0 3px 0 var(--g-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px var(--g-1), inset 0 3px 0 3px var(--g-4); }
+.px-btn:hover { background: var(--g-4); }
+.px-btn:active, .px-btn[aria-pressed=true] { padding: 12px 18px 9px; box-shadow: inset 0 0 0 3px var(--ol), inset 0 6px 0 3px var(--g-1); }
+.px-btn:disabled { filter: saturate(.4); cursor: wait; }
+.px-btn.wood { background: var(--wood-3); text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px var(--wood-1), inset 0 3px 0 3px var(--wood-4); }
+.px-btn.wood:hover { background: var(--wood-4); }
+.px-btn.small { padding: 4px 10px 7px; }
+.px-btn.small:active { padding: 7px 10px 4px; }
+.px-btn.danger { background: #c4553e; box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px #7a2a22, inset 0 3px 0 3px #e98a63; }
+.px-btn:focus-visible, .px-tab:focus-visible, a:focus-visible { outline: 3px solid var(--y-2); outline-offset: 3px; }
+
+/* tabs: two wooden plaques, the active one pushed in and lit */
+.px-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 6px; }
+.px-tab { padding: 6px 0 9px; border: 0; background: var(--paper-lo); color: var(--ink-muted); font: 12px/1.5 var(--px); cursor: pointer; box-shadow: inset 0 0 0 3px var(--wood-1), inset 0 -3px 0 3px #c7a873; }
+.px-tab[aria-selected=true] { background: var(--wood-3); color: var(--paper-hi); text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 3px 0 3px var(--wood-4), inset 0 -3px 0 3px var(--wood-1); }
+
+a { color: var(--g-1); }
+.muted { color: var(--ink-muted); }
+.err { color: var(--alert); min-height: 1.75em; margin: 8px 0 0; }
+.px-sep { height: 3px; margin: 14px 0; background: repeating-linear-gradient(90deg, var(--paper-lo) 0 6px, transparent 6px 12px); }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

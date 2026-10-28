@@ -2,3 +2,4 @@ node_modules/
 public/
 .wrangler/
 .dev.vars
+.dev.vars.off

@@ -3,44 +3,50 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>连接设备 · Agent Farm</title>
+<title>设备与账户 · Agent Farm</title>
+<link rel="preload" href="fusion-pixel-12.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="px.css">
 <style>
-:root { --bg: #f6efdc; --card: #fffaf0; --ink: #2b2238; --muted: #6d6478; --line: #e2d6b8; --accent: #3f7a3a; --accent-ink: #fff; --code: #241a3e; --code-ink: #f3ead2; --warn: #b2452d; }
-@media (prefers-color-scheme: dark) { :root { --bg: #1b1528; --card: #251d36; --ink: #f1e9d6; --muted: #a99fb8; --line: #3a2f52; --accent: #6fb562; --accent-ink: #13210f; --code: #120d1d; --code-ink: #efe4c6; --warn: #ff8a6b; } }
-* { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.65 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
-main { max-width: 860px; margin: 0 auto; padding: 32px 16px 80px; }
-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 24px; }
-h1 { font-size: 24px; margin: 0; }
-h2 { font-size: 18px; margin: 0 0 8px; }
-h3 { font-size: 15px; margin: 20px 0 6px; }
-a { color: var(--accent); }
-.muted { color: var(--muted); }
-.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+main { max-width: 860px; margin: 0 auto; padding: 28px 16px 80px; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; color: var(--paper-hi); text-shadow: 0 3px 0 var(--ol), 3px 0 0 var(--ol), -3px 0 0 var(--ol), 0 -3px 0 var(--ol); }
+header a { color: var(--y-3); }
+header .muted { color: var(--paper-lo); }
+h1 { font-size: 24px; line-height: 1.25; margin: 0; font-weight: normal; }
+h2 { font-size: 12px; margin: 0 0 6px; font-weight: normal; color: var(--paper-hi); background: var(--wood-2); display: inline-block; padding: 3px 12px 6px; text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 -3px 0 3px var(--wood-1); }
+h3 { font-size: 12px; margin: 16px 0 4px; font-weight: normal; }
+/* each card is a wooden board with a paper inside, drawn with stacked shadows so no extra markup is needed */
+.card { position: relative; padding: 22px 24px 18px; margin: 12px 12px 36px; background: var(--paper); box-shadow: inset 0 3px 0 var(--paper-hi), inset 0 -3px 0 var(--paper-lo), 0 0 0 3px var(--wood-1), 0 0 0 9px var(--wood-3), 0 0 0 12px var(--ol), 0 9px 0 9px rgba(0,0,0,.35); }
 .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-input[type=text] { flex: 1 1 220px; min-width: 0; padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--ink); font: inherit; }
-button { padding: 9px 16px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
-button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; padding: 5px 12px; }
-button.danger { color: var(--warn); }
-button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.tabs { display: flex; gap: 6px; margin: 16px 0 4px; flex-wrap: wrap; }
-.tabs button { background: transparent; color: var(--ink); border: 1px solid var(--line); font-weight: 500; }
-.tabs button[aria-selected=true] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-pre { position: relative; margin: 8px 0; padding: 14px 16px; background: var(--code); color: var(--code-ink); border-radius: 8px; overflow-x: auto; font: 12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-pre .copy { position: absolute; top: 8px; right: 8px; padding: 3px 10px; font-size: 12px; background: rgba(255,255,255,.12); color: var(--code-ink); }
-code { font: 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: rgba(127,110,90,.14); padding: 1px 5px; border-radius: 4px; }
+header .row { gap: 14px; }
+input[type=text], input[type=password] { flex: 1 1 200px; min-width: 0; padding: 9px 10px 7px; border: 0; background: var(--paper-hi); color: var(--ink); font: 12px/1.5 var(--px); outline: none; box-shadow: inset 0 0 0 3px var(--ink), inset 3px 3px 0 3px var(--paper-lo); }
+input:focus { box-shadow: inset 0 0 0 3px var(--g-1), inset 3px 3px 0 3px var(--g-5); }
+button { padding: 9px 16px 12px; border: 0; background: var(--g-3); color: var(--paper-hi); font: 12px/1.5 var(--px); cursor: pointer; text-shadow: 0 3px 0 var(--g-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px var(--g-1), inset 0 3px 0 3px var(--g-4); }
+button:hover { background: var(--g-4); }
+button:active { padding: 12px 16px 9px; box-shadow: inset 0 0 0 3px var(--ol), inset 0 6px 0 3px var(--g-1); }
+button:disabled { filter: saturate(.4); }
+button.ghost { background: var(--wood-3); text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px var(--wood-1), inset 0 3px 0 3px var(--wood-4); padding: 4px 10px 7px; }
+button.ghost:hover { background: var(--wood-4); }
+button.ghost:active { padding: 7px 10px 4px; box-shadow: inset 0 0 0 3px var(--ol), inset 0 6px 0 3px var(--wood-1); }
+button.danger { background: #c4553e; box-shadow: inset 0 0 0 3px var(--ol), inset 0 -6px 0 3px #7a2a22, inset 0 3px 0 3px #e98a63; }
+button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid var(--y-2); outline-offset: 3px; }
+.tabs { display: flex; gap: 6px; margin: 12px 0 4px; flex-wrap: wrap; }
+.tabs button { background: var(--paper-lo); color: var(--ink-muted); text-shadow: none; box-shadow: inset 0 0 0 3px var(--wood-1), inset 0 -3px 0 3px #c7a873; }
+.tabs button[aria-selected=true] { background: var(--wood-3); color: var(--paper-hi); text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 3px 0 3px var(--wood-4), inset 0 -3px 0 3px var(--wood-1); }
+pre { position: relative; margin: 8px 0; padding: 14px 16px; background: var(--code); color: var(--code-ink); overflow-x: auto; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; box-shadow: inset 0 0 0 3px var(--ol), inset 0 6px 0 3px #3a2a40; }
+pre .copy { position: absolute; top: 9px; right: 9px; }
+code { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--paper-lo); padding: 1px 5px; }
 pre code { background: none; padding: 0; }
-.token { padding: 12px 14px; border: 2px dashed var(--accent); border-radius: 8px; word-break: break-all; font: 13px ui-monospace, monospace; }
-ol { padding-left: 22px; } li { margin: 4px 0; }
-table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; border-top: 1px solid var(--line); vertical-align: middle; } td:last-child { text-align: right; }
-[hidden] { display: none !important; }
-.err { color: var(--warn); }
+.token { padding: 12px 14px; background: var(--paper-hi); word-break: break-all; font: 12px ui-monospace, monospace; box-shadow: inset 0 0 0 3px var(--g-2); }
+ol { padding-left: 22px; } li { margin: 3px 0; }
+table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; vertical-align: middle; background-image: repeating-linear-gradient(90deg, var(--paper-lo) 0 6px, transparent 6px 12px); background-size: 100% 3px; background-repeat: no-repeat; } td:last-child { text-align: right; }
+.err { color: var(--alert); }
 </style>
 </head>
 <body>
+<canvas id="farm-bg" aria-hidden="true"></canvas>
 <main>
   <header>
-    <h1>连接设备</h1>
+    <h1>设备与账户</h1>
     <div class="row"><span class="muted" id="who">正在确认登录……</span><button class="ghost" id="logout" type="button" hidden>退出登录</button><a href="./">← 回农场</a></div>
   </header>
 
@@ -109,6 +115,7 @@ table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; border-
     </form>
   </section>
 </main>
+<script src="farm-bg.js" defer></script>
 <script>
 (() => {
 const $ = id => document.getElementById(id);

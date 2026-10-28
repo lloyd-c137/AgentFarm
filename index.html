@@ -25,8 +25,10 @@ body { background: #2a5634; color: var(--ink); font-family: var(--font-ui); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* loading intro: pixel sunrise, title, block progress bar, then a stepped iris that opens onto the farm */
-#setup-link { position: fixed; right: 12px; bottom: 12px; z-index: 20; padding: 6px 12px; border-radius: 6px; background: rgba(36, 26, 62, .82); color: #fff4d6; font: 13px/1.4 system-ui, sans-serif; text-decoration: none; }
-#setup-link:hover, #setup-link:focus-visible { background: #241a3e; outline: 2px solid #ffd27a; }
+#setup-link { position: fixed; right: 12px; bottom: 12px; z-index: 20; padding: 6px 14px 9px; background: #ad7044; color: #fbefd2; font: 12px/1.5 "Fusion Pixel 12", monospace; text-decoration: none; text-shadow: 0 3px 0 #341b22; -webkit-font-smoothing: none; box-shadow: inset 0 0 0 3px #20141c, inset 0 -6px 0 3px #5a2f28, inset 0 3px 0 3px #d39c60; }
+#setup-link:hover { background: #d39c60; }
+#setup-link:active { padding: 9px 14px 6px; box-shadow: inset 0 0 0 3px #20141c, inset 0 6px 0 3px #5a2f28; }
+#setup-link:focus-visible { outline: 3px solid #f2c14e; outline-offset: 3px; }
 #intro { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; background: #241a3e; overflow: hidden; }
 #intro canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; image-rendering: crisp-edges; }
 .intro-card { position: relative; text-align: center; transform: translateY(-12vh); font-family: "Fusion Pixel 12", monospace; color: #fbefd2; }
@@ -107,7 +109,7 @@ body { background: #2a5634; color: var(--ink); font-family: var(--font-ui); }
 const W = 480, H = 270;
 const stage = document.getElementById('stage');
 const cv = document.getElementById('world');
-const ctx = cv.getContext('2d');
+const ctx = cv.getContext('2d', { alpha: false }); // the world always covers the whole canvas, so it can be opaque
 ctx.imageSmoothingEnabled = false;
 const ucv = document.getElementById('ui');
 let uctx = ucv.getContext('2d');
@@ -449,7 +451,11 @@ SPR.chickA = chickFrame('walkA'); SPR.chickB = chickFrame('walkB'); SPR.chickP =
 SPR.chickAL = flipX(SPR.chickA); SPR.chickBL = flipX(SPR.chickB); SPR.chickPL = flipX(SPR.chickP);
 
 /* ---------- trees 48x96, pines 32x64, bushes ---------- */
-function makeTree(seed, ramp, blossom) {
+// tree sprites are pure functions of their arguments and never drawn on afterwards, so equal ones are shared
+const SPRITE_CACHE = new Map();
+function cached(key, make) { let v = SPRITE_CACHE.get(key); if (!v) { v = make(); SPRITE_CACHE.set(key, v); } return v; }
+function makeTree(seed, ramp, blossom) { return cached(`tree|${seed}|${ramp ? ramp.join() : '-'}|${!!blossom}`, () => paintTree(seed, ramp, blossom)); }
+function paintTree(seed, ramp, blossom) {
   const r = rng(seed), w = 48, h = 96, [c, g] = mk(w, h);
   const tx = 19, tw = 10;
   for (let y = 48; y < h - 1; y++) {
@@ -483,7 +489,8 @@ function makeTree(seed, ramp, blossom) {
   }
   return outline(c, leaves ? ramp[0] : P.WD[0]);
 }
-function makePine(seed) {
+function makePine(seed) { return cached(`pine|${seed}`, () => paintPine(seed)); }
+function paintPine(seed) {
   const r = rng(seed), w = 32, h = 66, [c, g] = mk(w, h), ramp = PINE;
   for (let y = 52; y < h - 1; y++) for (let x = 13; x < 19; x++) R(g, x < 15 ? P.WD[4] : x > 16 ? P.WD[1] : P.WD[3], x, y);
   for (let i = 0; i < 5; i++) {
@@ -1043,8 +1050,8 @@ function buildWorld() {
     for (let gy = ry0 - 60; gy < FH + BGY + 90; gy += 34) for (let gx = rx0 - 30; gx < FW + BGX + 20; gx += 42) {
       const x = Math.round(gx + (mr() - 0.5) * 20), y = Math.round(gy + (mr() - 0.5) * 14), pine = mr() < 0.4;
       if (pine ? !out(x, y, 34, 68) : !out(x, y, 50, 98)) continue;
-      if (pine) prop(makePine(Math.floor(mr() * 999)), x, y, [26, 6]);
-      else { const ramp = season === 'winter' ? null : leafRamps[Math.floor(mr() * leafRamps.length)]; prop(makeTree(Math.floor(mr() * 999), ramp, season === 'spring' && mr() < 0.5), x, y, [40, 8]); if (ramp) CANOPIES.push({ x: x + 6, y: y + 8, w: 38, h: 44, col: ramp }); }
+      if (pine) prop(makePine(Math.floor(mr() * 999) % 24), x, y, [26, 6]);
+      else { const ramp = season === 'winter' ? null : leafRamps[Math.floor(mr() * leafRamps.length)]; prop(makeTree(Math.floor(mr() * 999) % 24, ramp, season === 'spring' && mr() < 0.5), x, y, [40, 8]); if (ramp) CANOPIES.push({ x: x + 6, y: y + 8, w: 38, h: 44, col: ramp }); }
     }
   }
   BLOCK.push([MX - 62, MY - 30, 76, 74], [MX + 56, MY - 30, 66, 74], [MX - 6, MY - 30, 72, 32]); prop(makeMineEntrance(), MX, MY, [52, 6]); BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
@@ -2504,7 +2511,7 @@ function buildCoop(rm) {
   ];
   rm.bg = [c, g];
 }
-const ROOMS = {
+const ROOMS = lazyRooms({
   house: { name: '小屋', floor: { x: 98, y: 92, w: 284, h: 142 }, mat: { x: 240, y: 228 }, out: { x: HX + 49, y: HY + 90 }, build: buildHouse, block: [] },
   bedroom: { name: '卧室', parent: 'house', floor: { x: 148, y: 98, w: 184, h: 120 }, mat: { x: 240, y: 214 }, out: { x: 330, y: 102 }, build: buildBedroom, block: [] },
   airport: { name: '机场', floor: { x: 20, y: 98, w: 440, h: 132 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildAirport, block: [], margin: '#5a5864', outdoor: true, overlay: airportOverlay },
@@ -2512,7 +2519,7 @@ const ROOMS = {
   nyc: { name: '纽约', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildNyc, block: [], night: true, paintWins: paintNycWindows, overlay: nycOverlays },
   salem: { name: '塞勒姆', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildSalem, block: [], night: true, paintWins: paintSalemWindows, overlay: salemOverlays },
   coop: { name: '鸡舍', floor: { x: 154, y: 100, w: 172, h: 126 }, mat: { x: 240, y: 220 }, out: { x: CX + 26, y: CY + 50 }, build: buildCoop, block: [] }
-};
+});
 const TOG = { flamp: true, lampL: true, lampR: true, flampB: false, fairy: true, kcurt: false, scurt: false, bcurt: false };
 const ANIM = {};
 const age = (k, now) => ANIM[k] === undefined ? 1e9 : now - ANIM[k];
@@ -2520,7 +2527,18 @@ let sleep = null;
 const notes = [], embers = [], zzz = [];
 const coopChick = { x: 230, y: 176, tx: 260, ty: 190, dir: 1, wait: 0, t: 0 };
 const coopTrail = [{ x: 214, y: 180 }, { x: 204, y: 186 }, { x: 222, y: 190 }], coopHist = [];
-function buildRooms() { for (const k in ROOMS) { const rm = ROOMS[k]; rm.block = []; rm.build(rm); } }
+/* Rooms are painted the first time anything touches them (entering one, a trip arriving), not at startup.
+   Right after the farm appears, the rest are painted one per idle moment, so entering one is still instant. */
+function lazyRooms(rooms) {
+  return new Proxy(rooms, { get(t, k) { const rm = t[k]; if (rm && rm.build && !rm.built) { rm.built = true; rm.block = []; rm.build(rm); } return rm; } });
+}
+function buildRooms() { for (const k in ROOMS) ROOMS[k]; }
+function prebuildRooms() {
+  const todo = ['house', 'bedroom', 'coop', 'airport', 'london', 'nyc', 'salem'].filter(k => k in ROOMS);
+  const idle = window.requestIdleCallback || (fn => setTimeout(() => fn({ timeRemaining: () => 50 }), 60));
+  const next = () => { const k = todo.shift(); if (!k) return; ROOMS[k]; idle(next, { timeout: 1500 }); };
+  idle(next, { timeout: 1500 });
+}
 function roomInteractables() { const rm = ROOMS[scene], list = rm.items.map(o => ({ ...o, top: o.rect.y - 2 })); if (pet && !pet.moving) list.push({ kind: 'pet', name: pet.name, noKey: true, rect: { x: pet.x - 7, y: pet.y - 13, w: 14, h: 12 }, spot: { x: farmer.x, y: farmer.y }, top: pet.y - 18 }); return list; }
 function startFade(fn) { farmer.seat = null; if (fade) return; fade = { t0: performance.now(), fn, done: false }; }
 function enterRoom(k) {
@@ -6128,14 +6146,22 @@ function renderWindowView(now) {
 }
 
 /* ---------- boot ---------- */
-let ev = 0, acc = 0, lastT = 0, tick = 0;
+let ev = 0, acc = 0, lastT = 0, tick = 0, lastDraw = 0, lastInput = 0;
 const STEP_MS = 1000 / 60;
+/* The game logic always steps 60 times a second; drawing adapts. While you're using it, or anything is
+   moving (the farmer, a cutscene, flying crops, particles), every frame is drawn. Left open as a dashboard
+   it draws 30 frames a second, and 20 when the window isn't focused. Hidden tabs draw nothing at all. */
+for (const t of ['pointermove', 'pointerdown', 'keydown', 'wheel', 'touchstart']) window.addEventListener(t, () => { lastInput = performance.now(); }, { passive: true, capture: true });
+function frameGap(now) {
+  if (scene === 'cut' || scene === 'mine' || farmer.moving || farmer.path.length || flights.length || fx.length || placing || now - lastInput < 4000) return 0;
+  return document.hasFocus() ? 1000 / 30 : 1000 / 20;
+}
 function loop(now) {
   if (!lastT) lastT = now;
   acc += Math.min(100, now - lastT); lastT = now;
   let stepped = false;
   while (acc >= STEP_MS) { step(); tick++; acc -= STEP_MS; stepped = true; }
-  if (stepped) { render(now); drawUI(now); }
+  if (stepped && now - lastDraw >= frameGap(now) - 4) { lastDraw = now; render(now); drawUI(now); }
   requestAnimationFrame(loop);
 }
 let seasonOverride = null;
@@ -6169,14 +6195,14 @@ async function start() {
   fit();
   buildWorld(); migrateDecor();
   introStep(0.75, '打扫小屋、叫醒小鸡……'); await nextFrame();
-  buildRooms();
   rebuildWalk();
   requestAnimationFrame(loop);
   introStep(1, '农场准备好了');
   // keep the intro on screen long enough to read, then open onto the farm
-  const wait = Math.max(0, 1500 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait + 350));
+  const wait = Math.max(0, 900 - (performance.now() - t0)); await new Promise(r => setTimeout(r, wait + 350));
   if (intro) { intro.classList.add('out'); const done = () => { intro.remove(); ucv.focus({ preventScroll: true }); }; intro.addEventListener('animationend', e => { if (e.target === intro) done(); }); setTimeout(() => intro.isConnected && done(), 1400); }
   announce('农场已载入');
+  prebuildRooms();
   setTimeout(() => hint('点地面让农夫走过去 · 按 H 看图例和操作'), 1100);
   if (!(await liveP)) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
 }

@@ -10,6 +10,7 @@
     "deploy": "npm run build && wrangler deploy"
   },
   "devDependencies": {
+    "esbuild": "^0.25.11",
     "wrangler": "^4.154.0"
   }
 }
