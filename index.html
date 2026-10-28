@@ -111,7 +111,8 @@ const ucv = document.getElementById('ui');
 let uctx = ucv.getContext('2d');
 uctx.imageSmoothingEnabled = false;
 let UW = 960, UH = 540;
-let VW = W, VH = H, OX = 0, OY = 0; // view size in world pixels, and where the farm sits inside it
+let VW = W, VH = H, OX = 0, OY = 0; // view size in world pixels, and where the world sits inside it (the farm: set by the camera)
+let camX = 0, camY = 0, camSnap = true, mouseV = null;
 const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------- palette: every ramp runs dark (cool) → light (warm) ---------- */
@@ -842,63 +843,98 @@ function makeSoilTile(ramp) {
 SPR.soilDry = makeSoilTile(P.SD);
 SPR.soilWet = makeSoilTile(P.SW);
 
-/* ---------- world layout (world pixels, 16px tiles) ---------- */
-const SCENE = { mine: [62, 192], house: [4, 0], mailbox: [106, 60], bin: [4, 102], coop: [10, 190], lampA: [144, 106], lampB: [318, 150], pond: [240, 50, 58, 28], cat: [70, 90], well: [68, 100], woodpile: [154, 66] };
-const SIGN = { x: 124, y: 54, w: 26, h: 28 };
-const FEN = { x0: 160, x1: 304, top: 102, bot: 210, gy0: 150, gy1: 182 };
-const DIRT = { x: 176, y: 128, w: 112, h: 80 };
-const PLOT_X = [192, 208, 224, 240, 256], PLOT_Y = [144, 176];
-const slotPos = s => ({ tx: PLOT_X[s % 5], ty: PLOT_Y[s < 5 ? 0 : 1] });
-const BASE_BLOCK = [[6, 30, 94, 52], [6, 112, 32, 16], [12, 210, 48, 22], [110, 74, 6, 8], [134, 70, 8, 10], [146, 140, 6, 10], [320, 184, 6, 10], [154, 74, 28, 12], [68, 118, 30, 18], [70, 90, 16, 8]];
+/* ---------- world layout: a farm bigger than the screen, in zones with room to breathe; the camera follows the farmer ----------
+   home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
+const FW = 800, FH = 464;
+const SCENE = { mine: [680, 362], house: [72, 28], mailbox: [186, 92], bin: [288, 170], coop: [56, 300], lampA: [316, 244], lampB: [138, 150], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [92, 114], well: [52, 140], woodpile: [30, 92] };
+const PETH = { x: 176, y: 138 };
+const SIGN = { x: 210, y: 92, w: 26, h: 28 };
+const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
+const DIRT = { x: 368, y: 184, w: 232, h: 172 };
+// the field: one row per source, eight plots a row, a wooden sign at the head of each
+const FROWS = ['Codex', 'Claude Code', 'Claude 聊天', '其他'], COLS = 8, PLOT_X0 = 408, PLOT_Y0 = 208, ROW_H = 40, NSLOT = FROWS.length * COLS;
+const slotPos = s => ({ tx: PLOT_X0 + (s % COLS) * 24, ty: PLOT_Y0 + Math.floor(s / COLS) * ROW_H });
+const rowFor = src => { const i = FROWS.indexOf(src); return i < 0 ? FROWS.length - 1 : i; };
+function freeSlot(src, used) { const r = rowFor(src); for (const row of [r, FROWS.length - 1, 0, 1, 2]) for (let c = 0; c < COLS; c++) { const sl = row * COLS + c; if (!used.has(sl)) return sl; } return -1; }
+function assignSlots(list) { const used = new Set(); for (const t of list) { t.slot = freeSlot(t.src, used); used.add(t.slot); } }
+const [HX, HY] = SCENE.house, [CX, CY] = SCENE.coop, [MX, MY] = SCENE.mine;
+const BASE_BLOCK = [[HX + 2, HY + 30, 94, 52], [SCENE.bin[0] + 2, SCENE.bin[1] + 10, 32, 16], [CX + 2, CY + 20, 48, 22], [SCENE.mailbox[0] + 4, SCENE.mailbox[1] + 14, 6, 8], [SIGN.x + 10, SIGN.y + 16, 8, 10],
+  [SCENE.woodpile[0], SCENE.woodpile[1] + 8, 28, 12], [SCENE.well[0], SCENE.well[1] + 18, 30, 18], [SCENE.cat[0], SCENE.cat[1], 16, 8], ...[SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 2, y + 34, 6, 10])];
 const BLOCK = [];
-const FENCE = [[158, FEN.top + 4, 156, 10], [158, FEN.bot + 2, 156, 10], [158, FEN.top + 10, 10, FEN.gy0 - FEN.top - 10], [158, FEN.gy1, 10, FEN.bot - FEN.gy1 + 6], [302, FEN.top + 10, 10, FEN.bot - FEN.top]];
-const FIELD = [160, FEN.top, 152, FEN.bot - FEN.top + 14];
+const FENCE = [[FEN.x0 - 2, FEN.top + 4, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.bot + 2, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.top + 10, 10, FEN.gy0 - FEN.top - 10], [FEN.x0 - 2, FEN.gy1, 10, FEN.bot - FEN.gy1 + 6], [FEN.x1 - 2, FEN.top + 10, 10, FEN.bot - FEN.top]];
+const FIELD = [FEN.x0, FEN.top, FEN.x1 - FEN.x0 + 8, FEN.bot - FEN.top + 14];
 const lights = [];
 let houseWins = [], coopWins = [], lampGlass = [];
-let bg = mk(W, H);
+let bg = mk(FW, FH), BGX = 0, BGY = 0;
 let PROPS = [], TUFTS = [], CANOPIES = [];
 let fenceTop = null, fenceBot = null;
 
-const TREES = [[126, -44, 3], [288, -42, 9], [292, 194, 33], [330, 54, 51], [404, 120, 61], [432, 186, 71], [384, -30, 81]];
-const PINES = [[350, 182, 5], [182, 216, 7], [440, 40, 11], [404, 214, 13], [456, 110, 17]];
-const BUSHES = [[70, 140], [122, 184], [318, 118], [12, 150], [236, 238], [372, 150]];
-const ROCKS = [[24, 176, 12, 9], [136, 92, 10, 8], [300, 88, 14, 10], [214, 252, 12, 9], [350, 250, 10, 8], [150, 248, 8, 7]];
-const MUSH = [[118, 252], [306, 242], [184, 90], [374, 108]];
+const TREES = [[250, -50, 3], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [176, 300, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
+const PINES = [[226, 268, 5], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
+const BUSHES = [[176, 182], [248, 62], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186], [200, 120]];
+const ROCKS = [[214, 252, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
+const MUSH = [[198, 254], [646, 258], [424, 444], [30, 196], [710, 150]];
+// paths: polylines with a half width; the gravel road runs west off the map toward the airport
+const PATHS = [
+  { pts: [[121, 110], [121, 222]], hw: 7 },
+  { pts: [[-12, 222], [346, 222]], hw: 10, gravel: true },
+  { pts: [[130, 222], [130, 356], [64, 356]], hw: 7 },
+  { pts: [[256, 222], [256, 142], [580, 142], [580, 124]], hw: 7 },
+  { pts: [[300, 222], [300, 420], [MX + 28, 420], [MX + 28, MY + 50]], hw: 7 }
+];
 
 function pathAt() {
   const nzP = makeNoise(5);
-  return (x, y) => {
-    const j = (nzP(x / 4, y / 4) - 0.5) * 4;
-    return (x > 44 + j && x < 62 + j && y > 78 && y < 172) || (y > 154 + j && y < 172 + j && x > 44 && x < 170) || (y > 166 + j && y < 180 + j && x > 44 && x < 98) || (x > 82 + j && x < 98 + j && y > 166 && y < 250);
-  };
+  const segs = []; PATHS.forEach(pth => { for (let i = 0; i < pth.pts.length - 1; i++) segs.push({ a: pth.pts[i], b: pth.pts[i + 1], hw: pth.hw, gravel: !!pth.gravel }); });
+  const hit = (x, y) => { const j = (nzP(x / 4, y / 4) - 0.5) * 3; for (const sg of segs) { const [ax, ay] = sg.a, [bx, by] = sg.b, dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, t = Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / L2)), ex = ax + dx * t - x, ey = ay + dy * t - y; if (ex * ex + ey * ey < (sg.hw + j) * (sg.hw + j)) return sg; } return null; };
+  const f = (x, y) => !!hit(x, y); f.seg = hit; return f;
 }
 function buildWorld() {
   BLOCK.length = 0; BASE_BLOCK.forEach(b => BLOCK.push(b.slice()));
   lights.length = 0; PROPS = []; TUFTS = []; CANOPIES = [];
+  // the background covers the whole map plus a margin wide enough for any screen wider or taller than the map
+  BGX = Math.max(24, Math.ceil((VW - FW) / 2) + 24); BGY = Math.max(24, Math.ceil((VH - FH) / 2) + 24);
+  const BW = FW + BGX * 2, BH = FH + BGY * 2; bg = mk(BW, BH);
   const g = bg[1], GR = grassRamp();
-  const id = g.createImageData(VW, VH), d = id.data, nz = makeNoise(7), nz2 = makeNoise(11), cols = GR.map(hexRGB);
-  for (let vy = 0; vy < VH; vy++) for (let vx = 0; vx < VW; vx++) {
-    const x = vx - OX, y = vy - OY, v = nz((x + 600) / 22, (y + 600) / 22) * 0.7 + nz2((x + 600) / 6, (y + 600) / 6) * 0.3 + (bay(x + 600, y + 600) - 0.5) * 0.22;
-    const c = cols[v < 0.36 ? 2 : v < 0.68 ? 3 : 4], i = (vy * VW + vx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+  const id = g.createImageData(BW, BH), d = id.data, nz = makeNoise(7), nz2 = makeNoise(11), cols = GR.map(hexRGB);
+  for (let vy = 0; vy < BH; vy++) for (let vx = 0; vx < BW; vx++) {
+    const x = vx - BGX, y = vy - BGY, v = nz((x + 600) / 22, (y + 600) / 22) * 0.7 + nz2((x + 600) / 6, (y + 600) / 6) * 0.3 + (bay(x + 600, y + 600) - 0.5) * 0.22;
+    const c = cols[v < 0.36 ? 2 : v < 0.68 ? 3 : 4], i = (vy * BW + vx) * 4; d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
   }
   g.putImageData(id, 0, 0);
-  g.save(); g.translate(OX, OY);
-  const rx0 = -OX, ry0 = -OY, area = VW * VH / (W * H);
+  g.save(); g.translate(BGX, BGY);
+  const rx0 = -BGX, ry0 = -BGY, area = BW * BH / (W * H) * 0.7;
 
   const inPath = pathAt();
-  const avoid = [[0, 0, 104, 86], [40, 74, 26, 102], [40, 150, 134, 26], [176, 16, 128, 70], [154, 98, 164, 130], [6, 186, 60, 50], [0, 98, 44, 32], [100, 50, 90, 40], [64, 96, 38, 42], [58, 176, 70, 80]];
+  const [ppx, ppy, prx, pry] = SCENE.pond;
+  const avoid = [[HX, HY, 100, 90], [FEN.x0, FEN.top, FEN.x1 - FEN.x0 + 12, FEN.bot - FEN.top + 16], [ppx - prx - 4, ppy - pry - 4, prx * 2 + 8, pry * 2 + 44], [CX, CY, 56, 48], [MX - 40, MY - 20, 140, 70], [PETH.x, PETH.y, 34, 30]];
   const free = (x, y) => !avoid.some(([ax, ay, aw, ah]) => x >= ax && y >= ay && x < ax + aw && y < ay + ah);
   const r = rng(42);
-  for (let i = 0; i < 260 * area; i++) { const x = rx0 + Math.floor(r() * VW), y = ry0 + Math.floor(r() * (VH - 4)) + 3; if (!free(x, y)) continue; R(g, GR[2], x, y, 3, 1); R(g, GR[4], x, y - 1); R(g, GR[4], x + 2, y - 1); R(g, GR[5], x + 1, y - 2); }
+  for (let i = 0; i < 260 * area; i++) { const x = rx0 + Math.floor(r() * BW), y = ry0 + Math.floor(r() * (BH - 4)) + 3; if (!free(x, y)) continue; R(g, GR[2], x, y, 3, 1); R(g, GR[4], x, y - 1); R(g, GR[4], x + 2, y - 1); R(g, GR[5], x + 1, y - 2); }
   const petals = season === 'fall' ? ['#d46f28', '#c8463a', '#ecca50', '#a8461e'] : season === 'winter' ? ['#f4fafc', '#dfe8ee'] : [P.CR[3], '#c9a2e8', P.Y[2], '#f2a0b8'];
   const nFl = season === 'winter' ? 70 : season === 'fall' ? 90 : 46;
   for (let i = 0; i < nFl * area; i++) {
-    const x = rx0 + Math.floor(r() * (VW - 4)) + 2, y = ry0 + Math.floor(r() * (VH - 8)) + 6; if (!free(x, y)) continue; const pc = petals[i % petals.length];
+    const x = rx0 + Math.floor(r() * (BW - 4)) + 2, y = ry0 + Math.floor(r() * (BH - 8)) + 6; if (!free(x, y)) continue; const pc = petals[i % petals.length];
     if (season === 'fall') { R(g, pc, x, y, 2, 1); R(g, mix(pc, '#000000', 0.25), x + 1, y + 1); continue; }
     if (season === 'winter') { R(g, pc, x, y, 3, 1); R(g, pc, x + 1, y - 1); continue; }
     R(g, GR[1], x, y - 1, 1, 2); R(g, pc, x - 1, y - 3); R(g, pc, x + 1, y - 3); R(g, pc, x, y - 4); R(g, pc, x, y - 2); R(g, P.Y[3], x, y - 3);
   }
 
+  // the hill the mine is dug into: a grassy crown, then a face of layered rock that the entrance is cut into
+  { const hx = MX + 29, top = MY - 30, face = MY + 14, base = MY + 50, hw = 92, RK = ['#4a3c32', '#5e4c3e', '#76624e', '#8e7a62', '#a8937a'];
+    for (let x = hx - hw; x <= hx + hw; x++) {
+      const u = (x - hx) / hw, crown = Math.round(top + (1 - Math.sqrt(Math.max(0, 1 - u * u))) * 34 + Math.sin(x / 9) * 2), fy = Math.round(face + Math.abs(u) * 10 + Math.sin(x / 6) * 1.5), by = Math.round(base - Math.abs(u) * 18 + Math.sin(x / 7) * 2);
+      if (by <= crown) continue;
+      for (let y = crown; y < Math.min(fy, by); y++) { const k = (y - crown) / Math.max(1, fy - crown), b2 = bay(x, y); let col = k < 0.12 ? GR[4] : k < 0.7 ? (b2 > 0.75 ? GR[4] : GR[3]) : GR[2]; if (season === 'winter') col = mix(col, '#eef4f8', 0.7); R(g, col, x, y); }
+      R(g, GR[1], x, crown, 1, 1);
+      for (let y = fy; y < by; y++) { const k = (y - fy) / Math.max(1, by - fy), b2 = bay(x * 2, y * 2), band = Math.floor((y + Math.sin(x / 11) * 2) / 4) % 3; let col = RK[Math.max(0, Math.min(4, 3 - Math.round(k * 2.4) + (band === 0 ? 1 : 0) + (b2 > 0.85 ? 1 : b2 < 0.12 ? -1 : 0)))]; if (x % 13 === 0 && b2 > 0.5) col = RK[0]; R(g, col, x, y); }
+      if (fy < by) { R(g, GR[1], x, fy - 1, 1, 1); R(g, RK[4], x, fy, 1, 1); }
+      R(g, RK[0], x, by, 1, 1); R(g, 'rgba(20,30,20,0.35)', x, by + 1, 1, 2);
+    }
+    for (let i = 0; i < 18; i++) { const x = hx - hw + 10 + ((i * 53) % (hw * 2 - 20)), y = top + 10 + ((i * 29) % 30); if ((x - hx) * (x - hx) / (hw * hw) + 0 < 0.8) { R(g, GR[5], x, y, 1, 2); R(g, GR[5], x + 2, y + 1, 1, 2); } }
+  }
+  // a little wooden sign at the head of each row; the source names are written on them by the UI layer
+  for (let r = 0; r < FROWS.length; r++) { const sx = PLOT_X0 - 24, sy = PLOT_Y0 + r * ROW_H - 2; R(g, P.OL, sx + 6, sy + 6, 4, 14); R(g, P.WD[2], sx + 7, sy + 6, 2, 13); R(g, P.OL, sx, sy, 16, 9); R(g, P.WD[3], sx + 1, sy + 1, 14, 7); R(g, P.WD[4], sx + 1, sy + 1, 14, 1); for (let q = 0; q < 3; q++) R(g, P.WD[1], sx + 3 + q * 4, sy + 4, 2, 1); }
   // tilled field
   for (let y = DIRT.y; y < DIRT.y + DIRT.h; y += 16) for (let x = DIRT.x; x < DIRT.x + DIRT.w; x += 16) g.drawImage(SPR.soilDry, x, y);
   R(g, P.SD[4], DIRT.x + 1, DIRT.y - 1, DIRT.w - 2, 1);
@@ -906,17 +942,19 @@ function buildWorld() {
   R(g, P.SD[1], DIRT.x - 1, DIRT.y + 1, 1, DIRT.h - 2); R(g, P.SD[1], DIRT.x + DIRT.w, DIRT.y + 1, 1, DIRT.h - 2);
 
   // dirt path
-  for (let y = 74; y < 252; y++) for (let x = 40; x < 172; x++) {
-    if (!inPath(x, y)) continue;
-    let col = P.D[3]; const b = bay(x, y);
-    if (b < 0.2) col = P.D[2]; else if (b > 0.9) col = P.D[4];
-    if (!inPath(x, y - 1)) col = P.D[4]; if (!inPath(x, y + 1)) col = P.D[1];
+  for (let y = -BGY; y < FH + BGY; y++) for (let x = -BGX; x < FW + 8; x++) {
+    const sg = inPath.seg(x, y); if (!sg) continue;
+    const b = bay(x, y), ramp = sg.gravel ? ['#4a4038', '#6e6256', '#857868', '#9c8e7a', '#b2a48e'] : P.D;
+    let col = ramp[3];
+    if (b < 0.2) col = ramp[2]; else if (b > 0.9) col = ramp[4] || ramp[3];
+    if (sg.gravel && (x * 7 + y * 13) % 17 === 0) col = '#5e5248'; if (sg.gravel && (x * 11 + y * 5) % 23 === 0) col = '#c4b6a0';
+    if (!inPath(x, y - 1)) col = sg.gravel ? '#b2a48e' : P.D[4]; if (!inPath(x, y + 1)) col = sg.gravel ? '#4a4038' : P.D[1];
     if (season === 'winter' && b > 0.55) col = mix(col, '#e8eef2', 0.6);
     R(g, col, x, y);
   }
-  for (const [x, y] of [[50, 96], [55, 120], [49, 142], [82, 162], [114, 166], [140, 160]]) { R(g, P.ST[3], x, y, 2, 1); R(g, P.ST[2], x, y + 1, 2, 1); }
-  // stepping stones to the well
-  for (const [x, y] of [[64, 128], [70, 134]]) { R(g, P.ST[1], x, y + 1, 5, 2); R(g, P.ST[3], x, y, 5, 2); }
+  { const sr = rng(8); for (let i = 0; i < 70; i++) { const x = Math.floor(sr() * FW), y = Math.floor(sr() * FH); if (inPath(x, y) && inPath(x + 3, y) && !inPath.seg(x, y).gravel) { R(g, P.ST[3], x, y, 2, 1); R(g, P.ST[2], x, y + 1, 2, 1); } } }
+  // a signpost by the road: the airport is that way
+  { const sx = 92, sy = 186; R(g, P.OL, sx + 6, sy + 8, 4, 22); R(g, P.WD[2], sx + 7, sy + 8, 2, 21); R(g, P.OL, sx - 2, sy, 22, 11); R(g, P.WD[3], sx - 1, sy + 1, 20, 9); R(g, P.WD[4], sx - 1, sy + 1, 20, 1); R(g, P.CREAM, sx + 3, sy + 5, 12, 1); for (let k = 0; k < 3; k++) R(g, P.CREAM, sx + 3 + k, sy + 5 - k, 1, k * 2 + 1); }
 
   // pond with a dock
   const [px, py, rx, ry] = SCENE.pond;
@@ -934,7 +972,7 @@ function buildWorld() {
   }
   for (let i = 0; i < 8; i++) { const x = px - rx + 4 + i * 3, h = 6 + (i % 3) * 2, y0 = py + 4; R(g, season === 'fall' ? '#8a6a2e' : GR[1], x, y0 - h, 1, h); R(g, season === 'fall' ? '#b48a3c' : GR[3], x + 1, y0 - h + 1, 1, h - 1); R(g, P.WD[2], x, y0 - h - 2, 1, 3); }
   // dock: planks run across, two posts in the water
-  const dx0 = 232, dy0 = 64, dw = 16, dh = 28;
+  const dx0 = px - 8, dy0 = py + 14, dw = 16, dh = 28;
   R(g, P.WD[0], dx0 - 1, dy0 - 1, dw + 2, dh + 2);
   for (let y = 0; y < dh; y++) { const plank = y % 4; R(g, plank === 3 ? P.WD[1] : plank === 0 ? P.WD[4] : P.WD[3], dx0, dy0 + y, dw, 1); if (plank !== 3 && (y * 7) % 11 === 0) R(g, P.WD[2], dx0 + 3 + (y % 9), dy0 + y, 2, 1); }
   for (const x of [dx0 - 2, dx0 + dw]) { R(g, P.WD[0], x, dy0 - 3, 3, 6); R(g, P.WD[2], x, dy0 - 3, 2, 5); R(g, P.WD[4], x, dy0 - 3, 2, 1); }
@@ -949,10 +987,10 @@ function buildWorld() {
   prop(makeWell(), SCENE.well[0], SCENE.well[1], [30, 6]);
   prop(makeWoodpile(), SCENE.woodpile[0], SCENE.woodpile[1], [28, 5]);
   prop(VEH.truck[0], TRUCK_POS.x, TRUCK_POS.y, [40, 5]); BLOCK.push([TRUCK_POS.x + 2, TRUCK_POS.y + 14, 40, 10]);
-  prop(makePetHouse(), 106, 94, [28, 5]); BLOCK.push([108, 108, 26, 12]); prop(makeBowl(), 134, 118, [12, 3]);
+  prop(makePetHouse(), PETH.x, PETH.y, [28, 5]); BLOCK.push([PETH.x + 2, PETH.y + 14, 26, 12]); prop(makeBowl(), PETH.x + 28, PETH.y + 24, [12, 3]);
   const lamp = makeLamp();
-  for (const [x, y] of [SCENE.lampA, SCENE.lampB]) prop(lamp, x, y, [10, 4]);
-  lampGlass = [SCENE.lampA, SCENE.lampB].map(([x, y]) => [x + 3, y + 6, 4, 4]);
+  for (const [x, y] of [SCENE.lampA, SCENE.lampB, SCENE.lampC]) prop(lamp, x, y, [10, 4]);
+  lampGlass = [SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 3, y + 6, 4, 4]);
   const leafRamps = LEAF[season];
   TREES.forEach(([x, y, seed], i) => {
     const ramp = season === 'winter' ? null : leafRamps[i % leafRamps.length];
@@ -964,32 +1002,32 @@ function buildWorld() {
   const br = bushRamp();
   BUSHES.forEach(([x, y], i) => { prop(makeBush(i + 1, br), x, y, [22, 4]); BLOCK.push([x + 3, y + 9, 18, 7]); });
   ROCKS.forEach(([x, y, w, h], i) => { prop(makeRock(w, h, i), x, y, [w, 3]); BLOCK.push([x + 1, y + 2, w, h - 2]); });
-  prop(makeStump(), 136, 232, [20, 4]); BLOCK.push([138, 238, 18, 9]);
-  prop(makeLog(), 256, 242, [30, 4]); BLOCK.push([258, 245, 28, 8]);
-  if (VW > W || VH > H) {
-    // only where the whole tree stays clear of the farm (trees above the farm may hang their canopy over its top edge)
-    const mr = rng(99), out = (x, y, w, h) => x + w < 6 || x > W - 6 || y + h < 14 || y > H - 8;
-    for (let gy = ry0 - 60; gy < VH - OY + 90; gy += 34) for (let gx = rx0 - 30; gx < VW - OX + 20; gx += 42) {
+  prop(makeStump(), 212, 418, [20, 4]); BLOCK.push([214, 424, 18, 9]);
+  prop(makeLog(), 560, 438, [30, 4]); BLOCK.push([562, 441, 28, 8]);
+  // the edge of the map is a wood: on screens wider or taller than the map, trees fill the margin
+  {
+    const mr = rng(99), out = (x, y, w, h) => x + w < 6 || x > FW - 6 || y + h < 14 || y > FH - 8;
+    for (let gy = ry0 - 60; gy < FH + BGY + 90; gy += 34) for (let gx = rx0 - 30; gx < FW + BGX + 20; gx += 42) {
       const x = Math.round(gx + (mr() - 0.5) * 20), y = Math.round(gy + (mr() - 0.5) * 14), pine = mr() < 0.4;
       if (pine ? !out(x, y, 34, 68) : !out(x, y, 50, 98)) continue;
       if (pine) prop(makePine(Math.floor(mr() * 999)), x, y, [26, 6]);
       else { const ramp = season === 'winter' ? null : leafRamps[Math.floor(mr() * leafRamps.length)]; prop(makeTree(Math.floor(mr() * 999), ramp, season === 'spring' && mr() < 0.5), x, y, [40, 8]); if (ramp) CANOPIES.push({ x: x + 6, y: y + 8, w: 38, h: 44, col: ramp }); }
     }
   }
-  prop(makeMineEntrance(), SCENE.mine[0], SCENE.mine[1], [52, 6]); BLOCK.push([64, 214, 18, 22], [104, 214, 14, 22], [70, 200, 44, 14]); lights.push([SCENE.mine[0] + 42, SCENE.mine[1] + 27, 26]);
+  BLOCK.push([MX - 62, MY - 30, 76, 74], [MX + 56, MY - 30, 66, 74], [MX - 6, MY - 30, 72, 32]); prop(makeMineEntrance(), MX, MY, [52, 6]); BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
   const mush = makeMushrooms(); MUSH.forEach(([x, y]) => prop(mush, x, y));
 
   // tall grass that sways and rustles when you walk through it
   const tr = rng(17);
-  for (let i = 0; i < 220 * area && TUFTS.length < 38 * area; i++) {
-    const x = rx0 + Math.floor(tr() * (VW - 20)) + 8, y = ry0 + Math.floor(tr() * (VH - 30)) + 24;
+  for (let i = 0; i < 900 && TUFTS.length < 90; i++) {
+    const x = Math.floor(tr() * (FW - 20)) + 8, y = Math.floor(tr() * (FH - 30)) + 24;
     if (!free(x, y) || inPath(x, y) || BLOCK.some(b => x > b[0] - 6 && x < b[0] + b[2] + 6 && y > b[1] - 4 && y < b[1] + b[3] + 8)) continue;
     if (TUFTS.some(t => Math.abs(t.x - x) < 10 && Math.abs(t.y - y) < 8)) continue;
     TUFTS.push({ x, y, p: tr() * 6, shake: 0 });
   }
   TUFT_IMG = [-1, 0, 1].map(l => makeTuft(l));
 
-  fenceTop = mk(W, H); fenceBot = mk(W, H); drawFence(fenceTop[1], 'top'); drawFence(fenceBot[1], 'bottom');
+  fenceTop = mk(FW, FH); fenceBot = mk(FW, FH); drawFence(fenceTop[1], 'top'); drawFence(fenceBot[1], 'bottom');
   for (const [x, y, w, h] of houseWins.concat(coopWins)) lights.push([x + (w >> 1), y + (h >> 1), 30]);
   for (const [x, y] of lampGlass) lights.push([x + 2, y + 2, 42]);
   g.restore();
@@ -1034,18 +1072,21 @@ const DSPR = {};
 const item = type => SHOP.find(i => i.type === type);
 let coins = 675, decor = [];
 const SAVE_KEY = 'ai-farm-decor-v2';
-function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; } } catch (e) { /* storage unavailable: start fresh */ } }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor })); } catch (e) { /* storage unavailable */ } }
+function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== 2 && decor.length) decorMoved = true; } } catch (e) { /* storage unavailable: start fresh */ } }
+let decorMoved = false;
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: 2 })); } catch (e) { /* storage unavailable */ } }
+// decorations saved on the old, smaller map get a free spot on the new one, as close to where they were as fits
+function migrateDecor() { if (!decorMoved) return; decorMoved = false; const kept = [], tmp = decor; decor = []; for (const d of tmp) { const sx = Math.round(d.x * FW / W), sy = Math.round(d.y * FH / H); let ok = null; for (let rr = 0; rr < 260 && !ok; rr += 6) for (let a = 0; a < 16 && !ok; a++) { const x = Math.round(sx + Math.cos(a / 16 * Math.PI * 2) * rr), y = Math.round(sy + Math.sin(a / 16 * Math.PI * 2) * rr); if (canPlace(d.type, x, y, -1)) ok = { x, y }; } if (ok) { d.x = ok.x; d.y = ok.y; decor.push(d); } } save(); }
 const hitR = (a, b) => a.x < b[0] + b[2] && a.x + a.w > b[0] && a.y < b[1] + b[3] && a.y + a.h > b[1];
 const inRect = (p, r) => p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
 function footprint(type, x, y) { const s = DSPR[type]; return item(type).ground ? { x, y, w: 16, h: 16 } : { x, y: y + s.height - 6, w: s.width, h: 6 }; }
 function canPlace(type, x, y, skip) {
   const s = DSPR[type], it = item(type), f = footprint(type, x, y);
-  if (x < 2 || y < 2 || x + s.width > W - 2 || y + s.height > H - 2) return false;
+  if (x < 2 || y < 2 || x + s.width > FW - 2 || y + s.height > FH - 2) return false;
   if (BLOCK.some(b => hitR(f, b)) || FENCE.some(b => hitR(f, b))) return false;
   const inField = hitR(f, FIELD);
   if (inField && !it.field) return false;
-  if (inField) for (let i = 0; i < 10; i++) { const p = slotPos(i); if (hitR(f, [p.tx - 2, p.ty - 18, 20, 36])) return false; }
+  if (inField) for (let i = 0; i < NSLOT; i++) { const p = slotPos(i); if (hitR(f, [p.tx - 2, p.ty - 18, 20, 36])) return false; }
   for (let i = 0; i < decor.length; i++) {
     if (i === skip) continue; const d = decor[i];
     if (!!item(d.type).ground !== !!it.ground) continue;
@@ -1067,7 +1108,7 @@ const INITIAL = [
   { id: 'T6', name: '排序单测', full: '为排序模块补充单元测试', src: 'Codex', state: 'working', round: 3, since: '12 分钟', msg: '正在写 quicksort 的边界用例', slot: 5 },
   { id: 'T7', name: 'API 文档', full: '生成 API 接口文档', src: 'Claude Code', state: 'working', round: 2, since: '8 分钟', msg: '已处理 14 / 23 个接口', slot: 6 }
 ];
-let tasks = JSON.parse(JSON.stringify(INITIAL));
+let tasks = JSON.parse(JSON.stringify(INITIAL)); assignSlots(tasks);
 let harvestToday = 9, harvestWeek = 23;
 const WEEK_GOAL = 30;
 const QUAL = { gold: { label: '金星', coins: 90 }, silver: { label: '银星', coins: 75 }, normal: { label: '普通', coins: 60 } };
@@ -1111,7 +1152,7 @@ function harvest(id, q = 'normal') {
   say(`「${t.name}」收获了，${QUAL[q].label} +${QUAL[q].coins} 金币`);
 }
 function plant(t) {
-  const used = new Set(tasks.map(x => x.slot)); let s = 0; while (used.has(s) && s < 10) s++; if (s >= 10) return;
+  const used = new Set(tasks.map(x => x.slot)), s = freeSlot(t.src, used); if (s < 0) { say(`田里种满了，「${t.name}」先记在委托板上`); return; }
   t.slot = s; t.plantT = performance.now(); tasks.push(t);
   const { tx, ty } = slotPos(s); for (let i = 0; i < 10; i++) fx.push({ kind: 'spark', x: tx + 8, y: ty + 8, vx: (Math.random() - 0.5) * 1.6, vy: -Math.random() * 1.6, life: 30 });
   Sound.plant(); say(`新任务「${t.name}」播种了`);
@@ -1121,7 +1162,7 @@ function revive(id) {
   crowFly = { x: tx + 6, y: ty - 14, t0: performance.now() };
   t.state = 'working'; t.msg = '重新上报：报告写到第 3 部分'; t.since = '刚刚'; Sound.caw(); say(`「${t.name}」重新上报，乌鸦飞走了`);
 }
-function resetDemo() { tasks = JSON.parse(JSON.stringify(INITIAL)); harvestToday = 9; harvestWeek = 23; shipped = shipped.slice(0, 9); say('演示重新开始'); }
+function resetDemo() { tasks = JSON.parse(JSON.stringify(INITIAL)); assignSlots(tasks); harvestToday = 9; harvestWeek = 23; shipped = shipped.slice(0, 9); say('演示重新开始'); }
 const EVENTS = [
   () => finishRound('T6', '补了 12 个用例，要继续覆盖 mergesort 吗？'),
   () => water('T1'),
@@ -1203,16 +1244,16 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMo
 let daily = { date: today(), mail: false, egg: false, pets: 0 };
 function loadDaily() { try { const s = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); if (s && s.date === today()) daily = Object.assign(daily, s); } catch (e) { /* storage unavailable */ } }
 function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) { /* storage unavailable */ } }
-const CHICK_AREA = { x: 14, y: 234, w: 46, h: 14 };
-const chickens = [{ x: 22, y: 236, tx: 50, ty: 244, dir: 1, wait: 0, t: 0 }, { x: 50, y: 246, tx: 28, ty: 238, dir: -1, wait: 80, t: 5 }, { x: 36, y: 240, tx: 20, ty: 246, dir: -1, wait: 160, t: 9 }];
+const CHICK_AREA = { x: 22, y: 366, w: 86, h: 26 };
+const chickens = [{ x: 30, y: 370, tx: 70, ty: 380, dir: 1, wait: 0, t: 0 }, { x: 80, y: 384, tx: 40, ty: 372, dir: -1, wait: 80, t: 5 }, { x: 56, y: 376, tx: 30, ty: 388, dir: -1, wait: 160, t: 9 }, { x: 96, y: 372, tx: 60, ty: 368, dir: -1, wait: 40, t: 3 }];
 const ducks = [{ a: 0, sp: 0.003, rx: 42, ry: 14 }, { a: 2.6, sp: 0.0024, rx: 30, ry: 9 }, { a: 4.4, sp: 0.0026, rx: 34, ry: 11 }];
-const flies = Array.from({ length: 14 }, (_, i) => ({ x: (i * 97) % 460 + 10, y: (i * 61) % 250 + 12, p: i * 1.7 }));
+const flies = Array.from({ length: 30 }, (_, i) => ({ x: (i * 197) % (FW - 20) + 10, y: (i * 61) % (FH - 24) + 12, p: i * 1.7 }));
 const smoke = [], hearts = [], eggs = [], leaves = [], snow = [];
 let birds = null, nextBirds = 600;
-const farmer = { x: 100, y: 166, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
+const farmer = { x: 121, y: 150, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
 const keys = new Set();
 
-const CELL = 8, GC = Math.ceil(W / CELL), GR = Math.ceil(H / CELL), walk = new Uint8Array(GC * GR);
+const CELL = 8, GC = Math.ceil(Math.max(W, FW) / CELL), GR = Math.ceil(Math.max(H, FH) / CELL), walk = new Uint8Array(GC * GR);
 const asRect = b => ({ x: b[0], y: b[1], w: b[2], h: b[3] });
 function rebuildWalk() {
   if (scene === 'mine' || scene === 'cut') return;
@@ -1223,7 +1264,7 @@ function rebuildWalk() {
   }
   for (let r = 0; r < GR; r++) for (let c = 0; c < GC; c++) {
     const p = { x: c * CELL + 4, y: r * CELL + 4 };
-    let ok = p.x > 4 && p.x < W - 4 && p.y > 14 && p.y < H - 4;
+    let ok = p.x > 4 && p.x < FW - 4 && p.y > 14 && p.y < FH - 4;
     if (ok && BLOCK.some(b => inRect(p, asRect(b)))) ok = false;
     if (ok && FENCE.some(b => inRect(p, asRect(b)))) ok = false;
     if (ok) for (const d of decor) { if (item(d.type).ground) continue; const f = footprint(d.type, d.x, d.y); if (inRect(p, { x: f.x - 2, y: f.y - 2, w: f.w + 4, h: f.h + 4 })) { ok = false; break; } }
@@ -1267,7 +1308,7 @@ function walkTo(x, y, pending) {
 function arrive() { const p = farmer.pending; farmer.pending = null; if (p) interact(p); }
 function footstep() { if (farmer.swim) return; const n = performance.now(); if (n - farmer.lastStep > 280) { farmer.lastStep = n; Sound.stepOn(scene === 'london' || scene === 'bedroom' ? 'carpet' : scene === 'airport' ? 'tile' : scene === 'house' || scene === 'coop' ? 'wood' : 'grass'); } }
 function faceTo(dx, dy) { if (!dx && !dy) return; farmer.dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'); }
-const inWater = (x, y) => { const nx = (x - 240) / 54, ny = (y - 50) / 25; return scene === 'farm' && nx * nx + ny * ny < 1 && !(x >= 230 && x <= 250 && y >= 60); };
+const inWater = (x, y) => { const [px, py] = SCENE.pond, nx = (x - px) / 54, ny = (y - py) / 25; return scene === 'farm' && nx * nx + ny * ny < 1 && !(x >= px - 10 && x <= px + 10 && y >= py + 10); };
 let swimHinted = false;
 function splash(x, y, n) { for (let i = 0; i < n; i++) fx.push({ kind: 'spark', water: true, x: x + (Math.random() - 0.5) * 10, y: y - 12, vx: (Math.random() - 0.5) * 1.6, vy: -0.6 - Math.random() * 1.4, life: 24 }); ripples.push({ x: Math.round(x), y: Math.round(y - 12), r: 0 }); }
 function stepSwim() {
@@ -1280,7 +1321,7 @@ function stepSwim() {
     else {
       if (!sw.tx || (farmer.x === sw.tx.x && farmer.y === sw.tx.y)) {
         if (sw.tx && Math.random() < 0.4) { sw.tx = null; sw.rest = 90 + Math.floor(Math.random() * 120); farmer.moving = false; return; }
-        const side = farmer.x < 240 ? 1 : -1; sw.tx = { x: Math.round(240 + side * (24 + Math.random() * 14)), y: Math.round(48 + Math.random() * 10) };
+        const [px, py] = SCENE.pond, side = farmer.x < px ? 1 : -1; sw.tx = { x: Math.round(px + side * (24 + Math.random() * 14)), y: Math.round(py - 2 + Math.random() * 10) };
       }
       if (tick & 1) { const dx = Math.sign(sw.tx.x - farmer.x), dy = Math.sign(sw.tx.y - farmer.y); faceTo(sw.tx.x - farmer.x, sw.tx.y - farmer.y); farmer.x += dx; farmer.y += dy; }
       farmer.moving = true; farmer.anim++;
@@ -1295,6 +1336,11 @@ function stepFarmer() {
   if (modal() || sleep) { farmer.moving = false; return; }
   // never leave the farmer inside furniture: if the spot under their feet is blocked, step to the nearest open cell
   if (scene !== 'farm' && !walkableAt(farmer.x, farmer.y)) { const k = cellOf(farmer.x, farmer.y), n = nearestWalkable(k.c, k.r); if (n) { farmer.x = n.c * CELL + 4; farmer.y = n.r * CELL + 4; } }
+  // the farm is big now, so out there the farmer walks a little brisker (about 1.7 px a tick); indoors stays at 1
+  const n = scene === 'farm' && !farmer.swim && tick % 3 !== 0 ? 2 : 1;
+  for (let i = 0; i < n; i++) if (farmerStep(i === 0)) break;
+}
+function farmerStep(first) {
   let vx = 0, vy = 0;
   if (keys.has('left')) vx -= 1; if (keys.has('right')) vx += 1; if (keys.has('up')) vy -= 1; if (keys.has('down')) vy += 1;
   if (vx || vy) {
@@ -1302,27 +1348,30 @@ function stepFarmer() {
     let moved = false;
     if (vx && walkableAt(farmer.x + vx, farmer.y)) { farmer.x += vx; moved = true; }
     if (vy && walkableAt(farmer.x, farmer.y + vy)) { farmer.y += vy; moved = true; }
-    farmer.moving = moved; if (moved) { farmer.anim++; footstep(); }
-    checkDoors(vy < 0 ? 'up' : vy > 0 ? 'down' : vx < 0 ? 'left' : 'right'); return;
+    farmer.moving = moved; if (moved && first) { farmer.anim++; footstep(); }
+    if (first) checkDoors(vy < 0 ? 'up' : vy > 0 ? 'down' : vx < 0 ? 'left' : 'right');
+    return !moved || !!fade;
   }
   if (farmer.path.length) {
     const p = farmer.path[0], dx = Math.sign(p.x - farmer.x), dy = Math.sign(p.y - farmer.y);
     faceTo(p.x - farmer.x, p.y - farmer.y);
     farmer.x += dx; farmer.y += dy;
-    if (farmer.x === p.x && farmer.y === p.y) { farmer.path.shift(); if (!farmer.path.length) { farmer.moving = false; arrive(); return; } }
-    farmer.moving = true; farmer.anim++; footstep();
-  } else farmer.moving = false;
+    if (farmer.x === p.x && farmer.y === p.y) { farmer.path.shift(); if (!farmer.path.length) { farmer.moving = false; arrive(); return true; } }
+    farmer.moving = true; if (first) { farmer.anim++; footstep(); }
+    return false;
+  }
+  farmer.moving = false; return true;
 }
 const OBJ_NAME = { bin: '出货箱 · 今日出货单', mail: '邮箱 · 早报', cat: '猫', chick: '小鸡', well: '水井', duck: '鸭子' };
 function interactables() {
   if (scene === 'mine' || scene === 'cut') return [];
   if (scene !== 'farm') return roomInteractables();
   const list = [];
-  list.push({ kind: 'door', room: 'house', name: '小屋 · 进屋', rect: { x: 44, y: 46, w: 18, h: 34 }, spot: { x: 53, y: 90 }, top: 44 });
-  list.push({ kind: 'mine', name: '矿洞 · 进去挖矿', rect: { x: 80, y: 208, w: 22, h: 30 }, spot: { x: 90, y: 246 }, top: 204 });
+  list.push({ kind: 'door', room: 'house', name: '小屋 · 进屋', rect: { x: HX + 40, y: HY + 46, w: 18, h: 34 }, spot: { x: HX + 49, y: HY + 90 }, top: HY + 44 });
+  list.push({ kind: 'mine', name: '矿洞 · 进去挖矿', rect: { x: MX + 18, y: MY + 16, w: 22, h: 30 }, spot: { x: MX + 28, y: MY + 54 }, top: MY + 12 });
   list.push({ kind: 'truck', name: '小货车 · 开去机场', rect: { x: TRUCK_POS.x, y: TRUCK_POS.y, w: 44, h: 26 }, spot: { x: TRUCK_POS.x + 20, y: TRUCK_POS.y + 36 }, top: TRUCK_POS.y - 2 });
-  list.push({ kind: 'pethouse', name: pet ? `${pet.name}的小屋` : '宠物屋 · 领养宠物', rect: { x: 106, y: 94, w: 32, h: 28 }, spot: { x: 122, y: 130 }, top: 92 });
-  list.push({ kind: 'door', room: 'coop', name: '鸡舍 · 进去看看', rect: { x: 29, y: 214, w: 16, h: 18 }, spot: { x: 36, y: 240 }, top: 212 });
+  list.push({ kind: 'pethouse', name: pet ? `${pet.name}的小屋` : '宠物屋 · 领养宠物', rect: { x: PETH.x, y: PETH.y, w: 32, h: 28 }, spot: { x: PETH.x + 16, y: PETH.y + 36 }, top: PETH.y - 2 });
+  list.push({ kind: 'door', room: 'coop', name: '鸡舍 · 进去看看', rect: { x: CX + 19, y: CY + 24, w: 16, h: 18 }, spot: { x: CX + 26, y: CY + 50 }, top: CY + 22 });
   for (const t of tasks) { const { tx, ty } = slotPos(t.slot); list.push({ kind: 'crop', id: t.id, rect: { x: tx, y: ty - 24, w: 16, h: 40 }, spot: { x: tx + 8, y: ty + 22 }, top: CROP_TOP_OF(t) }); }
   list.push({ kind: 'bin', rect: { x: SCENE.bin[0], y: SCENE.bin[1], w: 36, h: 26 }, spot: { x: SCENE.bin[0] + 18, y: SCENE.bin[1] + 34 }, top: SCENE.bin[1] - 2 });
   list.push({ kind: 'mail', rect: { x: SCENE.mailbox[0], y: SCENE.mailbox[1], w: 14, h: 22 }, spot: { x: SCENE.mailbox[0] + 6, y: SCENE.mailbox[1] + 30 }, top: SCENE.mailbox[1] - 2 });
@@ -1411,14 +1460,14 @@ function step() {
   for (let i = leaves.length - 1; i >= 0; i--) {
     const l = leaves[i];
     if (l.y < l.floor) { l.y += 0.16; l.x += l.vx + Math.sin(tick / 30 + l.p) * 0.22; } else if (++l.land > 240) leaves.splice(i, 1);
-    if (l.x > W + 4) leaves.splice(i, 1);
+    if (l.x > FW + 4) leaves.splice(i, 1);
   }
   if (season === 'winter') {
     if (snow.length < (isWet() ? 280 : 120) * Math.min(2.5, VW * VH / (W * H))) snow.push({ x: -OX + Math.random() * VW, y: -OY - 4, s: 0.15 + Math.random() * 0.2, p: Math.random() * 6, big: Math.random() < 0.3 });
     for (let i = snow.length - 1; i >= 0; i--) { const f = snow[i]; f.y += f.s; f.x += Math.sin(tick / 50 + f.p) * 0.15; if (f.y > VH - OY + 2) snow.splice(i, 1); }
   } else snow.length = 0;
   // a flock of birds crosses the sky now and then in daylight
-  if (!birds && --nextBirds <= 0 && darkness() < 0.5 && !isWet()) { const y = 20 + Math.random() * 120; birds = { x: -OX - 30, y, n: 3 + Math.floor(Math.random() * 3) }; }
+  if (!birds && --nextBirds <= 0 && darkness() < 0.5 && !isWet()) { const y = -OY + 20 + Math.random() * VH * 0.4; birds = { x: -OX - 30, y, n: 3 + Math.floor(Math.random() * 3) }; }
   if (birds) { birds.x += 0.7; birds.y -= 0.08; if (birds.x > VW - OX + 40) { birds = null; nextBirds = 1800 + Math.floor(Math.random() * 2400); } }
 }
 
@@ -1437,7 +1486,7 @@ function renderFarm(now) {
   const anim = !REDUCE;
   ctx.setTransform(1, 0, 0, 1, OX, OY);
   ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-  ctx.drawImage(bg[0], -OX, -OY);
+  ctx.drawImage(bg[0], -BGX, -BGY);
 
   decorRects = [];
   decor.forEach((d, i) => {
@@ -1536,7 +1585,7 @@ function renderFarm(now) {
   // falling leaves / petals in the air
   for (const l of leaves) if (l.y < l.floor) { const flip = Math.floor(now / 200 + l.p) % 2; R(ctx, l.col, Math.round(l.x), Math.round(l.y), flip ? 2 : 1, flip ? 1 : 2); }
   if (anim && weather.kind === 'sunny' && darkness() < 0.5 && season !== 'winter') for (let i = 0; i < 2; i++) {
-    const bx = Math.round(130 + i * 210 + Math.sin(now / 1900 + i * 2) * 50), by = Math.round(110 + i * 110 + Math.sin(now / 900 + i) * 12), open = Math.floor(now / 160 + i) % 2;
+    const bx = Math.round(210 + i * 450 + Math.sin(now / 1900 + i * 2) * 50), by = Math.round(110 + i * 150 + Math.sin(now / 900 + i) * 12), open = Math.floor(now / 160 + i) % 2;
     const c = i ? '#f7d4e6' : P.Y[3]; R(ctx, P.OL, bx, by, 1, 2); if (open) { R(ctx, c, bx - 2, by - 1, 2, 2); R(ctx, c, bx + 1, by - 1, 2, 2); } else { R(ctx, c, bx - 1, by - 2, 1, 2); R(ctx, c, bx + 1, by - 2, 1, 2); }
   }
   for (const p of fx) {
@@ -1734,6 +1783,35 @@ function drawBoard() {
   }
   uiPanels.push({ x, y, w, h: h + 4 });
 }
+function drawFieldSigns() {
+  if (scene !== 'farm' || modal()) return;
+  const k = UW / VW;
+  FROWS.forEach((name, r) => {
+    const wx = PLOT_X0 - 28, wy = PLOT_Y0 + r * ROW_H + 1, w = textW(name, 12) + 22, h = 24, x = Math.round((wx + OX) * k - w), y = Math.round((wy + OY) * k - h / 2);
+    if (x + w < 0 || x > UW || y + h < 0 || y > UH) return;
+    const n = tasks.filter(t => Math.floor(t.slot / COLS) === r).length;
+    UR(P.OL, x, y, w, h); UR(P.WD[3], x + 2, y + 2, w - 4, h - 4); UR(P.WD[4], x + 2, y + 2, w - 4, 2); UR(P.WD[2], x + 2, y + h - 4, w - 4, 2);
+    text(name, x + w / 2, y + 5, 12, n ? P.CREAM : '#c8b090', { align: 'center', shadow: P.WD[0] });
+  });
+}
+function drawOffscreen(now) {
+  if (scene !== 'farm' || modal() || placing) return;
+  const k = UW / VW, m = 30, edge = {};
+  for (const t of needList()) {
+    const { tx } = slotPos(t.slot), wx = tx + 8, wy = CROP_TOP_OF(t) - 8, sx = (wx + OX) * k, sy = (wy + OY) * k;
+    // skip crops you can see; crops hidden off screen or under the clock and board still get a pointer
+    if (sx > 0 && sx < UW && sy > 0 && sy < UH && !uiPanels.some(r => sx >= r.x - 6 && sx < r.x + r.w + 6 && sy >= r.y - 6 && sy < r.y + r.h + 6)) continue;
+    let ex = Math.max(m, Math.min(UW - m, sx)), ey = Math.max(m + 44, Math.min(UH - m - 44, sy));
+    const side = sx <= 0 ? 'l' : sx >= UW ? 'r' : sy <= 0 ? 't' : sy >= UH ? 'b' : 'r', i = edge[side] = (edge[side] || 0) + 1;
+    if (side === 'l' || side === 'r') ey += (i - 1) * 46; else ex += (i - 1) * 46;
+    const boardBot = 120 + 46 + (boardOpen ? Math.min(5, needList().length) * 36 + 20 : 0);
+    if (ex > UW - 236 && ey - 22 < boardBot) ex = UW - 236 - m;
+    const bob = REDUCE ? 0 : Math.round(Math.sin(now / 260 + i) * 2), a = Math.atan2(sy - ey, sx - ex), x = Math.round(ex - 20), y = Math.round(ey - 20 + bob);
+    panel(x, y, 40, 40); icon(t.state === 'error' || t.state === 'stalled' ? SPR.bang : SPR.drop, x + 8, y + 7, 2);
+    for (let q = 0; q < 3; q++) { const d = 26 + q * 4, s2 = 6 - q * 2; UR(P.ALERT, Math.round(ex + Math.cos(a) * d - s2 / 2), Math.round(ey + bob + Math.sin(a) * d - s2 / 2), s2, s2); }
+    uiHits.push({ x, y, w: 40, h: 40, kind: 'quest', id: t.id }); uiPanels.push({ x, y, w: 40, h: 40 });
+  }
+}
 function drawToasts(now) {
   for (let i = toasts.length - 1; i >= 0; i--) if (now - toasts[i].t0 > TOAST_LIFE) toasts.splice(i, 1);
   const alive = toasts.slice(-3);
@@ -1857,7 +1935,7 @@ function drawHelp() {
     else icon(SPR.pumpkin, lx + 4, ly + 6, 2);
     text(s, lx + 52, ly + 13, 12, k === 'drop' || k === 'bang' ? P.ALERT : P.INK);
   });
-  const ctl = ['点地面、方向键或 WASD：走路', '点作物、出货箱、邮箱、猫、小鸡：互动', '走近后按空格：互动', '点委托板上的任务：走过去看', 'Q：收起或展开委托板', 'B：商店　T：预览天气　Y：预览季节', 'M：音乐开关　H：打开这里', '点房门进屋 · 卧室的床能睡觉 · 池塘能游泳', '矿洞：左键挖 · B 建造 · X 自动 · L 伸缩梯', 'P：宠物（宠物屋在小屋右边）', '点小货车：开去机场，坐飞机去伦敦过圣诞'];
+  const ctl = ['点地面、方向键或 WASD：走路，镜头跟着农夫', '点作物、出货箱、邮箱、猫、小鸡：互动', '走近后按空格：互动', '点委托板或屏幕边的牌子：走去那株作物', 'Q：收起或展开委托板', 'B：商店　T：预览天气　Y：预览季节', 'M：音乐开关　H：打开这里', '点房门进屋 · 卧室的床能睡觉 · 池塘能游泳', '矿洞：左键挖 · B 建造 · X 自动 · L 伸缩梯', 'P：宠物（宠物屋在小屋右下方）', '大路西头的小货车：开去机场，坐飞机去伦敦'];
   text('操作', x + 352, y + 54, 12, P.INK);
   ctl.forEach((s, i) => text(s, x + 352, y + 80 + i * 24, 12, P.INK_MUTED));
   text('所有玩法都不会改变任务状态，作物只听 AI 的', x + 352, y + h - 44, 12, P.INK_MUTED);
@@ -1869,6 +1947,7 @@ function drawUI(now) {
   const calm = scene === 'cut' && cut && cut.kind === 'window' && now - cut.t0 > 5000 && performance.now() - wvMove > 2500;
   if (!calm) { drawClock(); drawBoard(); }
   if (scene === 'mine') drawMineHUD(now);
+  drawFieldSigns(); drawOffscreen(now);
   if (scene === 'cut') drawCutUI(now);
   drawToasts(now);
   drawWorldTags();
@@ -1892,7 +1971,7 @@ function fit() {
   if (nVW !== VW || nVH !== VH || cv.width !== nVW) {
     VW = nVW; VH = nVH; OX = Math.floor((VW - W) / 2); OY = Math.floor((VH - H) / 2);
     cv.width = VW; cv.height = VH; ctx.imageSmoothingEnabled = false;
-    bg = mk(VW, VH); lightmap = mk(VW, VH); changed = true;
+    lightmap = mk(VW, VH); changed = true; camSnap = true;
   }
   // UI pixels stay a whole number of device pixels, about one CSS pixel each, a little bigger on large screens
   const u = Math.max(1, Math.round(dpr * Math.min(vw / 1280, vh / 720)));
@@ -1904,7 +1983,7 @@ function fit() {
 window.addEventListener('resize', () => { if (fit() && started) { leaves.length = 0; buildWorld(); rebuildWalk(); } });
 
 /* ---------- input ---------- */
-function setMouse(e) { const r = ucv.getBoundingClientRect(); mouse = { x: (e.clientX - r.left) * VW / r.width - OX, y: (e.clientY - r.top) * VH / r.height - OY }; umouse = { x: (e.clientX - r.left) * UW / r.width, y: (e.clientY - r.top) * UH / r.height }; }
+function setMouse(e) { const r = ucv.getBoundingClientRect(); mouseV = { x: (e.clientX - r.left) * VW / r.width, y: (e.clientY - r.top) * VH / r.height }; mouse = { x: mouseV.x - OX, y: mouseV.y - OY }; umouse = { x: (e.clientX - r.left) * UW / r.width, y: (e.clientY - r.top) * UH / r.height }; }
 function decorAt(p) {
   for (let k = decorRects.length - 1; k >= 0; k--) { const d = decorRects[k]; if (!d.ground && inRect(p, d)) return d.i; }
   for (let k = decorRects.length - 1; k >= 0; k--) { const d = decorRects[k]; if (d.ground && inRect(p, d)) return d.i; }
@@ -1934,7 +2013,7 @@ ucv.addEventListener('mousemove', e => {
   }
   ucv.style.cursor = cursor;
 });
-ucv.addEventListener('mouseleave', () => { hover = null; hoverTag = null; mouse = { x: -1, y: -1 }; umouse = { x: -1, y: -1 }; });
+ucv.addEventListener('mouseleave', () => { hover = null; hoverTag = null; mouseV = null; mouse = { x: -1, y: -1 }; umouse = { x: -1, y: -1 }; });
 ucv.addEventListener('click', e => {
   setMouse(e);
   if (sleep) { wake(); return; }
@@ -2338,11 +2417,11 @@ function buildCoop(rm) {
   rm.bg = [c, g];
 }
 const ROOMS = {
-  house: { name: '小屋', floor: { x: 98, y: 92, w: 284, h: 142 }, mat: { x: 240, y: 228 }, out: { x: 53, y: 90 }, build: buildHouse, block: [] },
+  house: { name: '小屋', floor: { x: 98, y: 92, w: 284, h: 142 }, mat: { x: 240, y: 228 }, out: { x: HX + 49, y: HY + 90 }, build: buildHouse, block: [] },
   bedroom: { name: '卧室', parent: 'house', floor: { x: 148, y: 98, w: 184, h: 120 }, mat: { x: 240, y: 214 }, out: { x: 330, y: 102 }, build: buildBedroom, block: [] },
   airport: { name: '机场', floor: { x: 20, y: 98, w: 440, h: 132 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildAirport, block: [], margin: '#5a5864', outdoor: true },
   london: { name: '伦敦', floor: { x: 84, y: 98, w: 312, h: 136 }, mat: { x: -999, y: -999 }, out: { x: 0, y: 0 }, build: buildLondon, block: [], night: true, paintWins: paintLondonWindows, overlay: londonOverlays },
-  coop: { name: '鸡舍', floor: { x: 154, y: 100, w: 172, h: 126 }, mat: { x: 240, y: 220 }, out: { x: 36, y: 240 }, build: buildCoop, block: [] }
+  coop: { name: '鸡舍', floor: { x: 154, y: 100, w: 172, h: 126 }, mat: { x: 240, y: 220 }, out: { x: CX + 26, y: CY + 50 }, build: buildCoop, block: [] }
 };
 const TOG = { flamp: true, lampL: true, lampR: true, flampB: false, fairy: true, kcurt: false, scurt: false, bcurt: false };
 const ANIM = {};
@@ -2608,7 +2687,15 @@ function renderRoom(now) {
   ctx.globalCompositeOperation = 'source-over';
   if (isWet() && weather.kind === 'storm' && now - flashT < 90) { ctx.fillStyle = 'rgba(236, 240, 255, 0.2)'; ctx.fillRect(-OX, -OY, VW, VH); }
 }
+// the farm camera follows the farmer and stops at the map's edges; rooms and other scenes sit centred as before
+function farmCam() {
+  const tx = VW >= FW ? -(VW - FW) / 2 : Math.max(0, Math.min(FW - VW, farmer.x - VW / 2)), ty = VH >= FH ? -(VH - FH) / 2 : Math.max(0, Math.min(FH - VH, farmer.y - 14 - VH / 2));
+  if (camSnap || REDUCE) { camX = tx; camY = ty; camSnap = false; } else { camX += (tx - camX) * 0.12; camY += (ty - camY) * 0.12; if (Math.abs(tx - camX) < 0.3) camX = tx; if (Math.abs(ty - camY) < 0.3) camY = ty; }
+  OX = -Math.round(camX); OY = -Math.round(camY);
+  if (mouseV) mouse = { x: mouseV.x - OX, y: mouseV.y - OY };
+}
 function render(now) {
+  if (scene === 'farm') farmCam(); else { OX = Math.floor((VW - W) / 2); OY = Math.floor((VH - H) / 2); camSnap = true; if (mouseV) mouse = { x: mouseV.x - OX, y: mouseV.y - OY }; }
   Sound.setTheme(scene === 'london' || (cut && (cut.kind === 'taxi' || cut.kind === 'window')) ? 'xmas' : 'farm');
   if (scene === 'cut' && cut) renderCut(now); else if (scene === 'farm') renderFarm(now); else if (scene === 'mine') renderMine(now); else renderRoom(now);
   if (fade) {
@@ -2934,7 +3021,7 @@ function leaveMine(then) {
   Sound.cave(); mine.auto.on = false;
   startFade(() => {
     saveMine();
-    scene = 'farm'; farmer.x = 90; farmer.y = 244; farmer.dir = 'down'; farmer.path = []; farmer.pending = null; mine.hold = null; rebuildWalk();
+    scene = 'farm'; farmer.x = MX + 28; farmer.y = MY + 52; farmer.dir = 'down'; farmer.path = []; farmer.pending = null; mine.hold = null; rebuildWalk();
     const v = mineValue();
     if (v > 0) { const n = ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0); ORE_KEYS.forEach(k => { mine.inv[k] = 0; }); coins += v; coinPop = performance.now(); save(); Sound.coin(); hint(`卖掉 ${n} 块矿石，+${v} 金币`); }
     else hint('回到了地面');
@@ -3812,7 +3899,7 @@ function decorAnim(d, now, s) {
 }
 
 /* ---------- travel: truck -> airport -> plane -> a snowy Christmas in London (cosmetic, never touches tasks) ---------- */
-const TRUCK_POS = { x: 98, y: 124 };
+const TRUCK_POS = { x: 30, y: 196 };
 const VEH = {};
 function buildVehicles() {
   const S = (w, h, fn) => { const [c, g] = mk(w, h); fn(g); return outline(c, P.OL); };
@@ -4443,9 +4530,9 @@ function londonInteract(p) {
 /* ---- walking through doorways (keyboard): stepping into a door's mouth takes you inside ---- */
 function doorZones() {
   if (scene === 'farm') return [
-    { x: 44, y: 80, w: 18, h: 14, dir: 'up', go: () => enterRoom('house') },
-    { x: 26, y: 230, w: 20, h: 12, dir: 'up', go: () => enterRoom('coop') },
-    { x: 82, y: 214, w: 22, h: 30, dir: 'up', go: () => enterMine() }];
+    { x: HX + 40, y: HY + 80, w: 18, h: 14, dir: 'up', go: () => enterRoom('house') },
+    { x: CX + 16, y: CY + 40, w: 20, h: 12, dir: 'up', go: () => enterRoom('coop') },
+    { x: MX + 20, y: MY + 22, w: 22, h: 30, dir: 'up', go: () => enterMine() }];
   if (scene === 'house') return [{ x: 318, y: 92, w: 24, h: 14, dir: 'up', go: () => enterRoom('bedroom') }];
   if (scene === 'airport') return [{ x: 250, y: 148, w: 24, h: 16, dir: 'up', go: () => flyLondon() }];
   if (scene === 'london') return [
@@ -4798,7 +4885,7 @@ async function start() {
   introStep(0.5, '铺草地、种树……'); await nextFrame();
   buildVehicles(); try { lpresent = localStorage.getItem('ai-farm-xmas'); } catch (e) { /* ignore */ }
   fit();
-  buildWorld();
+  buildWorld(); migrateDecor();
   introStep(0.75, '打扫小屋、叫醒小鸡……'); await nextFrame();
   buildRooms();
   rebuildWalk();
