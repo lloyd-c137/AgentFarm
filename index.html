@@ -4733,6 +4733,7 @@ function buildNyc(rm) {
   for (const [x, col] of [[88, '#e8e6ec'], [94, '#d84a3a'], [100, '#1a1a22'], [106, '#f2c414']]) { R(g, col, x, 46, 4, 6); R(g, col, x + 4, 48, 1, 2); }
   for (let x = 82; x < 196; x += 2) if ((x * 13) % 7 < 3) R(g, '#0e0a10', x, 40, 1, 1);
   for (let y = 100; y < 112; y++) for (let x = 112; x < 176; x++) R(g, ((x >> 2) + (y >> 1)) % 2 ? '#3a4a5a' : '#2e3a48', x, y);
+  R(g, '#14121a', 142, 38, 36, 13); R(g, '#e8e6e0', 143, 39, 34, 11); for (let x = 145; x < 175; x += 2) { const hh = 2 + ((x * 7) % 6) + (x === 159 ? 4 : 0); R(g, '#3a3a40', x, 49 - hh, 2, hh); } R(g, '#3a3a40', 159, 41, 1, 3); R(g, '#c8c4c0', 145, 40, 30, 1);
   R(g, '#3a7a3a', 184, 46, 6, 6); R(g, '#5aa050', 185, 43, 2, 4); R(g, '#5aa050', 188, 44, 2, 3); R(g, '#c8b898', 184, 50, 6, 2);
   for (let y = 56; y < 72; y++) for (let x = 86; x < 192; x++) R(g, (y - 56) % 3 === 2 || (x + ((y - 56) / 3 | 0) % 2 * 3) % 6 === 0 ? '#b8b4c0' : (bay(x, y) > 0.85 ? '#ffffff' : '#ecebf0'), x, y);
   R(g, NYC.walnut[2], 84, 76, 110, 20); for (let x = 84; x < 194; x += 22) { R(g, NYC.walnut[1], x, 77, 1, 19); R(g, '#c8c4cc', x + 9, 81, 4, 1); }
@@ -4786,7 +4787,7 @@ function buildNyc(rm) {
   props.push({ img: SPR.pumpkin, x: -100, y: -100, base: -100 });
   rm.props = props;
   rm.getLights = () => {
-    const now = performance.now(), L = [[262, 108, 96, 'neon', hexRGB(neonAt(0, 0.5, now))], [352, 112, 90, 'neon', hexRGB(neonAt(3, 0.5, now))], [300, 64, 70, 'win'], [138, 48, 40, 'neon', [255, 80, 160]], [136, 74, 46], [124, 106, 40]];
+    const now = performance.now(), L = [[262, 108, 96, 'neon', hexRGB(neonAt(0, 0.5, now))], [352, 112, 90, 'neon', hexRGB(neonAt(3, 0.5, now))], [300, 64, 70, 'win'], [124, 46, 34, 'neon', [255, 70, 110]], [136, 74, 46], [124, 106, 40]];
     if (TOG.nlamp !== false) L.push([342, 138, 64]);
     if (Sound.on) L.push([352, 196, 16, 'fairy']);
     return L;
@@ -4805,7 +4806,8 @@ function buildNyc(rm) {
     { kind: 'globe', name: '雪花球 · 摇一摇', rect: { x: 236, y: 166, w: 18, h: 24 }, spot: { x: 245, y: 198 } },
     { kind: 'nlamp', name: '落地灯 · 开关', rect: { x: 336, y: 126, w: 30, h: 54 }, spot: { x: 344, y: 184 } },
     { kind: 'guitar', name: '吉他 · 弹几下', rect: { x: 380, y: 138, w: 14, h: 38 }, spot: { x: 384, y: 182 } },
-    { kind: 'neon', name: '霓虹灯牌 · 开关', rect: { x: 112, y: 38, w: 54, h: 14 }, spot: { x: 138, y: 100 } },
+    { kind: 'neon', name: '霓虹苹果灯 · 开关', rect: { x: 114, y: 36, w: 20, h: 18 }, spot: { x: 124, y: 100 } },
+    { kind: 'photo', name: '老照片 · 曼哈顿天际线', rect: { x: 142, y: 38, w: 36, h: 13 }, spot: { x: 160, y: 100 } },
     { kind: 'nycgift', name: '购物袋 · 今天的纪念品', rect: { x: 152, y: 206, w: 26, h: 20 }, spot: { x: 166, y: 230 } },
     { kind: 'nshelf', name: '矮书架 · 唱片和小雕像', rect: { x: 84, y: 166, w: 40, h: 32 }, spot: { x: 104, y: 204 } },
     { kind: 'plant', name: '琴叶榕', rect: { x: 378, y: 78, w: 20, h: 44 }, spot: { x: 384, y: 128 } }
@@ -4844,9 +4846,12 @@ function nycOverlays(now, anim, ents) {
   // the record turns while the music plays; notes drift up
   add(222.5, () => { const on = Sound.on, rx = 351, ry = 200; fillCircle(ctx, '#1a1418', rx, ry, 4); if (on && anim) { const a = now / 180; R(ctx, '#e8e6ec', rx + Math.round(Math.cos(a) * 3), ry + Math.round(Math.sin(a) * 1), 1, 1); } R(ctx, '#c8282e', rx - 1, ry - 1, 2, 2); for (const n of notes) { ctx.globalAlpha = Math.min(1, n.life / 40); const nx = Math.round(n.x), ny = Math.round(n.y); R(ctx, '#f2c414', nx, ny, 2, 2); R(ctx, '#f2c414', nx + 1, ny - 4, 1, 4); R(ctx, '#f2c414', nx + 2, ny - 4, 1, 1); ctx.globalAlpha = 1; } });
   add(0, () => {
-    // the neon sign on the brick, buzzing, flickering now and then
-    if (TOG.nneon !== false) { const fl = anim && (Math.floor(now / 90) % 47 === 0 || Math.floor(now / 70) % 61 === 0); if (!fl) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(139, 45, 0, 139, 45, 34); g.addColorStop(0, 'rgba(255,70,150,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(105, 11, 68, 68); ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(glyphs('AGENT FARM', 12, '#ff6ab4'), 116, 37); ctx.drawImage(glyphs('AGENT FARM', 12, '#ffd0e8'), 116, 36); } else ctx.drawImage(glyphs('AGENT FARM', 12, '#5a2a40'), 116, 37); }
-    else ctx.drawImage(glyphs('AGENT FARM', 12, '#5a2a40'), 116, 37);
+    // a small neon apple on the brick (the Big Apple), buzzing, now and then a flicker
+    { const on = TOG.nneon !== false && !(anim && (Math.floor(now / 90) % 47 === 0 || Math.floor(now / 70) % 61 === 0)), cx = 124, cy = 46, red = on ? '#ff4a6a' : '#5a2430', core = on ? '#ffd0d8' : '#6a2a36', leaf = on ? '#5aff8a' : '#2a4a30';
+      if (on) { ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, 26); g.addColorStop(0, 'rgba(255,60,100,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - 26, cy - 26, 52, 52); ctx.globalCompositeOperation = 'source-over'; }
+      for (let a2 = 0; a2 < Math.PI * 2; a2 += 0.09) { const k = Math.cos(a2) > 0 ? 1 : -1, px = cx + Math.cos(a2) * 6.5 + k * 0.5, py = cy + Math.sin(a2) * 6 - (Math.abs(Math.cos(a2)) < 0.25 && Math.sin(a2) < 0 ? -1.5 : 0); R(ctx, red, Math.round(px), Math.round(py), 1, 1); }
+      R(ctx, core, cx - 4, cy - 2, 1, 3); R(ctx, on ? '#c89a5a' : '#4a3a2a', cx, cy - 9, 1, 3); R(ctx, leaf, cx + 1, cy - 10, 3, 1); R(ctx, leaf, cx + 2, cy - 11, 2, 1);
+      R(ctx, '#2a2a30', cx - 9, cy + 8, 1, 2); R(ctx, '#2a2a30', cx + 9, cy + 8, 1, 2); }
     if (TOG.nlamp !== false) R(ctx, '#fff6d8', 338, 139, 7, 1);
     for (const s of steam) { ctx.globalAlpha = Math.min(1, s.life / 40) * 0.7; R(ctx, '#f4f1ea', Math.round(s.x), Math.round(s.y), 1, 1); } ctx.globalAlpha = 1;
     // neon washing the oak in front of the glass
@@ -4871,7 +4876,8 @@ function nycInteract(p) {
   else if (k === 'scope') { Sound.blip(); hint(['远处摩天楼的塔尖亮着灯，楼顶的红灯一闪一闪', '望远镜里：广场上有人在跳舞，大屏刚换了一支广告', '看见对面楼里有人也在用电脑加班 · 你的 AI 们正替你干活'][Math.floor(now / 1000) % 3]); }
   else if (k === 'globe') { Sound.clank(); hint('摇了摇雪花球，小小的城市下起了雪'); }
   else if (k === 'nlamp') { TOG.nlamp = TOG.nlamp === false; Sound.blip(); hint(TOG.nlamp === false ? '关了落地灯，屋里只剩霓虹的颜色' : '落地灯亮了'); }
-  else if (k === 'neon') { TOG.nneon = TOG.nneon === false; Sound.blip(); hint(TOG.nneon === false ? '关了霓虹灯牌' : '霓虹灯牌嗡的一声亮了'); }
+  else if (k === 'neon') { TOG.nneon = TOG.nneon === false; Sound.blip(); hint(TOG.nneon === false ? '关了霓虹苹果灯' : '霓虹苹果灯嗡的一声亮了 · 纽约的外号就叫「大苹果」'); }
+  else if (k === 'photo') { Sound.paper(); hint('一张黑白老照片：清晨的曼哈顿天际线，帝国大厦的尖顶插进云里'); }
   else if (k === 'guitar') { Sound.carolRiff ? Sound.carolRiff() : Sound.chime(); hint('拨了几个和弦，楼下的出租车按了声喇叭当伴奏'); }
   else if (k === 'nshelf') { Sound.paper(); openDialog({ title: '矮书架', portrait: { img: bookIcon() }, lines: ['一张折起来的地铁线路图，彩色的线像一碗面。', '一尊绿色的小雕像，举着火炬。', '一排黑胶唱片，最上面那张是《午夜的蓝调》。'] }); }
   else if (k === 'plant') { Sound.cloth(); hint('琴叶榕的叶子擦得发亮，雨点敲在它身后的玻璃上'); }
@@ -5214,7 +5220,7 @@ function nycRideBuild(L) {
 function drawScreen(x, y, w, h, s, now) {
   x = Math.round(x); y = Math.round(y);
   if (s.kind === 0) { for (let yy = 0; yy < h; yy++) R(ctx, neonAt(s.i, yy / h, now), x, y + yy, w, 1); }
-  else if (s.kind === 1) { R(ctx, '#0a0a18', x, y, w, h); const tw = textW('AGENT FARM', 12), tx = x + w - ((now / 30 + s.i * 70) % (w + tw)); ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); ctx.drawImage(glyphs('AGENT FARM', 12, NEON[s.i]), Math.round(tx), Math.round(y + h / 2 - 7)); ctx.restore(); }
+  else if (s.kind === 1) { R(ctx, '#0a0a18', x, y, w, h); const word = ['BROADWAY', 'TONIGHT', 'NEW YORK', 'LIVE SHOW'][s.i % 4], tw = textW(word, 12), tx = x + w - ((now / 30 + s.i * 70) % (w + tw)); ctx.save(); ctx.beginPath(); ctx.rect(x, y, w, h); ctx.clip(); ctx.drawImage(glyphs(word, 12, NEON[s.i]), Math.round(tx), Math.round(y + h / 2 - 7)); ctx.restore(); }
   else if (s.kind === 2) { R(ctx, '#08100c', x, y, w, h); const sft = Math.floor(now / 80); for (let xx = 0; xx < w; xx += 2) { const v = Math.abs(Math.sin((xx + sft) / 7 + s.i)) * (h - 4); R(ctx, (xx >> 1) % 2 ? '#3aff9a' : '#2ac87a', x + xx, y + h - 2 - Math.round(v), 1, Math.round(v)); } R(ctx, '#ff5a5a', x, y + 2, w, 1); }
   else { for (let yy = 0; yy < h; yy++) R(ctx, mix('#1a0a2a', '#e2601e', yy / h), x, y + yy, w, 1); const pr = Math.min(w, h) * 0.32, cx = x + w / 2, cy = y + h / 2 + 1; fillCircle(ctx, '#e2802e', Math.round(cx), Math.round(cy), Math.round(pr)); R(ctx, '#3a5a2a', Math.round(cx - 1), Math.round(cy - pr - 2), 2, 3); const fl = Math.floor(now / 150) % 3 ? '#ffe070' : '#ffc040'; R(ctx, fl, Math.round(cx - pr * 0.5), Math.round(cy - pr * 0.3), 3, 2); R(ctx, fl, Math.round(cx + pr * 0.5 - 3), Math.round(cy - pr * 0.3), 3, 2); R(ctx, fl, Math.round(cx - pr * 0.5), Math.round(cy + pr * 0.3), Math.round(pr), 2); }
 }
@@ -5338,97 +5344,217 @@ function renderSalemRideWindow(now, el, k) {
    built in perspective: a horizon line, the avenue converging on the narrow tower at its head, building faces lined with screens.
    a point at depth scale s (1 = at the glass, smaller = further) and height z sits at y = vy + (E - z) * s */
 let TSV = null;
+/* ---- the view from the New York window: looking south down the bowtie of Times Square from high above Duffy Square ----
+   modelled on the real place: Broadway crossing Seventh Avenue, One Times Square standing at the far end with its stacked screens,
+   the news zipper and the ball on its roof; the 27 red glass steps over the ticket booth in Duffy Square below, Father Duffy and
+   George M. Cohan in bronze; the curved seven-storey market tower, a curved red drink sign under a big screen, stacked ticker bands,
+   a giant vertical screen, theatre marquees, the police substation's neon; granite plazas full of people, cabs and tour buses.
+   Every facade is lit (the zoning there requires it). The ads are generic stand-ins, no real brands.
+   Perspective: depth scale s (1 at the glass), height z; a point sits at x = vx + lat * gw/2 * s, y = vy + (E - z * E) * s */
 function tsLayout(x0, y0, w, h) {
   const side = Math.max(12, Math.round(w * 0.04)), top = Math.max(8, Math.round(h * 0.03)), ledge = Math.max(28, Math.round(h * 0.13));
-  const gx = x0 + side, gy = y0 + top, gw = w - side * 2, gh = h - top - ledge, vx = gx + Math.round(gw / 2), vy = gy + Math.round(gh * 0.4), E = gy + gh - vy;
+  const gx = x0 + side, gy = y0 + top, gw = w - side * 2, gh = h - top - ledge, vx = gx + Math.round(gw / 2), vy = gy + Math.round(gh * 0.36), E = gy + gh - vy;
   return { x0, y0, w, h, side, top, ledge, gx, gy, gw, gh, vx, vy, E, sb: gy + gh };
 }
+// the billboards: each is a little canvas repainted about 15 times a second, then mapped onto a facade
+const TS_ADS = {};
+const AD_SIZE = { tickA: [200, 12], tickB: [260, 12], tickC: [200, 12], zipper: [260, 12], giant: [36, 72], giant2: [36, 64], market: [72, 64], police: [48, 14] };
+const TICK_TEXT = { tickA: ['DOW +0.6%   S&P +0.4%   TECH +1.2%   OIL -0.3%   GOLD +0.2%   ', '#7ac8ff', '#0a1a3a'], tickB: ['BROADWAY WEEK: TWO-FOR-ONE SEATS   ·   CLEAR AND MILD TONIGHT, 14°C   ·   PARADE ON SIXTH AVENUE SATURDAY   ·   ', '#ffb040', '#140808'], tickC: ['LIVE   NEWS   WEATHER   SPORTS   MARKETS   ', '#ffffff', '#08281e'], zipper: ['CITY LIGHTS UP FOR HALLOWEEN WEEKEND   ·   SUBWAY RUNS ALL NIGHT   ·   MARKETS CLOSE HIGHER   ·   ', '#ffc040', '#0a0806'] };
+function tsAd(id, now) {
+  let a = TS_ADS[id]; if (!a) { const [w, h] = AD_SIZE[id] || [48, 36], [c, g] = mk(w, h); a = TS_ADS[id] = { c, g, w, h, last: -1, col: '#ffffff' }; }
+  const f = REDUCE ? 0 : Math.floor(now / 66); if (a.last === f) return a; a.last = f;
+  const { g, w, h } = a, t = REDUCE ? 0 : now / 1000, kind = id.startsWith('tick') ? 'tick' : id.replace(/\d+$/, ''), seed = +(id.match(/\d+$/) || [0])[0];
+  const grad = (c1, c2) => { for (let y = 0; y < h; y++) R(g, mix(c1, c2, y / h), 0, y, w, 1); };
+  g.clearRect(0, 0, w, h);
+  if (kind === 'tick' || kind === 'zipper') {
+    const [str, fg, bg] = TICK_TEXT[id]; R(g, bg, 0, 0, w, h); const gl = glyphs(str, 12, fg), off = Math.floor((t * 30) % gl.width); g.drawImage(gl, -off, -1); g.drawImage(gl, gl.width - off, -1);
+    if (kind === 'zipper') for (let x = 0; x < w; x += 2) R(g, 'rgba(0,0,0,0.35)', x, 0, 1, h); a.col = fg;
+  } else if (kind === 'face') {
+    const v = Math.floor(t / 7 + seed) % 2, cx = w / 2, cy = h * 0.56;
+    if (!v) { grad('#f8c8d4', '#e8909c'); fillCircle(g, '#2a1a1a', Math.round(cx), Math.round(cy - 4), Math.round(h * 0.34)); R(g, '#2a1a1a', Math.round(cx - h * 0.34), Math.round(cy - 4), Math.round(h * 0.68), Math.round(h * 0.5)); fillCircle(g, '#f2c9a0', Math.round(cx), Math.round(cy), Math.round(h * 0.25)); R(g, '#f2c9a0', Math.round(cx - 4), Math.round(cy + h * 0.2), 8, Math.round(h * 0.2)); const bl = (t % 3.2) < 0.12; R(g, '#2a1a1a', Math.round(cx - 6), Math.round(cy - 2), 4, bl ? 1 : 2); R(g, '#2a1a1a', Math.round(cx + 2), Math.round(cy - 2), 4, bl ? 1 : 2); R(g, '#c8283a', Math.round(cx - 3), Math.round(cy + 5), 6, 2); R(g, '#e86a7a', Math.round(cx - 2), Math.round(cy + 5), 3, 1); R(g, '#f8e8e8', 0, h - 6, w, 6); R(g, '#3a2a2a', 6, h - 4, w - 12, 1); a.col = '#f0a0b0'; }
+    else { grad('#2a8a9a', '#0a3a5a'); fillCircle(g, '#e8c060', Math.round(cx - 2), Math.round(cy - 3), Math.round(h * 0.3)); fillCircle(g, '#dca47a', Math.round(cx), Math.round(cy), Math.round(h * 0.24)); R(g, '#141418', Math.round(cx - 9), Math.round(cy - 3), 18, 4); R(g, '#3a5a8a', Math.round(cx - 7), Math.round(cy - 2), 5, 1); R(g, '#a8384a', Math.round(cx - 2), Math.round(cy + 5), 5, 1); for (let i = 0; i < 4; i++) R(g, '#ffffff', Math.round((t * 20 + i * 13) % w), 2 + i * 3, 1, 1); R(g, '#ffffff', 4, h - 5, w - 8, 2); a.col = '#3aa0b8'; }
+  } else if (kind === 'drink') {
+    if (seed === 2) { grad('#1a0e08', '#3a1c0e'); for (let i = 0; i < 3; i++) { const x = 8 + i * 13; R(g, '#c8e8ff', x, h * 0.4, 8, 8); R(g, '#ffffff', x, h * 0.4, 3, 2); } }
+    else { R(g, '#c8102e', 0, 0, w, h); R(g, '#a00a22', 0, h - 4, w, 4); }
+    for (let x = 0; x < w; x++) { const y = h * 0.55 + Math.sin(x / w * Math.PI * 2 + t * 1.5) * h * 0.12; R(g, '#ffffff', x, Math.round(y), 1, 2); R(g, 'rgba(255,255,255,0.5)', x, Math.round(y) + 3, 1, 1); }
+    R(g, seed === 2 ? '#f2c414' : '#7a0418', 5, h * 0.2, 6, h * 0.62); R(g, seed === 2 ? '#f2c414' : '#7a0418', 6, h * 0.12, 4, 4);
+    for (let i = 0; i < 9; i++) R(g, '#ffe0e0', Math.round((i * 11 + Math.sin(t + i) * 2) % w), Math.round(h - ((t * 14 + i * 7) % h)), 1, 1);
+    const sw = (t * 30) % (w * 3); for (let y = 0; y < h; y++) R(g, 'rgba(255,255,255,0.18)', Math.round(sw - w + y * 0.5), y, 3, 1);
+    a.col = seed === 2 ? '#c87a2a' : '#e8283a';
+  } else if (kind === 'candy') {
+    R(g, '#f2c414', 0, 0, w, h); R(g, '#ffe46a', 0, 0, w, 2);
+    for (let i = 0; i < 9; i++) { const cx = 6 + (i % 5) * 9 + (i > 4 ? 4 : 0), cy = (i > 4 ? h * 0.72 : h * 0.42) - Math.abs(Math.sin(t * 3 + i)) * 5; fillCircle(g, ['#c8282e', '#2a6ad8', '#3aaa4a', '#f28a1a', '#6a3a1a'][i % 5], Math.round(cx), Math.round(cy), 4); R(g, '#ffffff', Math.round(cx - 1), Math.round(cy - 1), 1, 1); }
+    a.col = '#f2c414';
+  } else if (kind === 'show') {
+    const P2 = [['#1a0a2a', '#d4a032', '#a060ff'], ['#2a0608', '#f0c040', '#e83a3a'], ['#06202a', '#e8e0c0', '#40c8a0'], ['#0a0a0e', '#d4a032', '#f4f0e6']][seed % 4];
+    grad(P2[0], mix(P2[0], '#000000', 0.4));
+    g.globalCompositeOperation = 'lighter'; g.globalAlpha = 0.25; g.fillStyle = P2[2]; g.beginPath(); g.moveTo(w / 2 - 2, 0); g.lineTo(w / 2 + 2, 0); g.lineTo(w / 2 + 14, h); g.lineTo(w / 2 - 14, h); g.fill(); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    const cx = Math.round(w / 2), by = Math.round(h * 0.78);
+    if (seed % 4 === 0) { for (const [dx, hh] of [[-5, 6], [0, 9], [5, 6]]) R(g, P2[1], cx + dx - 1, by - 10 - hh, 3, hh); R(g, P2[1], cx - 7, by - 10, 15, 3); }
+    else if (seed % 4 === 1) { const k = Math.sin(t * 4) > 0; R(g, '#140808', cx - 1, by - 16, 3, 9); fillCircle(g, '#140808', cx, by - 18, 2); R(g, '#140808', cx - 3, by - 14, 7, 1); R(g, '#140808', cx, by - 7, 1, 7); R(g, '#140808', k ? cx + 1 : cx - 4, by - 8, 5, 1); for (let x = 0; x < w; x += 3) R(g, '#7a0a10', x, 0, 2, h * 0.3); }
+    else if (seed % 4 === 2) { fillCircle(g, '#f4e8c0', cx + 8, 9, 6); const bx = Math.round((t * 8) % (w + 16)) - 8; R(g, '#06101a', bx, 9, 10, 1); R(g, '#06101a', bx + 6, 5, 3, 4); R(g, '#06101a', bx + 7, 2, 1, 3); }
+    else { R(g, '#0a0a0e', cx - 6, by - 20, 12, 2); R(g, '#0a0a0e', cx - 4, by - 30, 8, 10); R(g, P2[1], cx - 4, by - 22, 8, 1); R(g, P2[1], cx + 7, by - 22, 1, 20); }
+    for (let i = 0; i < 6; i++) if ((Math.floor(t * 3) + i) % 3) R(g, '#ffffff', (i * 17 + seed * 5) % w, 2 + (i * 7) % 12, 1, 1);
+    R(g, P2[1], 4, h - 8, w - 8, 3); R(g, P2[1], 10, h - 4, w - 20, 1); a.col = P2[2];
+  } else if (kind === 'movie') {
+    grad('#0a0a14', '#2a1408'); const r0 = ((t * 8) % 18) + 4; fillCircle(g, '#e85a1a', Math.round(w * 0.6), Math.round(h * 0.45), Math.round(r0)); fillCircle(g, '#ffc040', Math.round(w * 0.6), Math.round(h * 0.45), Math.round(r0 * 0.6)); fillCircle(g, '#fff4c0', Math.round(w * 0.6), Math.round(h * 0.45), Math.round(r0 * 0.25));
+    for (const [x, hh] of [[8, 14], [14, 12], [20, 15]]) { R(g, '#0a0a0e', x, h - 8 - hh, 4, hh); fillCircle(g, '#0a0a0e', x + 2, h - 10 - hh, 2); }
+    R(g, '#e8e0c8', 4, h - 6, w - 8, 3); a.col = '#e86a1a';
+  } else if (kind === 'phone') {
+    grad('#5a1aa8', '#1a4ad8'); const sc = Math.cos(t * 1.4), pw = Math.max(1, Math.round(Math.abs(sc) * 14)), cx = Math.round(w / 2);
+    R(g, '#0a0a14', cx - pw / 2 - 1, 5, pw + 2, h - 10); if (sc > 0) for (let y = 7; y < h - 7; y++) R(g, mix('#ff6ab4', '#40e0ff', (y + t * 20) % (h - 14) / (h - 14)), cx - pw / 2 + 1, y, Math.max(1, pw - 2), 1); else R(g, '#3a3a4a', cx - pw / 2, 6, pw, h - 12);
+    for (let i = 0; i < 6; i++) { const a2 = t * 2 + i; R(g, '#ffffff', Math.round(cx + Math.cos(a2) * 18), Math.round(h / 2 + Math.sin(a2) * 12), 1, 1); } a.col = '#6a5aff';
+  } else if (kind === 'news') {
+    grad('#0a1a4a', '#06102a'); R(g, '#d81a2a', 2, 2, 22, 11); g.drawImage(glyphs('LIVE', 12, '#ffffff'), 3, 0);
+    fillCircle(g, '#dca47a', Math.round(w * 0.62), Math.round(h * 0.45), 5); R(g, '#1a2a4a', Math.round(w * 0.62) - 8, Math.round(h * 0.45) + 5, 16, 10); R(g, '#e8e0d0', Math.round(w * 0.62) - 1, Math.round(h * 0.45) + 5, 2, 4); R(g, '#3a2a1a', Math.round(w * 0.62) - 5, Math.round(h * 0.45) - 6, 10, 3);
+    R(g, '#e8e8f0', 0, h - 9, w, 9); const gl = glyphs('CITY  WEATHER  MARKETS  ', 12, '#0a1a4a'), off = Math.floor((t * 24) % gl.width); g.drawImage(gl, -off, h - 11); g.drawImage(gl, gl.width - off, h - 11); a.col = '#4a6ad8';
+  } else if (kind === 'market') {
+    grad('#0a3a8a', '#0a1a4a');
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) { const x = 4 + i * 17, y = 4 + j * 12, up = Math.sin(t * 0.7 + i * 1.3 + j * 2.1) > -0.2; R(g, '#08204a', x, y, 15, 10); R(g, up ? '#3aff8a' : '#ff4a4a', x + 2, y + (up ? 2 : 5), 3, 3); R(g, '#c8d8ff', x + 7, y + 3, 6, 1); R(g, up ? '#3aff8a' : '#ff4a4a', x + 7, y + 6, 4, 1); }
+    let py = h - 10; for (let x = 0; x < w; x++) { const y = Math.round(h - 14 + Math.sin(x / 7 + t) * 4 + Math.sin(x / 3.1 - t * 2) * 1.5); R(g, '#40e0ff', x, Math.min(y, py), 1, Math.abs(y - py) + 1); py = y; }
+    a.col = '#2a7ae8';
+  } else if (kind === 'giant') {
+    const v = Math.floor(t / 6 + seed) % 2;
+    if (!v) { grad('#ff3a8a', '#ff9a2a'); const k = t * 2.4, cx = w / 2, by = h * 0.86; fillCircle(g, '#1a0a1a', Math.round(cx), Math.round(by - 50), 4); R(g, '#1a0a1a', Math.round(cx - 3), Math.round(by - 46), 6, 22); R(g, '#1a0a1a', Math.round(cx - 3 + Math.sin(k) * 6), Math.round(by - 24), 3, 22); R(g, '#1a0a1a', Math.round(cx + 1 - Math.sin(k) * 4), Math.round(by - 24), 3, 22); for (let i = 0; i < 10; i++) R(g, '#1a0a1a', Math.round(cx + 3 + i), Math.round(by - 44 - i * (0.6 + Math.sin(k) * 0.4)), 1, 2); for (let i = 0; i < 10; i++) R(g, '#1a0a1a', Math.round(cx - 4 - i), Math.round(by - 42 + i * 0.4), 1, 2); a.col = '#ff6a5a'; }
+    else { grad('#0a2a5a', '#2a9ad8'); for (let y = 0; y < h; y += 2) { const off = Math.sin(y / 6 + t * 2) * 4; R(g, y % 6 ? '#5ac8f0' : '#e8f8ff', Math.round(w / 2 + off - 8 + (y / h) * 6), y, Math.round(10 + (y / h) * 8), 1); } a.col = '#3aa0e8'; }
+  } else if (kind === 'travel') {
+    grad('#2a1a5a', '#ff8a4a'); fillCircle(g, '#ffd890', Math.round(w * 0.7), Math.round(h * 0.62), 7); R(g, '#1a0a2a', 0, h - 7, w, 7); for (const px of [8, 18]) { R(g, '#1a0a2a', px, h - 22, 2, 16); for (let k = 0; k < 4; k++) R(g, '#1a0a2a', px - 5 + k * 3, h - 23 + Math.abs(k - 1.5), 4, 1); } const bx = Math.round((t * 10) % (w + 20)) - 10; R(g, '#ffffff', bx, 8, 8, 1); R(g, '#ffffff', bx + 3, 6, 2, 5); a.col = '#ff8a6a';
+  } else if (kind === 'sneaker') {
+    grad('#e8e6ec', '#b8b4c8'); const jy = Math.round(Math.abs(Math.sin(t * 2.5)) * -8), cx = w / 2; R(g, '#ff3a5a', cx - 12, h * 0.6 + jy, 22, 6); R(g, '#ffffff', cx - 12, h * 0.6 + jy + 5, 24, 3); R(g, '#3a3aff', cx - 4, h * 0.6 + jy, 3, 5); R(g, '#ff3a5a', cx - 12, h * 0.6 + jy - 4, 8, 4); for (let i = 0; i < 3; i++) R(g, '#8a8a9a', cx - 22 - i * 3, h * 0.6 + jy + i * 2, 6, 1); a.col = '#e8e6f0';
+  } else if (kind === 'guitar') {
+    R(g, '#0a0a10', 0, 0, w, h); const on = Math.floor(t * 2) % 7; const col = on ? '#ffb040' : '#7a4a1a';
+    for (let a2 = 0; a2 < Math.PI * 2; a2 += 0.12) { R(g, col, Math.round(16 + Math.cos(a2) * 7), Math.round(h * 0.6 + Math.sin(a2) * 5), 1, 1); R(g, col, Math.round(22 + Math.cos(a2) * 5), Math.round(h * 0.6 + Math.sin(a2) * 4 - 6), 1, 1); }
+    for (let i = 0; i < 22; i++) R(g, col, 26 + i, Math.round(h * 0.6 - 6 - i * 0.45), 1, 1); R(g, '#ff5a3a', 44, Math.round(h * 0.6 - 18), 4, 3); a.col = '#ffa040';
+  } else if (kind === 'police') {
+    R(g, '#0a0a14', 0, 0, w, h); for (let i = 0; i < 3; i++) { R(g, ['#3a6aff', '#ffffff', '#ff3a3a'][i], 2, 2 + i * 4, w - 4, 2); } a.col = '#6a8aff';
+  } else { grad(neonAt(seed, 0, now), neonAt(seed, 1, now)); a.col = neonAt(seed, 0.5, now); }
+  return a;
+}
+// the buildings either side of the square, from the glass to the far end: depth range, height, and the signs on each face [u range, z range, ad]
 const TS_BLOCKS = {
-  L: [[1, 0.6, 3.1, 0], [0.6, 0.41, 2.3, 1], [0.41, 0.3, 2.9, 2], [0.3, 0.22, 1.9, 3], [0.22, 0.16, 2.5, 4], [0.16, 0.13, 1.7, 5]],
-  R: [[1, 0.68, 2.7, 6], [0.68, 0.47, 3.4, 7], [0.47, 0.34, 2.1, 8], [0.34, 0.25, 2.8, 9], [0.25, 0.17, 2.1, 10], [0.17, 0.13, 3, 11]]
+  L: [[1, 0.6, 3.7, [[[0.06, 0.94], [2.3, 3.5], 'face0'], [[0, 1], [2.08, 2.2], 'tickA'], [[0.08, 0.92], [1.06, 1.94], 'show0'], [[0.1, 0.9], [0.34, 0.92], 'candy']]],
+    [0.6, 0.42, 2.9, [[[0.05, 0.95], [1.6, 2.75], 'phone'], [[0.04, 0.96], [0.85, 1.42], 'drink1'], [[0.1, 0.9], [0.3, 0.7], 'show1']], 'curveDrink'],
+    [0.42, 0.31, 3.4, [[[0.05, 0.95], [2.15, 3.2], 'movie'], [[0.06, 0.94], [1.0, 1.95], 'show2'], [[0, 1], [0.3, 0.78], 'news0']]],
+    [0.31, 0.23, 4.7, [[[0, 1], [0.45, 3.7], 'market']], 'cylinder'],
+    [0.23, 0.165, 3.1, [[[0.04, 0.96], [0.5, 2.7], 'sneaker']]]],
+  R: [[1, 0.64, 3.4, [[[0, 1], [2.52, 2.64], 'tickB'], [[0.05, 0.95], [1.2, 2.35], 'travel'], [[0.08, 0.5], [0.34, 0.95], 'show3'], [[0.58, 0.9], [0.14, 0.34], 'police']]],
+    [0.64, 0.46, 4.3, [[[0, 1], [3.2, 3.34], 'tickC'], [[0, 1], [2.72, 2.86], 'tickA'], [[0, 1], [2.24, 2.38], 'tickB'], [[0.06, 0.94], [0.42, 1.85], 'face1']]],
+    [0.46, 0.33, 3.9, [[[0.08, 0.92], [0.95, 3.65], 'giant0'], [[0.1, 0.9], [0.3, 0.82], 'guitar']]],
+    [0.33, 0.24, 2.8, [[[0.05, 0.95], [1.32, 2.55], 'news1'], [[0, 1], [1.08, 1.2], 'tickC'], [[0.08, 0.92], [0.3, 0.92], 'show1']]],
+    [0.24, 0.165, 3.3, [[[0, 1], [0.5, 2.95], 'drink2']]]]
 };
+// One Times Square, facing us at the head of the square: stacked screens from the zipper up to the roof
+const OTS = { s: 0.16, half: 0.5, Z: 3.7, signs: [[0.36, 0.5, 'zipper'], [0.58, 1.2, 'show3'], [1.28, 1.85, 'drink1'], [1.93, 2.6, 'phone'], [2.68, 3.55, 'giant2']] };
 function tsBuild(x0, y0, w, h) {
-  const L = tsLayout(x0, y0, w, h), { gx, gy, gw, gh, vx, vy, E } = L, r = rng(1904);
-  // back: the sky glowing from below, a hazy moon, the far skyline over the head of the square
+  const L = tsLayout(x0, y0, w, h), { gx, gy, gw, gh, vx, vy, E } = L, r = rng(1904), at = (s, lat, z = 0) => [vx + lat * gw / 2 * s, vy + (E - z * E) * s];
+  // back: the glowing sky, a hazy moon, the towers south of the square, the ones that close the view
   const [bc, b] = tvCanvas(w, h); b.translate(-x0, -y0);
-  for (let y = y0; y < vy + 4; y++) { const t = Math.max(0, (y - gy) / (vy - gy)); R(b, t < 0.6 ? mix('#06071c', '#24184a', t / 0.6) : mix('#24184a', '#8a3a6a', (t - 0.6) / 0.4), x0, y, w, 1); }
-  { const mx = gx + gw * 0.62, my = gy + gh * 0.08, mr = Math.max(4, Math.round(gh * 0.025)); const g = b.createRadialGradient(mx, my, 0, mx, my, mr * 7); g.addColorStop(0, 'rgba(230,220,255,0.3)'); g.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = g; b.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14); fillCircle(b, '#f0ecf8', Math.round(mx), Math.round(my), mr); }
+  for (let y = y0; y < vy + 4; y++) { const t = Math.max(0, (y - gy) / (vy - gy)); R(b, t < 0.55 ? mix('#05061a', '#1e1646', t / 0.55) : mix('#1e1646', '#8a3a6a', (t - 0.55) / 0.45), x0, y, w, 1); }
   for (let y = vy + 4; y < y0 + h; y++) R(b, mix('#3a1a40', '#16101e', Math.min(1, (y - vy) / (E * 0.3))), x0, y, w, 1);
-  for (let i = 0; i < 260; i++) R(b, NEON[i % 6], vx - gw * 0.12 + r() * gw * 0.24, vy + r() * E * 0.16, 1, 1);
-  for (let x = vx - Math.round(gw * 0.3); x < vx + Math.round(gw * 0.3);) { const bw = 4 + Math.floor(r() * 9), bh = Math.round(gh * (0.06 + r() * 0.2) * (1 - Math.abs(x - vx) / (gw * 0.4))), top = vy - bh; R(b, '#141230', x, top, bw, bh + 6); if (r() < 0.3) { R(b, '#141230', x + (bw >> 1), top - 6, 1, 6); } for (let yy = top + 2; yy < vy; yy += 2) for (let xx = x + 1; xx < x + bw - 1; xx += 2) if (r() < 0.3) R(b, r() < 0.8 ? '#a88a58' : '#e8e0c8', xx, yy, 1, 1); x += bw; }
-  // front: the building faces and the street, solid; screens are painted live over them
+  { const mx = gx + gw * 0.64, my = gy + gh * 0.07, mr = Math.max(4, Math.round(gh * 0.022)); const g = b.createRadialGradient(mx, my, 0, mx, my, mr * 7); g.addColorStop(0, 'rgba(230,220,255,0.28)'); g.addColorStop(1, 'rgba(0,0,0,0)'); b.fillStyle = g; b.fillRect(mx - mr * 7, my - mr * 7, mr * 14, mr * 14); fillCircle(b, '#f0ecf8', Math.round(mx), Math.round(my), mr); }
+  for (let i = 0; i < 6; i++) { const cx = gx + gw * (0.2 + i * 0.13), cy = gy + gh * (0.12 + (i % 3) * 0.05); b.globalAlpha = 0.12; b.fillStyle = '#c86a9a'; b.beginPath(); b.ellipse(cx, cy, gw * 0.09, gh * 0.012, 0, 0, Math.PI * 2); b.fill(); } b.globalAlpha = 1;
+  const tower = (cx, wid, top, col, mast) => { R(b, col, cx - wid / 2, top, wid, vy - top + 8); for (let yy = top + 3; yy < vy; yy += 3) for (let xx = cx - wid / 2 + 1; xx < cx + wid / 2 - 1; xx += 2) if (r() < 0.45) R(b, r() < 0.85 ? '#b89a68' : '#e8e0c8', xx, yy, 1, 1); R(b, mix(col, '#ffffff', 0.15), cx - wid / 2, top, 1, vy - top); if (mast) { R(b, col, cx - 1, top - mast, 2, mast); R(b, '#ff3a3a', cx - 1, top - mast - 1, 2, 1); } };
+  tower(vx - gw * 0.12, gw * 0.05, vy - gh * 0.22, '#1a1a36', 0); tower(vx + gw * 0.1, gw * 0.06, vy - gh * 0.26, '#161a34', 22); tower(vx - gw * 0.2, gw * 0.04, vy - gh * 0.14, '#1c1830', 0); tower(vx + gw * 0.2, gw * 0.035, vy - gh * 0.3, '#14182e', 30); tower(vx + gw * 0.03, gw * 0.07, vy - gh * 0.17, '#1e1c3a', 0);
+  for (let x = vx - Math.round(gw * 0.3); x < vx + Math.round(gw * 0.3);) { const bw = 4 + Math.floor(r() * 9), bh = Math.round(gh * (0.04 + r() * 0.1)), top = vy - bh; R(b, '#141230', x, top, bw, bh + 6); for (let yy = top + 2; yy < vy; yy += 2) for (let xx = x + 1; xx < x + bw - 1; xx += 2) if (r() < 0.3) R(b, r() < 0.8 ? '#a88a58' : '#e8e0c8', xx, yy, 1, 1); x += bw; }
+  // front: the building faces (dark, windows lit, shopfronts glowing), the street, the plazas, the steps and the statues
   const [fc, f] = tvCanvas(w, h); f.translate(-x0, -y0);
   const cols = [];
-  for (const side of ['L', 'R']) for (const [s0, s1, Z, id] of TS_BLOCKS[side]) {
-    const rb = rng(500 + id), face = ['#14122a', '#1a1626', '#121a2a', '#1e1a2e'][id % 4], xa = vx + (side === 'L' ? -1 : 1) * gw / 2 * s0, xb = vx + (side === 'L' ? -1 : 1) * gw / 2 * s1;
-    const bands = []; let z = 0.16; while (z < Z - 0.2) { const hgt = 0.25 + rb() * 0.45; if (rb() < 0.78) bands.push([z, Math.min(Z - 0.1, z + hgt), Math.floor(rb() * 4), Math.floor(rb() * 6)]); z += hgt + 0.06 + rb() * 0.12; }
-    const x1 = Math.round(Math.min(xa, xb)), x2 = Math.round(Math.max(xa, xb));
+  ['L', 'R'].forEach(side => TS_BLOCKS[side].forEach(([s0, s1, Z, signs, special], bi) => {
+    const rb = rng(700 + bi + (side === 'R' ? 50 : 0)), face = ['#14122a', '#1a1626', '#121a2a', '#1e1a2e', '#18142a'][bi % 5], dir = side === 'L' ? -1 : 1, xa = vx + dir * gw / 2 * s0, xb = vx + dir * gw / 2 * s1, x1 = Math.round(Math.min(xa, xb)), x2 = Math.round(Math.max(xa, xb));
     for (let x = x1; x < x2; x++) {
       const s = Math.abs(x + 0.5 - vx) / (gw / 2), u = (s0 - s) / (s0 - s1), yb = vy + E * s, yt = vy + (E - Z * E) * s;
-      R(f, face, x, yt, 1, yb - yt); if (x === x1 || x === x2 - 1) R(f, '#0a0814', x, yt, 1, yb - yt);
-      R(f, '#3a3450', x, yt, 1, 1);
-      for (let zz = 0.3; zz < Z; zz += 0.1) if (rb() < 0.22) R(f, rb() < 0.8 ? '#c8a868' : '#f0e6c8', x, vy + (E - zz * E) * s, 1, 1);
-      for (let yy = 0; yy < Math.max(2, 0.11 * E * s); yy++) R(f, mix('#fff0c0', '#e8903a', yy / (0.11 * E * s + 1)), x, yb - yy - 1, 1, 1);
-      cols.push({ x, s, u, Z, bands, id });
+      R(f, special === 'cylinder' ? mix('#0a2a6a', '#04102a', Math.abs(u - 0.5) * 2) : face, x, yt, 1, yb - yt);
+      if (x === x1 || x === x2 - 1) R(f, '#08060e', x, yt, 1, yb - yt);
+      R(f, '#4a4460', x, yt, 1, 1); for (let zz = 0.16; zz < Z; zz += 0.07) if (rb() < 0.22) R(f, rb() < 0.8 ? '#c8a868' : '#f0e6c8', x, vy + (E - zz * E) * s, 1, 1);
+      const sfh = Math.max(2, 0.12 * E * s); for (let yy = 0; yy < sfh; yy++) R(f, mix('#fff2c8', '#e8903a', yy / (sfh + 1)), x, yb - yy - 1, 1, 1);
+      if (rb() < 0.15) R(f, '#2a1a14', x, yb - sfh, 1, sfh * 0.6);
+      cols.push({ x, s, u, Z, signs, special, top: yt });
     }
-    // a water tower on the near roofs
-    if (Z > 2.6 && s1 > 0.25) { const s = (s0 + s1) / 2, wx = vx + (side === 'L' ? -1 : 1) * gw / 2 * s, wy = vy + (E - Z * E) * s, ws = Math.max(3, Math.round(16 * s)); R(f, '#3a2a22', wx - ws / 2, wy - ws * 1.2, ws, ws); R(f, '#2a1c16', wx - ws / 2 - 1, wy - ws * 1.6, ws + 2, ws * 0.45); R(f, '#2a1c16', wx - ws / 2 + 1, wy - ws * 0.2, 1, ws * 0.3); R(f, '#2a1c16', wx + ws / 2 - 2, wy - ws * 0.2, 1, ws * 0.3); }
-  }
-  // the avenue: asphalt, the pedestrian plaza down the middle, lane markings
-  const sMin = 0.13;
-  for (let y = Math.round(vy + E * sMin); y < gy + gh; y++) { const s = (y - vy) / E, half = gw / 2 * s; R(f, '#1c1a24', vx - half, y, half * 2, 1); R(f, '#2a2632', vx - half * 0.4, y, half * 0.8, 1); R(f, '#3a3644', vx - half * 0.94, y, half * 0.06, 1); R(f, '#3a3644', vx + half * 0.88, y, half * 0.06, 1); }
-  for (let p = 0; p < 1; p += 0.06) { const s = 1 / (1 + 7 * p); for (const lat of [-0.66, 0.66]) R(f, '#8a8890', vx + lat * gw / 2 * s, vy + E * s, Math.max(1, 3 * s), Math.max(1, 6 * s)); }
+    // rooftop water towers and antennas against the sky
+    if (s1 > 0.3) { const s = (s0 + s1) / 2, [wx, wy] = at(s, dir, Z), ws = Math.max(3, Math.round(18 * s)); R(f, '#3a2a22', wx - ws / 2, wy - ws * 1.2, ws, ws); for (let k = 0; k < ws; k += 2) R(f, '#2a1c16', wx - ws / 2 + k, wy - ws * 1.2, 1, ws); R(f, '#2a1c16', wx - ws / 2 - 1, wy - ws * 1.6, ws + 2, ws * 0.45); R(f, '#2a1c16', wx - ws / 2 + 1, wy - ws * 0.2, 1, ws * 0.3); R(f, '#2a1c16', wx + ws / 2 - 2, wy - ws * 0.2, 1, ws * 0.3); }
+  }));
+  // the streets: Seventh Avenue and Broadway as asphalt lanes, the granite plaza between them, bollards, crosswalks at each cross street
+  const sMin = OTS.s;
+  for (let y = Math.round(vy + E * sMin); y < gy + gh; y++) { const s = (y - vy) / E, half = gw / 2 * s;
+    R(f, '#1a1820', vx - half, y, half * 2, 1);
+    R(f, '#4a4652', vx - half * 0.42, y, half * 0.84, 1); if ((Math.round(y * 1.0) % Math.max(2, Math.round(10 * s))) === 0) R(f, '#3a3644', vx - half * 0.42, y, half * 0.84, 1);
+    R(f, '#5a5664', vx - half * 0.96, y, half * 0.1, 1); R(f, '#5a5664', vx + half * 0.86, y, half * 0.1, 1); }
+  for (let k = -4; k <= 4; k++) { const lat = k * 0.1; for (let s = sMin; s < 1; s += 0.004) { const [px, py] = at(s, lat); if (Math.round(py) % 1 === 0) R(f, '#3e3a48', px, py, 1, 1); } }
+  for (let p = 0; p < 1; p += 0.012) { const s = 1 / (1 + 6 * p); for (const lat of [-0.43, 0.43]) { const [bx, by] = at(s, lat), bs = Math.max(1, Math.round(3 * s)); R(f, '#8a8690', bx, by - bs * 2, bs, bs * 2); R(f, '#c8c4d0', bx, by - bs * 2, bs, 1); } }
+  for (let p = 0; p < 1; p += 0.05) { const s = 1 / (1 + 6 * p); for (const lat of [-0.72, 0.72]) R(f, '#9a98a2', vx + lat * gw / 2 * s, vy + E * s, Math.max(1, 3 * s), Math.max(1, 7 * s)); }
+  for (const s of [0.23, 0.31, 0.44]) for (const side of [-1, 1]) for (let lat = 0.45; lat < 0.97; lat += 0.06) { const [cx, cy] = at(s, side * lat); R(f, '#d8d6dc', cx, cy - 2 * s, Math.max(1, 6 * s), Math.max(1, 14 * s)); }
+  // Father Duffy in bronze before his Celtic cross, at the near end of the steps
+  { const [dx, dy] = at(0.95, 0, 0), sc = 0.95; R(f, '#5a5a62', dx - 10 * sc, dy - 8 * sc, 20 * sc, 8 * sc); R(f, '#7a7a84', dx - 10 * sc, dy - 8 * sc, 20 * sc, 1); R(f, '#6a6a72', dx - 2, dy - 40 * sc, 4, 32 * sc); R(f, '#6a6a72', dx - 10, dy - 33 * sc, 20, 4); for (let a2 = 0; a2 < Math.PI * 2; a2 += 0.2) R(f, '#7a7a84', Math.round(dx + Math.cos(a2) * 6), Math.round(dy - 31 * sc + Math.sin(a2) * 6), 1, 1); R(f, '#4a3a22', dx - 4, dy - 22 * sc, 8, 14 * sc); fillCircle(f, '#5a4a2a', Math.round(dx), Math.round(dy - 25 * sc), 3); }
   return { key: [x0, y0, w, h].join(','), L, back: bc, front: fc, cols };
 }
 function renderTimesSquare(now) {
   const x0 = -OX, y0 = -OY, w = VW, h = VH, anim = !REDUCE, key = [x0, y0, w, h].join(',');
   if (!TSV || TSV.key !== key) TSV = tsBuild(x0, y0, w, h);
-  const V = TSV, L = V.L, { gx, gy, gw, gh, vx, vy, E, sb } = L, at = (s, lat, z = 0) => [vx + lat * gw / 2 * s, vy + (E - z * E) * s];
+  const V = TSV, L = V.L, { gx, gy, gw, gh, vx, vy, E } = L, at = (s, lat, z = 0) => [vx + lat * gw / 2 * s, vy + (E - z * E) * s], t = now / 1000;
   ctx.drawImage(V.back, x0, y0);
   ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gh); ctx.clip();
-  // red beacons on the far towers
-  for (let i = 0; i < 6; i++) if (!anim || Math.floor(now / 800 + i) % 2) R(ctx, '#ff3a3a', vx - gw * 0.25 + i * gw * 0.1, vy - gh * (0.12 + (i % 3) * 0.05), 1, 1);
-  // the narrow tower at the head of the square: stacked screens, the ball on its mast
-  { const s = 0.125, [xl, yb] = at(s, -0.62), [xr] = at(s, 0.62), Z = 4.6, yt = vy + (E - Z * E) * s, tw = xr - xl;
-    R(ctx, '#16142a', xl, yt, tw, yb - yt);
-    const fr = [[0.2, 0.9, 1], [0.95, 1.6, 3], [1.65, 2.3, 0], [2.35, 3.1, 1], [3.15, 3.7, 2], [3.75, 4.4, 0]];
-    fr.forEach(([z1, z2, kind], i) => { const y1 = vy + (E - z2 * E) * s, y2 = vy + (E - z1 * E) * s; drawScreen(xl + 1, y1, tw - 2, y2 - y1, { kind, i: (i * 2 + 1) % 6 }, now); });
-    const my = yt, mx = Math.round(vx); R(ctx, '#a8a8c0', mx - 1, my - 14, 2, 14); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(mx, my - 15, 0, mx, my - 15, 16); g.addColorStop(0, 'rgba(200,230,255,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(mx - 16, my - 31, 32, 32); ctx.globalCompositeOperation = 'source-over';
-    fillCircle(ctx, '#e8f4ff', mx, my - 15, 3); for (let i = 0; i < 6; i++) R(ctx, NEON[(i + Math.floor(now / 300)) % 6], mx - 2 + (i % 3) * 2, my - 17 + Math.floor(i / 3) * 3, 1, 1); }
+  for (let i = 0; i < 6; i++) if (!anim || Math.floor(now / 800 + i) % 2) R(ctx, '#ff3a3a', vx - gw * 0.24 + i * gw * 0.09, vy - gh * (0.1 + (i % 3) * 0.06), 1, 1);
+  // searchlights over the towers
+  ctx.globalCompositeOperation = 'lighter'; for (let i = 0; i < 2; i++) { const a = -Math.PI / 2 + Math.sin(now / 4000 + i * 2.4) * 0.45, bx = vx + (i ? 1 : -1) * gw * 0.15, by = vy; ctx.globalAlpha = 0.05; ctx.fillStyle = '#d0d8ff'; ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(bx + Math.cos(a - 0.04) * gh, by + Math.sin(a - 0.04) * gh); ctx.lineTo(bx + Math.cos(a + 0.04) * gh, by + Math.sin(a + 0.04) * gh); ctx.fill(); } ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  // One Times Square: a narrow tower clad in screens, the zipper wrapping its base, the ball on its mast
+  { const s = OTS.s, [xl, yb] = at(s, -OTS.half), [xr] = at(s, OTS.half), yt = vy + (E - OTS.Z * E) * s, tw = xr - xl;
+    R(ctx, '#121024', xl - 3, yt, 3, yb - yt); R(ctx, '#121024', xr, yt, 3, yb - yt); R(ctx, '#1a1830', xl, yt, tw, yb - yt);
+    for (const [z1, z2, id] of OTS.signs) { const a = tsAd(id, now), y1 = vy + (E - z2 * E) * s, y2 = vy + (E - z1 * E) * s; ctx.drawImage(a.c, 0, 0, a.w, a.h, Math.round(xl + 1), Math.round(y1), Math.round(tw - 2), Math.max(1, Math.round(y2 - y1))); if (id === 'zipper') { R(ctx, '#0a0806', xl - 3, y1, 3, y2 - y1); R(ctx, '#0a0806', xr, y1, 3, y2 - y1); } }
+    const yb2 = yb; for (let yy = 0; yy < 0.3 * E * s; yy++) R(ctx, mix('#fff4d8', '#f0a050', yy / (0.3 * E * s)), xl, yb2 - yy - 1, tw, 1);
+    const mx = Math.round(vx), my = Math.round(yt); R(ctx, '#2a2840', mx - Math.round(tw * 0.3), my - 4, Math.round(tw * 0.6), 4); R(ctx, '#a8a8c0', mx - 1, my - 18, 2, 14);
+    ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(mx, my - 20, 0, mx, my - 20, 18); g.addColorStop(0, 'rgba(200,230,255,0.6)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(mx - 18, my - 38, 36, 36); ctx.globalCompositeOperation = 'source-over';
+    fillCircle(ctx, '#e8f4ff', mx, my - 20, 3); for (let i = 0; i < 8; i++) R(ctx, NEON[(i + Math.floor(now / 250)) % 6], mx - 2 + (i % 3) * 2, my - 22 + Math.floor(i / 3) * 2, 1, 1); }
   ctx.drawImage(V.front, x0, y0);
-  // screens on the building faces, each column painted in perspective
-  for (const c of V.cols) for (const [z1, z2, kind, ci] of c.bands) {
-    const y1 = vy + (E - z2 * E) * c.s, y2 = vy + (E - z1 * E) * c.s, hh = y2 - y1; if (hh < 1) continue;
-    if (kind === 0) { const n = Math.max(1, Math.min(4, Math.round(hh / 6))); for (let q = 0; q < n; q++) R(ctx, neonAt(ci, q / n, now), c.x, y1 + hh * q / n, 1, hh / n + 1); }
-    else if (kind === 1) { const v = Math.sin(c.u * 9 + now / 420 + ci) * 0.5 + 0.5; R(ctx, mix(NEON[ci], NEON[(ci + 2) % 6], v), c.x, y1, 1, hh); }
-    else if (kind === 2) { R(ctx, '#0a0a14', c.x, y1, 1, hh); const on = ((c.u * 60 + now / 90) % 6) < 3; R(ctx, on ? '#3aff9a' : '#ff5a5a', c.x, y1 + hh * 0.35, 1, Math.max(1, hh * 0.3)); }
-    else { const pulse = 0.55 + 0.45 * Math.sin(now / 700 + ci * 2); R(ctx, mix('#0a0a14', NEON[ci], pulse), c.x, y1, 1, hh); if (((c.u * 24) | 0) % 5 === 0) R(ctx, '#ffffff', c.x, y1 + hh * 0.45, 1, Math.max(1, hh * 0.1)); }
+  // billboards mapped onto the faces, one 1-pixel column at a time
+  const ads = {};
+  for (const c of V.cols) for (const [[u1, u2], [z1, z2], id] of c.signs) {
+    if (c.u < u1 || c.u > u2) continue; const a = ads[id] || (ads[id] = tsAd(id, now)), y1 = vy + (E - z2 * E) * c.s, y2 = vy + (E - z1 * E) * c.s; if (y2 - y1 < 1) continue;
+    const sx = Math.min(a.w - 1, Math.floor((c.u - u1) / (u2 - u1) * a.w)); ctx.drawImage(a.c, sx, 0, 1, a.h, c.x, Math.round(y1), 1, Math.round(y2 - y1));
+    if (c.special === 'cylinder') { ctx.globalAlpha = Math.min(0.6, Math.pow(Math.abs(c.u - 0.5) * 2, 2) * 0.6); R(ctx, '#000010', c.x, y1, 1, y2 - y1); ctx.globalAlpha = 1; }
+    if (c.special === 'curveDrink' && id === 'drink1') { const bow = Math.sin(c.u * Math.PI) * 0.04 * E * c.s; R(ctx, '#1a1626', c.x, y2 - 1, 1, bow + 1); }
   }
-  // the light the screens throw down into the square
+  // marquee bulbs chasing along the theatre fronts and the steps of light at the cylinder's crown
+  for (const c of V.cols) { if (c.special === 'cylinder') { const y = vy + (E - c.Z * E) * c.s; R(ctx, (Math.floor(now / 120) + c.x) % 4 ? '#3ac8ff' : '#ffffff', c.x, y, 1, 2); } else if (c.signs.some(sg => sg[2].startsWith('show') && sg[1][0] < 0.4)) { const y = vy + (E - 0.98 * E) * c.s; if ((c.x + Math.floor(now / 110)) % 3 === 0) R(ctx, '#fff4c0', c.x, y, 1, 1); } }
+  // light thrown off the screens into the square
   ctx.globalCompositeOperation = 'lighter';
-  for (let i = 0; i < 6; i++) { const col = hexRGB(neonAt(i, 0.5, now)), s = 0.2 + i * 0.13, [lx, ly] = at(s, i % 2 ? 0.7 : -0.7, 0.4), rr = gw * 0.22 * s + 20, g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr); g.addColorStop(0, `rgba(${col},0.22)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lx - rr, ly - rr, rr * 2, rr * 2); }
+  for (const side of ['L', 'R']) TS_BLOCKS[side].forEach(([s0, s1, Z, signs]) => { const sm = (s0 + s1) / 2, big = signs.reduce((m, sg) => (sg[1][1] - sg[1][0] > m[1][1] - m[1][0] ? sg : m), signs[0]), a = ads[big[2]]; if (!a) return; const [lx, ly] = at(sm, side === 'L' ? -0.95 : 0.95, (big[1][0] + big[1][1]) / 2), rr = gw * 0.2 * sm + 14, g = ctx.createRadialGradient(lx, ly, 0, lx, ly, rr); g.addColorStop(0, `rgba(${hexRGB(a.col)},0.22)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(lx - rr, ly - rr, rr * 2, rr * 2); const [fx, fy] = at(sm, side === 'L' ? -0.6 : 0.6), fr = gw * 0.16 * sm + 10, g2 = ctx.createRadialGradient(fx, fy, 0, fx, fy, fr); g2.addColorStop(0, `rgba(${hexRGB(a.col)},0.14)`); g2.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g2; ctx.fillRect(fx - fr, fy - fr, fr * 2, fr * 2); });
   ctx.globalCompositeOperation = 'source-over';
-  // the red glass steps in the middle of the plaza, glowing, people sitting on them
-  { const s1 = 0.3, s2 = 0.42, n = 8; for (let k = 0; k < n; k++) { const sa = s1 + (s2 - s1) * k / n, sbb = s1 + (s2 - s1) * (k + 1) / n, [xa, ya] = at(sa, -0.24, 0.18 * (1 - k / n)), [xb2] = at(sa, 0.24), [, yb2] = at(sbb, 0, 0.18 * (1 - (k + 1) / n)); R(ctx, k % 2 ? '#b0202e' : '#ff4a5a', xa, ya, xb2 - xa, Math.max(1, yb2 - ya)); }
-    ctx.globalCompositeOperation = 'lighter'; const [cx, cy] = at(0.36, 0, 0.1), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, gw * 0.12); g.addColorStop(0, 'rgba(255,60,80,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - gw * 0.12, cy - gw * 0.12, gw * 0.24, gw * 0.24); ctx.globalCompositeOperation = 'source-over';
-    for (let i = 0; i < 26; i++) { const k = (i * 7) % 8, sa = 0.3 + 0.12 * (k + 0.5) / 8, [px, py] = at(sa, -0.2 + ((i * 37) % 40) / 100, 0.18 * (1 - (k + 0.5) / 8)), sz = Math.max(1, Math.round(4 * sa)); R(ctx, NEON[i % 6], px, py - sz * 2, sz, sz * 2); R(ctx, '#e8c8a8', px, py - sz * 3, sz, sz); } }
-  // the crowd on the plaza and the pavements
-  const t = now / 1000;
-  for (let i = 0; i < 170; i++) {
-    const side = i % 5 === 0 ? (i % 2 ? 0.93 : -0.93) : 0, dir = i % 2 ? 1 : -1, p = ((((i * 0.6180339) % 1) + t * (0.004 + (i % 4) * 0.002) * dir) % 1 + 1) % 1, s = 1 / (1 + 7 * p);
-    if (s > 0.29 && s < 0.43 && !side && Math.abs(((i * 0.37) % 0.6) - 0.3) < 0.24) continue;
-    const lat = side || (((i * 0.7548776) % 1) - 0.5) * 0.74 + Math.sin(t / 2 + i) * 0.02, [px, py] = at(s, lat), sz = Math.max(1, Math.round(7 * s)), step = anim && Math.floor(now / 260 + i) % 2;
-    R(ctx, ['#2a2430', '#5a2a2a', '#26303a', '#d84a3a', '#2a5aa8', '#f2c414', '#e8e6ec', '#4a2a6a'][i % 8], px, py - sz * 3, sz + (sz > 2 ? 1 : 0), sz * 2 + 1); R(ctx, ['#e8c8a8', '#b8784e', '#7e4e30', '#dca47a'][i % 4], px, py - sz * 4, Math.max(1, sz), Math.max(1, sz)); if (sz > 2) { R(ctx, '#14121a', px + (step ? 0 : 1), py - sz + 1, 1, sz); R(ctx, '#14121a', px + sz - (step ? 1 : 0), py - sz + 1, 1, sz); }
-    if (i % 23 === 0 && sz > 1) R(ctx, '#ffffff', px + sz, py - sz * 4, 1, 1);
+  // George M. Cohan on his pedestal, looking down Broadway
+  { const s = 0.5, [cx, cy] = at(s, 0), k = s * 1.3; R(ctx, '#4a4a54', cx - 5 * k, cy - 8 * k, 10 * k, 8 * k); R(ctx, '#6a6a74', cx - 5 * k, cy - 8 * k, 10 * k, 1); R(ctx, '#5a4628', cx - 2 * k, cy - 20 * k, 4 * k, 12 * k); fillCircle(ctx, '#6a5430', Math.round(cx), Math.round(cy - 22 * k), Math.max(1, Math.round(2 * k))); R(ctx, '#3a2a18', cx - 3 * k, cy - 25 * k, 6 * k, 1); R(ctx, '#6a5430', cx + 2 * k, cy - 16 * k, 1, 8 * k); }
+  // the red glass steps of Duffy Square, glowing from within, seen from above: lit risers between the treads, crowded with people facing the lights
+  { const s1 = 0.56, s2 = 0.86, n = 15, hl = 0.34;
+    ctx.globalCompositeOperation = 'lighter'; { const [cx, cy] = at(0.76, 0), g = ctx.createRadialGradient(cx, cy, 0, cx, cy, gw * 0.24); g.addColorStop(0, 'rgba(255,40,60,0.4)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - gw * 0.24, cy - gw * 0.24, gw * 0.48, gw * 0.48); } ctx.globalCompositeOperation = 'source-over';
+    for (let k2 = 0; k2 < n; k2++) { const sa = s2 - (s2 - s1) * k2 / n, sb2 = s2 - (s2 - s1) * (k2 + 1) / n, [xa, ya] = at(sa, -hl), [xb2] = at(sa, hl), [xc, yc] = at(sb2, -hl), [xd] = at(sb2, hl), hgt = Math.max(1, ya - yc);
+      ctx.fillStyle = '#c81c30'; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xb2, ya); ctx.lineTo(xd, yc); ctx.lineTo(xc, yc); ctx.closePath(); ctx.fill();
+      R(ctx, '#ff6a7a', xc, yc, xd - xc, Math.max(1, Math.round(hgt * 0.35))); R(ctx, '#ffb0b8', xc, yc, xd - xc, 1); }
+    { const [xa, ya] = at(s2, -hl), [xb2] = at(s2, hl), [xc, yc] = at(s1, -hl), [xd] = at(s1, hl); ctx.strokeStyle = '#ff9aa6'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xa, ya); ctx.lineTo(xc, yc); ctx.moveTo(xb2, ya); ctx.lineTo(xd, yc); ctx.stroke(); R(ctx, '#2a1a20', xc, yc - 3, xd - xc, 3); R(ctx, '#ffd040', xc + (xd - xc) * 0.3, yc - 3, (xd - xc) * 0.4, 1); }
+    for (let i = 0; i < 90; i++) { const k2 = (i * 7) % n, sa = s2 - (s2 - s1) * (k2 + 0.5) / n, [px, py] = at(sa, -hl * 0.9 + ((i * 37) % 61) / 100 * hl * 1.8 / 0.61), sz = Math.max(1, Math.round(5 * sa)); R(ctx, ['#2a2430', '#5a2a2a', '#26303a', '#e8e6ec', '#2a5aa8', '#f2c414', '#3a3a46', '#e86a2a'][i % 8], px, py - sz * 2, sz + 1, sz * 2); R(ctx, ['#2a1a14', '#4a2a1a', '#c8a050', '#14121a', '#e8c8a8'][i % 5], px, py - sz * 3, sz + 1, sz); if (anim && (Math.floor(now / 300) + i * 7) % 41 === 0) R(ctx, '#ffffff', px + sz, py - sz * 3, 1, 1); } }
+  // the crowd on the plazas and the pavements, a few costumed characters among them
+  for (let i = 0; i < 230; i++) {
+    const zone = i % 6 === 0 ? (i % 12 ? 0.93 : -0.93) : 0, dir = i % 2 ? 1 : -1, p = ((((i * 0.6180339) % 1) + t * (0.004 + (i % 4) * 0.002) * dir) % 1 + 1) % 1, s = 1 / (1 + 6 * p);
+    const lat = zone || (((i * 0.7548776) % 1) - 0.5) * 0.8 + Math.sin(t / 2 + i) * 0.015; if (!zone && s > 0.56 && Math.abs(lat) < 0.36) continue;
+    const [px, py] = at(s, lat), sz = Math.max(1, Math.round(6 * s)), step = anim && Math.floor(now / 260 + i) % 2;
+    const special = i % 37 === 5 ? 'lib' : i % 41 === 7 ? 'red' : i % 43 === 9 ? 'cowboy' : null;
+    if (special === 'lib') { R(ctx, '#5aa890', px, py - sz * 4, sz + 1, sz * 4); R(ctx, '#7ac8b0', px - 1, py - sz * 5, sz + 3, 1); R(ctx, '#f2c414', px + sz + 1, py - sz * 6, 1, 2); R(ctx, '#5aa890', px + sz, py - sz * 5, 1, sz * 2); continue; }
+    if (special === 'red') { R(ctx, '#e02a2a', px - 1, py - sz * 3, sz + 2, sz * 3); fillCircle(ctx, '#e02a2a', Math.round(px + sz / 2), Math.round(py - sz * 3.5), Math.max(1, sz)); R(ctx, '#ffffff', px, py - sz * 4, 1, 1); R(ctx, '#f28a1a', px + 1, py - sz * 3 - 1, 1, 1); continue; }
+    R(ctx, ['#2a2430', '#5a2a2a', '#26303a', '#d84a3a', '#2a5aa8', '#f2c414', '#e8e6ec', '#4a2a6a', '#3a3a46'][i % 9], px, py - sz * 3, sz + (sz > 2 ? 1 : 0), sz * 2 + 1); R(ctx, ['#e8c8a8', '#b8784e', '#7e4e30', '#dca47a'][i % 4], px, py - sz * 4, Math.max(1, sz), Math.max(1, sz));
+    if (special === 'cowboy') { R(ctx, '#f4f0e6', px, py - sz * 3, sz + 1, sz); R(ctx, '#e8e0c8', px - 1, py - sz * 4 - 1, sz + 3, 1); }
+    if (sz > 2) { R(ctx, '#14121a', px + (step ? 0 : 1), py - sz + 1, 1, sz); R(ctx, '#14121a', px + sz - (step ? 1 : 0), py - sz + 1, 1, sz); }
+    if (anim && (Math.floor(now / 250) + i * 13) % 53 === 0 && sz > 1) R(ctx, '#ffffff', px + sz, py - sz * 4, 1, 1);
   }
-  // yellow cabs and a bus streaming along the avenue: headlights coming, tail lights going
-  for (let i = 0; i < 16; i++) {
-    const lane = [-0.84, -0.56, 0.56, 0.84][i % 4], dir = lane < 0 ? 1 : -1, p = ((((i * 0.371) % 1) + t * (0.05 + (i % 3) * 0.012) * dir) % 1 + 1) % 1, s = 1 / (1 + 7 * p), [cx, cy] = at(s, lane), cw = Math.max(2, Math.round(34 * s)), ch = Math.max(1, Math.round(15 * s)), bus = i === 7;
-    R(ctx, bus ? '#2a5aa8' : '#f2c414', cx - cw / 2, cy - ch, bus ? cw * 1.2 : cw, ch); R(ctx, bus ? '#4a7ac8' : '#ffe46a', cx - cw / 2, cy - ch, bus ? cw * 1.2 : cw, Math.max(1, ch * 0.25)); if (cw > 6) { R(ctx, '#1a1820', cx - cw / 2 + 1, cy - ch * 0.4, Math.max(1, cw * 0.2), 1); R(ctx, '#8ab0d8', cx - cw / 4, cy - ch * 0.85, cw / 2, Math.max(1, ch * 0.3)); }
-    ctx.globalCompositeOperation = 'lighter'; const lc = dir > 0 ? '255,60,50' : '255,240,190', g = ctx.createRadialGradient(cx, cy - ch * 0.3, 0, cx, cy - ch * 0.3, cw * 1.2); g.addColorStop(0, `rgba(${lc},0.55)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - cw * 1.2, cy - ch * 0.3 - cw * 1.2, cw * 2.4, cw * 2.4); ctx.globalCompositeOperation = 'source-over';
+  // traffic on Seventh Avenue and Broadway: yellow cabs, an open-top tour bus, a patrol car with its lights going
+  for (let i = 0; i < 18; i++) {
+    const lane = [-0.86, -0.6, 0.6, 0.86][i % 4], dir = lane < 0 ? 1 : -1, p = ((((i * 0.371) % 1) + t * (0.045 + (i % 3) * 0.01) * dir) % 1 + 1) % 1, s = 1 / (1 + 6 * p), [cx, cy] = at(s, lane);
+    const kind = i === 6 ? 'bus' : i === 11 ? 'cop' : 'cab', cw = Math.max(2, Math.round((kind === 'bus' ? 46 : 32) * s)), ch = Math.max(1, Math.round((kind === 'bus' ? 26 : 15) * s));
+    const body = kind === 'bus' ? '#c8202a' : kind === 'cop' ? '#e8e8f0' : '#f2c414';
+    R(ctx, body, cx - cw / 2, cy - ch, cw, ch); R(ctx, mix(body, '#ffffff', 0.35), cx - cw / 2, cy - ch, cw, Math.max(1, ch * 0.2));
+    if (kind === 'bus') { R(ctx, '#2a4a9a', cx - cw / 2, cy - ch * 0.55, cw, Math.max(1, ch * 0.12)); for (let k = 0; k < 5; k++) R(ctx, ['#e8c8a8', '#2a2430', '#f2c414'][k % 3], cx - cw / 2 + 2 + k * cw / 5, cy - ch - Math.max(1, 3 * s), Math.max(1, 2 * s), Math.max(1, 3 * s)); }
+    if (kind === 'cop') { R(ctx, '#2a4ad8', cx - cw / 2, cy - ch * 0.5, cw, Math.max(1, ch * 0.15)); const on = Math.floor(now / 160) % 2; R(ctx, on ? '#ff2a2a' : '#2a4aff', cx - cw * 0.2, cy - ch - 2, Math.max(1, cw * 0.2), 2); R(ctx, on ? '#2a4aff' : '#ff2a2a', cx, cy - ch - 2, Math.max(1, cw * 0.2), 2); ctx.globalCompositeOperation = 'lighter'; const g = ctx.createRadialGradient(cx, cy - ch, 0, cx, cy - ch, cw * 1.5); g.addColorStop(0, on ? 'rgba(255,40,40,0.35)' : 'rgba(40,80,255,0.35)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - cw * 1.5, cy - ch - cw * 1.5, cw * 3, cw * 3); ctx.globalCompositeOperation = 'source-over'; }
+    if (kind === 'cab' && cw > 6) { R(ctx, '#1a1820', cx - cw / 2 + 1, cy - ch * 0.4, Math.max(1, cw * 0.2), 1); R(ctx, '#8ab0d8', cx - cw / 4, cy - ch * 0.85, cw / 2, Math.max(1, ch * 0.3)); R(ctx, '#1a1820', cx - 2 * s, cy - ch - 2 * s, Math.max(1, 5 * s), Math.max(1, 2 * s)); }
+    ctx.globalCompositeOperation = 'lighter'; const lc = dir > 0 ? '255,50,40' : '255,240,190', g = ctx.createRadialGradient(cx, cy - ch * 0.3, 0, cx, cy - ch * 0.3, cw * 1.1); g.addColorStop(0, `rgba(${lc},0.5)`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(cx - cw * 1.1, cy - ch * 0.3 - cw * 1.1, cw * 2.2, cw * 2.2); ctx.globalCompositeOperation = 'source-over';
   }
-  // steam out of the street, lit pink by the screens
-  for (const [s, lat] of [[0.55, -0.5], [0.24, 0.6]]) { const [mx, my] = at(s, lat); for (let i = 0; i < 6; i++) { const tt = ((now / 1800) + i / 6) % 1; ctx.globalAlpha = 0.25 * (1 - tt); fillCircle(ctx, '#f0d8ec', Math.round(mx + Math.sin(now / 700 + i) * 4 * s + tt * 12 * s), Math.round(my - tt * gh * 0.3 * s), Math.max(1, Math.round((3 + tt * 7) * s * 2))); } ctx.globalAlpha = 1; }
+  // an orange-and-white steam stack in the roadworks, steam pouring out, lit pink
+  for (const [s, lat] of [[0.42, -0.72], [0.27, 0.74]]) { const [mx, my] = at(s, lat), k = s * 1.4; for (let q = 0; q < 6; q++) R(ctx, q % 2 ? '#f4f0ea' : '#f26a1a', mx - 3 * k, my - (q + 1) * 4 * k, 6 * k, 4 * k); for (let i = 0; i < 8; i++) { const tt = ((now / 1800) + i / 8) % 1; ctx.globalAlpha = 0.28 * (1 - tt); fillCircle(ctx, '#f4dcec', Math.round(mx + Math.sin(now / 700 + i) * 4 * k + tt * 14 * k), Math.round(my - 24 * k - tt * gh * 0.35 * s), Math.max(1, Math.round((3 + tt * 8) * k * 1.6))); } ctx.globalAlpha = 1; }
   // the glass: a faint reflection of the room's lamp and two diagonal sheens
   ctx.globalCompositeOperation = 'lighter'; { const g = ctx.createRadialGradient(gx + gw * 0.85, gy + gh * 0.7, 0, gx + gw * 0.85, gy + gh * 0.7, gh * 0.3); g.addColorStop(0, 'rgba(255,200,130,0.12)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(gx, gy, gw, gh); } ctx.globalCompositeOperation = 'source-over';
   ctx.globalAlpha = 0.05; ctx.fillStyle = '#ffffff'; for (const [a, bw] of [[0.1, 0.06], [0.55, 0.03]]) { ctx.beginPath(); ctx.moveTo(gx + gw * a, gy); ctx.lineTo(gx + gw * (a + bw), gy); ctx.lineTo(gx + gw * (a + bw - 0.18), gy + gh); ctx.lineTo(gx + gw * (a - 0.18), gy + gh); ctx.fill(); } ctx.globalAlpha = 1;
