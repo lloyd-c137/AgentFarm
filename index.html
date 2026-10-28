@@ -1222,7 +1222,7 @@ function applyFarm(d) {
     live.first = false; tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
     for (const t of tasks) t.since = liveSince(t);
     announce(tasks.length ? '已连上你的农场' : '已连上你的农场，还没有任务');
-    if (!tasks.length) setTimeout(() => hint('田里还空着 · 打开「连接设备」把 Claude Code / Codex 接进来'), 2500);
+    if (!tasks.length) setTimeout(() => hint('田里还空着 · 打开右下角「设备与账户」把 Claude Code / Codex 接进来'), 2500);
     return;
   }
   // gone from the field: harvested (the newest entries on today's shipping list say with what quality)
@@ -1262,7 +1262,7 @@ async function goLive() {
   try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) { location.replace(j.login); return true; } } if (!r.ok) return false; await r.json(); } catch (e) { return false; }
   live.on = true; tasks = []; shipped = []; harvestToday = 0; harvestWeek = 0;
   await new Promise(r => document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', r) : r());
-  const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '连接设备'; document.body.appendChild(a);
+  const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '设备与账户'; document.body.appendChild(a);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFarm(); });
   await pollFarm();
   return true;

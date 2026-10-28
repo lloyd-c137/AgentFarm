@@ -41,7 +41,7 @@ table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; border-
 <main>
   <header>
     <h1>连接设备</h1>
-    <div class="row"><span class="muted" id="who">正在确认登录……</span><a href="./">← 回农场</a></div>
+    <div class="row"><span class="muted" id="who">正在确认登录……</span><button class="ghost" id="logout" type="button" hidden>退出登录</button><a href="./">← 回农场</a></div>
   </header>
 
   <section class="card">
@@ -95,6 +95,19 @@ table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; border-
     <h2>已连接的设备</h2>
     <table><tbody id="devices"><tr><td class="muted">加载中……</td></tr></tbody></table>
   </section>
+
+  <section class="card" id="acct" hidden>
+    <h2>账户</h2>
+    <p class="muted">修改密码后，其他浏览器上的登录会全部退出。设备钥匙不受影响。</p>
+    <form id="pw-form">
+      <div class="row">
+        <input type="password" id="pw-old" placeholder="当前密码" autocomplete="current-password" aria-label="当前密码" required>
+        <input type="password" id="pw-new" placeholder="新密码（至少 8 位）" autocomplete="new-password" aria-label="新密码" required>
+        <button type="submit">修改密码</button>
+      </div>
+      <p class="muted" id="pw-msg" role="status"></p>
+    </form>
+  </section>
 </main>
 <script>
 (() => {
@@ -104,7 +117,7 @@ const H = { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' };
 const fmt = ms => ms ? new Date(ms).toLocaleString() : '还没上报过';
 
 async function me() {
-  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) return location.replace(j.login + '?next=setup.html'); } if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; }
+  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) return location.replace(j.login + '?next=setup'); } if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; $('logout').hidden = false; $('acct').hidden = false; }
   catch (e) { $('who').textContent = '没有登录，或服务器没有开'; }
 }
 async function list() {
@@ -169,6 +182,15 @@ document.querySelectorAll('pre .copy').forEach(b => b.addEventListener('click', 
   try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; } catch (e) { b.textContent = '请手动选中复制'; }
   setTimeout(() => b.textContent = '复制', 1600);
 }));
+$('logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST', headers: H }).catch(() => {}); location.replace('login.html'); });
+$('pw-form').addEventListener('submit', async e => {
+  e.preventDefault(); const msg = $('pw-msg');
+  if ($('pw-new').value.length < 8) { msg.textContent = '新密码至少 8 位'; return; }
+  const r = await fetch('/api/password', { method: 'POST', headers: H, body: JSON.stringify({ old: $('pw-old').value, password: $('pw-new').value }) }).catch(() => null);
+  const j = r ? await r.json().catch(() => ({})) : {};
+  msg.textContent = r && r.ok ? '密码已修改' : j.error === 'bad_password' ? '当前密码不对' : j.error === 'not_available' ? '这个站点不使用密码登录' : '修改失败';
+  if (r && r.ok) e.target.reset();
+});
 me(); list();
 })();
 </script>

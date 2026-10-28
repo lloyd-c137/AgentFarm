@@ -5,42 +5,95 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>登录 · Agent Farm</title>
 <style>
-:root { --bg: #241a3e; --card: #fffaf0; --ink: #2b2238; --muted: #6d6478; --line: #e2d6b8; --accent: #3f7a3a; --warn: #b2452d; }
-@media (prefers-color-scheme: dark) { :root { --card: #251d36; --ink: #f1e9d6; --muted: #a99fb8; --line: #3a2f52; --accent: #6fb562; --warn: #ff8a6b; } }
+:root { --bg: #241a3e; --card: #fffaf0; --ink: #2b2238; --muted: #6d6478; --line: #e2d6b8; --accent: #3f7a3a; --accent-ink: #fff; --warn: #b2452d; --tab: #efe5cc; }
+@media (prefers-color-scheme: dark) { :root { --card: #251d36; --ink: #f1e9d6; --muted: #a99fb8; --line: #3a2f52; --accent: #6fb562; --accent-ink: #13210f; --warn: #ff8a6b; --tab: #1b1528; } }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg) radial-gradient(circle at 50% 120%, #4b3a2a 0, transparent 60%); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
-form { width: 100%; max-width: 360px; background: var(--card); border-radius: 12px; padding: 28px 24px; box-shadow: 0 10px 40px rgba(0,0,0,.35); }
-h1 { margin: 0 0 4px; font-size: 22px; } p { margin: 0 0 18px; color: var(--muted); }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px; background: var(--bg) radial-gradient(ellipse at 50% 115%, #5a4430 0, transparent 60%); color: var(--ink); font: 15px/1.6 system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; }
+.card { width: 100%; max-width: 380px; background: var(--card); border-radius: 14px; padding: 28px 24px 22px; box-shadow: 0 12px 44px rgba(0,0,0,.4); }
+.brand { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.brand svg { width: 34px; height: 34px; image-rendering: pixelated; }
+h1 { margin: 0; font-size: 22px; }
+.sub { margin: 0 0 18px; color: var(--muted); }
+.tabs { display: grid; grid-template-columns: 1fr 1fr; background: var(--tab); border-radius: 9px; padding: 3px; margin-bottom: 6px; }
+.tabs button { border: 0; background: transparent; padding: 7px; border-radius: 7px; font: inherit; color: var(--muted); cursor: pointer; }
+.tabs button[aria-selected=true] { background: var(--card); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 label { display: block; margin: 12px 0 4px; font-size: 13px; color: var(--muted); }
 input { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: transparent; color: var(--ink); font: inherit; }
-button { width: 100%; margin-top: 20px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+.go { width: 100%; margin-top: 20px; padding: 11px; border: 0; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: inherit; font-weight: 600; cursor: pointer; }
+.go:disabled { opacity: .6; cursor: wait; }
 input:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.err { color: var(--warn); min-height: 1.6em; margin: 10px 0 0; }
+.err { color: var(--warn); min-height: 1.6em; margin: 10px 0 0; font-size: 14px; }
+.foot { margin: 6px 0 0; font-size: 12px; color: var(--muted); text-align: center; }
+.foot a { color: var(--muted); }
+[hidden] { display: none !important; }
 </style>
 </head>
 <body>
-<form id="f">
-  <h1>Agent Farm</h1>
-  <p>用邮箱和团队密码进入你的农场</p>
-  <label for="email">邮箱</label>
-  <input id="email" type="email" autocomplete="email" required>
-  <label for="pw">团队密码</label>
-  <input id="pw" type="password" autocomplete="current-password" required>
-  <button type="submit">进入农场</button>
-  <p class="err" id="err" role="alert"></p>
-</form>
+<main class="card">
+  <div class="brand">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="7" y="9" width="2" height="6" fill="#4d8a3a"/><rect x="3" y="5" width="4" height="4" fill="#6fb562"/><rect x="9" y="3" width="4" height="4" fill="#6fb562"/><rect x="6" y="7" width="2" height="2" fill="#6fb562"/><rect x="8" y="6" width="2" height="2" fill="#6fb562"/><rect x="2" y="15" width="12" height="1" fill="#8a5a33"/></svg>
+    <h1>Agent Farm</h1>
+  </div>
+  <p class="sub" id="sub">登录后看你自己的 AI 农场</p>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="t-login" aria-selected="true">登录</button>
+    <button type="button" role="tab" id="t-reg" aria-selected="false">注册</button>
+  </div>
+  <form id="f" novalidate>
+    <label for="email">邮箱</label>
+    <input id="email" type="email" autocomplete="email" required>
+    <label for="pw">密码</label>
+    <input id="pw" type="password" autocomplete="current-password" required minlength="8">
+    <p class="hint" id="pw-hint" hidden>至少 8 位</p>
+    <div id="again-wrap" hidden>
+      <label for="pw2">再输一次密码</label>
+      <input id="pw2" type="password" autocomplete="new-password">
+    </div>
+    <button class="go" type="submit" id="go">登录</button>
+    <p class="err" id="err" role="alert"></p>
+  </form>
+  <p class="foot">每个账户的农场、设备和任务完全分开 · <a href="./?demo">先看看演示</a></p>
+</main>
 <script>
-document.getElementById('f').addEventListener('submit', async e => {
-  e.preventDefault(); const err = document.getElementById('err'); err.textContent = '';
+(() => {
+const $ = id => document.getElementById(id);
+let mode = location.hash === '#register' ? 'reg' : 'login';
+function setMode(m) {
+  mode = m; const reg = m === 'reg';
+  $('t-login').setAttribute('aria-selected', !reg); $('t-reg').setAttribute('aria-selected', reg);
+  $('again-wrap').hidden = !reg; $('pw-hint').hidden = !reg;
+  $('pw').autocomplete = reg ? 'new-password' : 'current-password';
+  $('go').textContent = reg ? '注册并进入农场' : '登录';
+  $('sub').textContent = reg ? '注册一个账户，开垦你自己的农场' : '登录后看你自己的 AI 农场';
+  $('err').textContent = '';
+  history.replaceState(null, '', location.pathname + location.search + (reg ? '#register' : ''));
+}
+$('t-login').onclick = () => setMode('login');
+$('t-reg').onclick = () => setMode('reg');
+setMode(mode);
+
+const MSG = { bad_email: '邮箱格式不对', weak_password: '密码至少 8 位', email_taken: '这个邮箱已经注册过了，直接登录吧', bad_login: '邮箱或密码不对', bad_request: '请求格式不对' };
+$('f').addEventListener('submit', async e => {
+  e.preventDefault(); const err = $('err'); err.textContent = '';
+  const email = $('email').value.trim(), password = $('pw').value;
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { err.textContent = MSG.bad_email; $('email').focus(); return; }
+  if (mode === 'reg') {
+    if (password.length < 8) { err.textContent = MSG.weak_password; $('pw').focus(); return; }
+    if (password !== $('pw2').value) { err.textContent = '两次密码不一样'; $('pw2').focus(); return; }
+  } else if (!password) { err.textContent = '请输入密码'; $('pw').focus(); return; }
+  $('go').disabled = true;
   try {
-    const r = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('pw').value }) });
-    if (r.ok) { const next = new URLSearchParams(location.search).get('next'); location.replace(next === 'setup.html' ? 'setup.html' : './'); return; }
+    const r = await fetch(mode === 'reg' ? '/api/register' : '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     const j = await r.json().catch(() => ({}));
-    err.textContent = j.error === 'bad_password' ? '密码不对' : j.error === 'bad_email' ? '邮箱格式不对' : '登录失败，稍后再试';
+    if (r.ok) { try { localStorage.setItem('af-email', email); } catch (x) {} const next = new URLSearchParams(location.search).get('next'); location.replace(next === 'setup' ? 'setup.html' : './'); return; }
+    err.textContent = j.error === 'locked' ? `失败次数太多，${j.retryAfterMin} 分钟后再试` : (MSG[j.error] || '出错了，稍后再试');
+    if (j.error === 'email_taken') setTimeout(() => setMode('login'), 1200);
   } catch (x) { err.textContent = '连不上服务器'; }
+  finally { $('go').disabled = false; }
 });
-try { const k = localStorage.getItem('af-email'); if (k) document.getElementById('email').value = k; } catch (e) {}
-document.getElementById('email').addEventListener('change', e => { try { localStorage.setItem('af-email', e.target.value); } catch (x) {} });
+try { const k = localStorage.getItem('af-email'); if (k) $('email').value = k; } catch (e) {}
+})();
 </script>
 </body>
 </html>

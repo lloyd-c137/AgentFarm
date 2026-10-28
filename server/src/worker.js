@@ -55,34 +55,90 @@ async function verifyAccessJwt(token, env) {
   if (!aud.includes(env.ACCESS_AUD) || claims.exp * 1000 < Date.now() || claims.iss !== `https://${env.ACCESS_TEAM_DOMAIN}`) return null;
   return claims;
 }
-/* team-password login, used until Cloudflare Access is switched on: the cookie is the email plus an HMAC of it */
-const COOKIE = 'af_session';
-async function hmac(secret, msg) {
-  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
-  return b64url(new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg))));
+/* accounts: email + password. Passwords are PBKDF2-SHA256 with a per-user salt; a login gets a random
+   session token in an HttpOnly cookie, and only the token's hash is stored. Each email owns its own farm. */
+const COOKIE = 'af_session', SESSION_DAYS = 90, PBKDF2_ITER = 100000; // 100k is the most Workers allows
+const MAX_FAILS = 10, FAIL_WINDOW = 15 * 60e3;
+const enc = new TextEncoder();
+async function pbkdf2(password, salt, iter) {
+  const k = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+  return new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: iter }, k, 256));
+}
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  return `pbkdf2$${PBKDF2_ITER}$${b64url(salt)}$${b64url(await pbkdf2(password, salt, PBKDF2_ITER))}`;
+}
+async function checkPassword(password, stored) {
+  const [kind, iter, salt, hash] = String(stored).split('$'); if (kind !== 'pbkdf2') return false;
+  const got = await pbkdf2(password, unb64(salt), Number(iter)), want = unb64(hash);
+  if (got.length !== want.length) return false;
+  let diff = 0; for (let i = 0; i < got.length; i++) diff |= got[i] ^ want[i]; return diff === 0;
 }
 function cookieOf(req, name) { const m = (req.headers.get('Cookie') || '').match(new RegExp('(?:^|;\\s*)' + name + '=([^;]+)')); return m ? decodeURIComponent(m[1]) : null; }
+const sessionCookie = (v, maxAge) => `${COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 async function sessionEmail(req, env) {
   const c = cookieOf(req, COOKIE); if (!c) return null;
-  const i = c.lastIndexOf('.'); if (i < 0) return null;
-  const email = c.slice(0, i);
-  return (await hmac(env.SITE_PASSWORD, 'session|' + email)) === c.slice(i + 1) ? email : null;
+  const row = await env.DB.prepare('SELECT email, expires_at FROM sessions WHERE token_hash = ?').bind(await sha256hex(c)).first();
+  return row && row.expires_at > Date.now() ? row.email : null;
+}
+async function startSession(env, email, body, status = 200) {
+  const token = b64url(crypto.getRandomValues(new Uint8Array(32))), now = Date.now();
+  await env.DB.prepare('INSERT INTO sessions (token_hash, email, created_at, expires_at) VALUES (?, ?, ?, ?)').bind(await sha256hex(token), email, now, now + SESSION_DAYS * 864e5).run();
+  return json(body, status, { 'Set-Cookie': sessionCookie(token, SESSION_DAYS * 86400) });
+}
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+async function credentials(req) {
+  const b = await req.json().catch(() => ({}));
+  return { email: clip(b.email, 120).toLowerCase(), password: typeof b.password === 'string' ? b.password : '', b };
+}
+async function register(req, env) {
+  const { email, password } = await credentials(req);
+  if (!EMAIL_RE.test(email)) return json({ error: 'bad_email' }, 400);
+  if (password.length < 8 || password.length > 200) return json({ error: 'weak_password' }, 400);
+  const res = await env.DB.prepare('INSERT OR IGNORE INTO users (email, pw, created_at) VALUES (?, ?, ?)').bind(email, await hashPassword(password), Date.now()).run();
+  if (!res.meta.changes) return json({ error: 'email_taken' }, 409);
+  await farmOf(env, email);
+  return startSession(env, email, { email }, 201);
 }
 async function login(req, env) {
-  const b = await req.json().catch(() => ({}));
-  const email = clip(b.email, 120).toLowerCase();
-  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return json({ error: 'bad_email' }, 400);
-  // compare via HMAC so the check takes the same time whatever was typed
-  if ((await hmac(env.SITE_PASSWORD, 'pw|' + String(b.password || ''))) !== (await hmac(env.SITE_PASSWORD, 'pw|' + env.SITE_PASSWORD))) return json({ error: 'bad_password' }, 403);
-  const v = encodeURIComponent(email + '.' + await hmac(env.SITE_PASSWORD, 'session|' + email));
-  return json({ email }, 200, { 'Set-Cookie': `${COOKIE}=${v}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=31536000` });
+  const { email, password } = await credentials(req), now = Date.now();
+  if (!EMAIL_RE.test(email) || !password) return json({ error: 'bad_login' }, 403);
+  const fails = await env.DB.prepare('SELECT count, first_at FROM login_fails WHERE email = ?').bind(email).first();
+  if (fails && now - fails.first_at < FAIL_WINDOW && fails.count >= MAX_FAILS) return json({ error: 'locked', retryAfterMin: Math.ceil((fails.first_at + FAIL_WINDOW - now) / 60e3) }, 429);
+  const user = await env.DB.prepare('SELECT pw FROM users WHERE email = ?').bind(email).first();
+  // hash something even for unknown emails so the response time doesn't reveal which emails exist
+  const ok = user ? await checkPassword(password, user.pw) : (await hashPassword(password), false);
+  if (!ok) {
+    await env.DB.prepare('INSERT INTO login_fails (email, count, first_at) VALUES (?, 1, ?) ON CONFLICT(email) DO UPDATE SET count = CASE WHEN ? - first_at > ? THEN 1 ELSE count + 1 END, first_at = CASE WHEN ? - first_at > ? THEN ? ELSE first_at END')
+      .bind(email, now, now, FAIL_WINDOW, now, FAIL_WINDOW, now).run();
+    return json({ error: 'bad_login' }, 403);
+  }
+  await env.DB.prepare('DELETE FROM login_fails WHERE email = ?').bind(email).run();
+  return startSession(env, email, { email });
 }
+async function logout(req, env) {
+  const c = cookieOf(req, COOKIE);
+  if (c) await env.DB.prepare('DELETE FROM sessions WHERE token_hash = ?').bind(await sha256hex(c)).run();
+  return json({ ok: true }, 200, { 'Set-Cookie': sessionCookie('', 0) });
+}
+async function changePassword(req, env, email) {
+  const b = await req.json().catch(() => ({}));
+  const user = await env.DB.prepare('SELECT pw FROM users WHERE email = ?').bind(email).first();
+  if (!user || !(await checkPassword(String(b.old || ''), user.pw))) return json({ error: 'bad_password' }, 403);
+  if (typeof b.password !== 'string' || b.password.length < 8 || b.password.length > 200) return json({ error: 'weak_password' }, 400);
+  // a new password signs every other browser out
+  await env.DB.batch([
+    env.DB.prepare('UPDATE users SET pw = ? WHERE email = ?').bind(await hashPassword(b.password), email),
+    env.DB.prepare('DELETE FROM sessions WHERE email = ?').bind(email)
+  ]);
+  return startSession(env, email, { ok: true });
+}
+const accessOn = env => !!(env.ACCESS_TEAM_DOMAIN && env.ACCESS_AUD);
 
 async function userEmail(req, env) {
   if (env.DEV_USER) return String(env.DEV_USER).toLowerCase();
-  const jwt = req.headers.get('Cf-Access-Jwt-Assertion');
-  if ((!jwt || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) && env.SITE_PASSWORD) return sessionEmail(req, env);
-  if (!jwt || !env.ACCESS_TEAM_DOMAIN || !env.ACCESS_AUD) return null;
+  if (!accessOn(env)) return sessionEmail(req, env);
+  const jwt = req.headers.get('Cf-Access-Jwt-Assertion'); if (!jwt) return null;
   const claims = await verifyAccessJwt(jwt, env).catch(() => null);
   return claims && claims.email ? String(claims.email).toLowerCase() : null;
 }
@@ -96,15 +152,21 @@ const bump = (env, farmKey) => env.DB.prepare('UPDATE farms SET version = versio
 
 /* ---------- /api: the farm page ---------- */
 async function api(req, env, url) {
-  if (url.pathname === '/api/login' && req.method === 'POST') return env.SITE_PASSWORD ? login(req, env) : json({ error: 'password_login_off' }, 404);
-  if (url.pathname === '/api/logout' && req.method === 'POST') return json({ ok: true }, 200, { 'Set-Cookie': `${COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0` });
+  const path0 = url.pathname, accounts = !env.DEV_USER && !accessOn(env);
+  if (accounts && req.method === 'POST' && (path0 === '/api/login' || path0 === '/api/register')) {
+    // a JSON body can't be sent cross-site without a CORS preflight, which we never allow
+    if (!(req.headers.get('Content-Type') || '').includes('application/json')) return json({ error: 'bad_request' }, 400);
+    return path0 === '/api/login' ? login(req, env) : register(req, env);
+  }
+  if (accounts && req.method === 'POST' && path0 === '/api/logout') return logout(req, env);
   const email = await userEmail(req, env);
-  if (!email) return json({ error: 'not_signed_in', login: env.SITE_PASSWORD ? 'login.html' : null }, 401);
+  if (!email) return json({ error: 'not_signed_in', login: accounts ? 'login.html' : null }, 401);
   const farm = await farmOf(env, email), path = url.pathname, m = req.method;
   // writes need our own header: a cross-site form or script can't add it without a CORS preflight we never allow
   if (m !== 'GET' && req.headers.get('X-Agent-Farm') !== '1') return json({ error: 'missing_header' }, 403);
 
   if (path === '/api/me' && m === 'GET') return json({ email });
+  if (path === '/api/password' && m === 'POST') return accounts ? changePassword(req, env, email) : json({ error: 'not_available' }, 404);
 
   if (path === '/api/farm' && m === 'GET') {
     const v = Number(url.searchParams.get('v') || 0);
@@ -265,6 +327,9 @@ export async function sweep(env, now) {
   const farms = new Set([...stalled.results, ...harvested.results].map(r => r.farm_key));
   const stmts = [...farms].map(k => bump(env, k));
   stmts.push(env.DB.prepare('DELETE FROM tasks WHERE harvested_at IS NOT NULL AND harvested_at < ?').bind(now - 30 * 864e5));
+  if (new Date(now).getUTCMinutes() === 0) stmts.push( // hourly housekeeping
+    env.DB.prepare('DELETE FROM sessions WHERE expires_at < ?').bind(now),
+    env.DB.prepare('DELETE FROM login_fails WHERE first_at < ?').bind(now - FAIL_WINDOW));
   await env.DB.batch(stmts);
   return { stalled: stalled.results.length, harvested: harvested.results.length };
 }
