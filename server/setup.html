@@ -34,6 +34,12 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid 
 .tabs button[aria-selected=true] { background: var(--wood-3); color: var(--paper-hi); text-shadow: 0 3px 0 var(--wood-0); box-shadow: inset 0 0 0 3px var(--ol), inset 0 3px 0 3px var(--wood-4), inset 0 -3px 0 3px var(--wood-1); }
 pre { position: relative; margin: 8px 0; padding: 14px 16px; background: var(--code); color: var(--code-ink); overflow-x: auto; font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; box-shadow: inset 0 0 0 3px var(--ol), inset 0 6px 0 3px #3a2a40; }
 pre .copy { position: absolute; top: 9px; right: 9px; }
+pre.prompt { max-height: 340px; padding-top: 52px; }
+pre.prompt code { white-space: pre-wrap; word-break: break-word; }
+pre.prompt .copy { padding: 6px 14px 9px; }
+details { margin-top: 12px; }
+summary { cursor: pointer; color: var(--ink-muted); }
+summary:focus-visible { outline: 3px solid var(--y-2); outline-offset: 3px; }
 code { font: 12px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--paper-lo); padding: 1px 5px; }
 pre code { background: none; padding: 0; }
 .token { padding: 12px 14px; background: var(--paper-hi); word-break: break-all; font: 12px ui-monospace, monospace; box-shadow: inset 0 0 0 3px var(--g-2); }
@@ -75,25 +81,35 @@ table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; vertica
 
     <div data-panel="cc">
       <ol>
-        <li>打开 <code>~/.claude/settings.json</code>（没有就新建）。</li>
-        <li>把下面的 <code>"hooks"</code> 合并进去；已经有 hooks 的话，把每个事件里的条目追加进对应数组。</li>
+        <li>点「复制提示词」。</li>
+        <li>打开 Claude Code（在哪个项目里都行），粘贴发送。它会自己备份并修改 <code>~/.claude/settings.json</code>，再发一条测试事件确认连上了；请求改文件时选同意。</li>
         <li>新开一个 Claude Code 会话，发一句话，农场里就会冒出一株新苗。</li>
       </ol>
-      <pre><button class="copy ghost">复制</button><code id="cc-json"></code></pre>
+      <pre class="prompt"><button class="copy" data-label="复制提示词">复制提示词</button><code id="cc-prompt"></code></pre>
       <p class="muted">这些 hook 只上报，不替你做任何决定：服务器总是回空的 200，授权弹窗照常出现；服务器连不上时 Claude Code 也照常工作。</p>
+      <details>
+        <summary>想自己手动配置</summary>
+        <p class="muted">打开 <code>~/.claude/settings.json</code>（没有就新建），把下面的 <code>"hooks"</code> 合并进去；已经有 hooks 的话，把每个事件里的条目追加进对应数组。</p>
+        <pre><button class="copy ghost" data-label="复制">复制</button><code id="cc-json"></code></pre>
+      </details>
     </div>
 
     <div data-panel="codex" hidden>
       <ol>
-        <li>保存下面的转发脚本为 <code>~/.codex/agent-farm.sh</code>，然后执行 <code>chmod +x ~/.codex/agent-farm.sh</code>。</li>
-        <li>把 hooks 写进 <code>~/.codex/hooks.json</code>（已有的话合并进去）。</li>
-        <li>启动 Codex，输入 <code>/hooks</code>，把这几个 hook 标记为信任。改动过脚本或配置后要重新信任一次。</li>
+        <li>点「复制提示词」。</li>
+        <li>打开 Codex，粘贴发送。它会自己写好转发脚本、备份并修改 <code>~/.codex/hooks.json</code>，再测试连接；请求改文件或联网时选同意。</li>
+        <li>重启 Codex，输入 <code>/hooks</code>，把 Agent Farm 的几条 hook 标记为信任，之后就生效了。</li>
       </ol>
+      <pre class="prompt"><button class="copy" data-label="复制提示词">复制提示词</button><code id="codex-prompt"></code></pre>
+      <p class="muted">转发脚本在后台发送、立刻退出，不往终端打印任何东西，所以不会拖慢 Codex，也不会给它塞额外上下文。目前适用于 macOS / Linux。</p>
+      <details>
+        <summary>想自己手动配置</summary>
+        <p class="muted">把转发脚本保存为 <code>~/.codex/agent-farm.sh</code> 并执行 <code>chmod +x ~/.codex/agent-farm.sh</code>，再把 hooks 合并进 <code>~/.codex/hooks.json</code>，最后在 Codex 里用 <code>/hooks</code> 信任它们。</p>
       <h3>转发脚本 · agent-farm.sh</h3>
-      <pre><button class="copy ghost">复制</button><code id="codex-sh"></code></pre>
+      <pre><button class="copy ghost" data-label="复制">复制</button><code id="codex-sh"></code></pre>
       <h3>~/.codex/hooks.json</h3>
-      <pre><button class="copy ghost">复制</button><code id="codex-json"></code></pre>
-      <p class="muted">脚本在后台发送、立刻退出，不往终端打印任何东西，所以不会拖慢 Codex，也不会给它塞额外上下文。目前适用于 macOS / Linux。</p>
+      <pre><button class="copy ghost" data-label="复制">复制</button><code id="codex-json"></code></pre>
+      </details>
     </div>
   </section>
 
@@ -160,6 +176,43 @@ body=$(cat)
 exit 0
 `;
 }
+// a message the user pastes into the AI tool itself; it edits its own config, checks the connection and reports back
+function ccPrompt(token) {
+  return `请帮我把 Agent Farm 接入 Claude Code，直接动手完成，不用再问我。
+Agent Farm 是一个用像素农场展示 AI 任务状态的网站，需要在 Claude Code 的用户级设置里加几个 hook，把会话事件上报给它。这些 hook 只上报，不会替我批准或拦截任何操作。
+
+请按顺序做：
+1. 打开 ~/.claude/settings.json；不存在就创建，内容为 {}。修改前先复制一份备份，文件名加上 .bak- 和当前时间戳。
+2. 把文末 JSON 里 "hooks" 下的条目合并进去：
+   - 保留文件里原有的所有设置和 hook，不要删改；
+   - 每个事件名下，把新条目追加到该事件已有数组的末尾；
+   - 如果某个事件里已经有 url 为 ${ORIGIN}/ingest/claude-code 的条目，用新的替换它，不要重复添加。
+3. 保存后确认文件仍是合法 JSON，例如运行 python3 -m json.tool ~/.claude/settings.json。
+4. 发一条测试事件确认能连上 Agent Farm，应输出 200：
+   curl -s -o /dev/null -w '%{http_code}\\n' -X POST ${ORIGIN}/ingest/claude-code -H 'Authorization: Bearer ${token}' -H 'Content-Type: application/json' -d '{"hook_event_name":"SessionStart","session_id":"agent-farm-setup-check"}'
+5. 完成后告诉我：备份文件的路径、加了哪些事件、测试返回的状态码，并提醒我新开一个 Claude Code 会话后才生效。
+
+要合并的配置：
+${ccConfig(token)}`;
+}
+function codexPrompt(token) {
+  return `请帮我把 Agent Farm 接入 Codex，直接动手完成，不用再问我。
+Agent Farm 是一个用像素农场展示 AI 任务状态的网站，需要给 Codex 加几个 hook，通过一个转发脚本把会话事件上报给它。脚本只在后台上报、不输出任何内容，不会影响 Codex 的行为。
+
+请按顺序做：
+1. 创建文件 ~/.codex/agent-farm.sh（目录不存在就先创建），内容一字不差地使用文末的「转发脚本」，然后执行 chmod +x ~/.codex/agent-farm.sh。
+2. 打开 ~/.codex/hooks.json；不存在就创建，内容为 {}。修改前先复制一份备份，文件名加上 .bak- 和当前时间戳。
+3. 把文末「hooks 配置」里 "hooks" 下的条目合并进去：保留原有内容；每个事件名下把新条目追加到已有数组末尾；如果某个事件里已经有 command 为 ~/.codex/agent-farm.sh 的条目，用新的替换，不要重复添加。
+4. 确认 hooks.json 是合法 JSON，例如运行 python3 -m json.tool ~/.codex/hooks.json。
+5. 测试连接，应输出 200：
+   curl -s -o /dev/null -w '%{http_code}\\n' -X POST ${ORIGIN}/ingest/codex -H 'Authorization: Bearer ${token}' -H 'Content-Type: application/json' -d '{"hook_event_name":"SessionStart","session_id":"agent-farm-setup-check"}'
+6. 完成后告诉我：备份文件的路径、测试返回的状态码，并提醒我：重启 Codex 后输入 /hooks，把 Agent Farm 的几条 hook 标记为信任，之后才会生效。
+
+转发脚本：
+${codexScript(token)}
+hooks 配置：
+${codexConfig()}`;
+}
 function codexConfig() {
   const cmd = (t) => [{ hooks: [{ type: 'command', command: '~/.codex/agent-farm.sh', timeout: t }] }];
   return JSON.stringify({ hooks: { UserPromptSubmit: cmd(5), PermissionRequest: cmd(5), PostToolUse: cmd(5), Stop: cmd(5), Interrupt: cmd(3), SessionEnd: cmd(3) } }, null, 2);
@@ -172,6 +225,8 @@ $('new-form').addEventListener('submit', async e => {
     const r = await fetch('/api/devices', { method: 'POST', headers: H, body: JSON.stringify({ name: $('dev-name').value }) });
     const j = await r.json(); if (!r.ok) throw new Error(j.error || r.status);
     $('token').textContent = j.token; $('new-out').hidden = false; $('cfg').hidden = false;
+    $('cc-prompt').textContent = ccPrompt(j.token);
+    $('codex-prompt').textContent = codexPrompt(j.token);
     $('cc-json').textContent = ccConfig(j.token);
     $('codex-sh').textContent = codexScript(j.token);
     $('codex-json').textContent = codexConfig();
@@ -185,9 +240,9 @@ document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click',
   document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== t.dataset.tab);
 }));
 document.querySelectorAll('pre .copy').forEach(b => b.addEventListener('click', async () => {
-  const code = b.parentElement.querySelector('code').textContent;
+  const code = b.parentElement.querySelector('code').textContent, label = b.dataset.label || '复制';
   try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; } catch (e) { b.textContent = '请手动选中复制'; }
-  setTimeout(() => b.textContent = '复制', 1600);
+  setTimeout(() => b.textContent = label, 1600);
 }));
 $('logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST', headers: H }).catch(() => {}); location.replace('login.html'); });
 $('pw-form').addEventListener('submit', async e => {
