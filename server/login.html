@@ -84,7 +84,7 @@ $('f').addEventListener('submit', async e => {
   try {
     const r = await fetch(mode === 'reg' ? '/api/register' : '/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
     const j = await r.json().catch(() => ({}));
-    if (r.ok) { try { localStorage.setItem('af-email', email); } catch (x) {} const next = new URLSearchParams(location.search).get('next'); location.replace(next === 'setup' ? 'setup.html' : './'); return; }
+    if (r.ok) { try { localStorage.setItem('af-email', email); } catch (x) {} const next = new URLSearchParams(location.search).get('next'); location.replace(next === 'setup' ? '/setup' : '/'); return; }
     err.textContent = j.error === 'locked' ? `失败次数太多，${j.retryAfterMin} 分钟后再试` : (MSG[j.error] || '出错了，稍后再试');
     if (j.error === 'email_taken') setTimeout(() => setMode('login'), 1200);
   } catch (x) { err.textContent = '连不上服务器'; }

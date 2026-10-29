@@ -1305,7 +1305,12 @@ async function goLive() {
   try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) { location.replace(j.login); return true; } } if (!r.ok) return false; await r.json(); } catch (e) { return false; }
   live.on = true; tasks = []; shipped = []; harvestToday = 0; harvestWeek = 0;
   // the script sits at the end of <body>, so the body exists; don't wait for DOMContentLoaded, which also waits for any third-party module scripts
-  const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '设备与账户'; document.body.appendChild(a);
+  const a = document.createElement('a'); a.href = '/setup'; a.id = 'setup-link'; a.textContent = '设备与账户'; document.body.appendChild(a);
+  // open it instantly: Chrome and Edge prerender the page while the pointer is on the button, other browsers fetch it ahead
+  try {
+    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) { const sr = document.createElement('script'); sr.type = 'speculationrules'; sr.textContent = JSON.stringify({ prerender: [{ urls: ['/setup'], eagerness: 'moderate' }] }); document.head.appendChild(sr); }
+    else { const l = document.createElement('link'); l.rel = 'prefetch'; l.href = '/setup'; document.head.appendChild(l); }
+  } catch (e) { /* prefetching is only a speed-up */ }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFarm(); });
   await pollFarm();
   return true;

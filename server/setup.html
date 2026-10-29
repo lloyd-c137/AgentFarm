@@ -139,25 +139,34 @@ const ORIGIN = location.origin;
 const H = { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' };
 const fmt = ms => ms ? new Date(ms).toLocaleString() : '还没上报过';
 
+// the last answers are kept in this browser, so the page shows your account and devices at once and refreshes them
+// quietly; nothing here waits on the network before it can be read
+const CACHE = 'af-setup-cache';
+const cached = (() => { try { return JSON.parse(localStorage.getItem(CACHE) || '{}') || {}; } catch (e) { return {}; } })();
+const remember = (k, v) => { cached[k] = v; try { localStorage.setItem(CACHE, JSON.stringify(cached)); } catch (e) { /* storage unavailable */ } };
+function showMe(email) { $('who').textContent = email; $('logout').hidden = false; $('acct').hidden = false; }
 async function me() {
-  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) return location.replace(j.login + '?next=setup'); } if (!r.ok) throw 0; const j = await r.json(); $('who').textContent = j.email; $('logout').hidden = false; $('acct').hidden = false; }
-  catch (e) { $('who').textContent = '没有登录，或服务器没有开'; }
+  try { const r = await fetch('/api/me', { cache: 'no-store' }); if (r.status === 401) { try { localStorage.removeItem(CACHE); } catch (x) {} const j = await r.json().catch(() => ({})); if (j.login) return location.replace(j.login + '?next=setup'); } if (!r.ok) throw 0; const j = await r.json(); showMe(j.email); remember('email', j.email); }
+  catch (e) { if (!cached.email) $('who').textContent = '没有登录，或服务器没有开'; }
 }
 async function list() {
-  const tb = $('devices');
   try {
-    const r = await fetch('/api/devices', { cache: 'no-store' }); const j = await r.json();
-    tb.replaceChildren();
-    if (!j.devices.length) { tb.innerHTML = '<tr><td class="muted">还没有设备</td></tr>'; return; }
-    for (const d of j.devices) {
-      const tr = document.createElement('tr');
-      const a = document.createElement('td'); a.textContent = d.name;
-      const b = document.createElement('td'); b.className = 'muted'; b.textContent = '最近上报：' + fmt(d.last_seen);
-      const c = document.createElement('td'); const del = document.createElement('button'); del.className = 'ghost danger'; del.textContent = '删除';
-      del.onclick = async () => { del.disabled = true; await fetch('/api/devices/' + d.id, { method: 'DELETE', headers: H }); list(); };
-      c.appendChild(del); tr.append(a, b, c); tb.appendChild(tr);
-    }
-  } catch (e) { tb.innerHTML = '<tr><td class="err">读取设备失败</td></tr>'; }
+    const r = await fetch('/api/devices', { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json();
+    remember('devices', j.devices); showDevices(j.devices);
+  } catch (e) { if (!cached.devices) $('devices').innerHTML = '<tr><td class="err">读取设备失败</td></tr>'; }
+}
+function showDevices(devices) {
+  const tb = $('devices');
+  tb.replaceChildren();
+  if (!devices.length) { tb.innerHTML = '<tr><td class="muted">还没有设备</td></tr>'; return; }
+  for (const d of devices) {
+    const tr = document.createElement('tr');
+    const a = document.createElement('td'); a.textContent = d.name;
+    const b = document.createElement('td'); b.className = 'muted'; b.textContent = '最近上报：' + fmt(d.last_seen);
+    const c = document.createElement('td'); const del = document.createElement('button'); del.className = 'ghost danger'; del.textContent = '删除';
+    del.onclick = async () => { del.disabled = true; await fetch('/api/devices/' + d.id, { method: 'DELETE', headers: H }); list(); };
+    c.appendChild(del); tr.append(a, b, c); tb.appendChild(tr);
+  }
 }
 
 function ccConfig(token) {
@@ -244,7 +253,7 @@ document.querySelectorAll('pre .copy').forEach(b => b.addEventListener('click', 
   try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; } catch (e) { b.textContent = '请手动选中复制'; }
   setTimeout(() => b.textContent = label, 1600);
 }));
-$('logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST', headers: H }).catch(() => {}); location.replace('login.html'); });
+$('logout').addEventListener('click', async () => { await fetch('/api/logout', { method: 'POST', headers: H }).catch(() => {}); try { localStorage.removeItem(CACHE); } catch (x) {} location.replace('/login'); });
 $('pw-form').addEventListener('submit', async e => {
   e.preventDefault(); const msg = $('pw-msg');
   if ($('pw-new').value.length < 8) { msg.textContent = '新密码至少 8 位'; return; }
@@ -253,6 +262,7 @@ $('pw-form').addEventListener('submit', async e => {
   msg.textContent = r && r.ok ? '密码已修改' : j.error === 'bad_password' ? '当前密码不对' : j.error === 'not_available' ? '这个站点不使用密码登录' : '修改失败';
   if (r && r.ok) e.target.reset();
 });
+if (cached.email) showMe(cached.email); if (Array.isArray(cached.devices)) showDevices(cached.devices);
 me(); list();
 })();
 </script>

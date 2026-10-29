@@ -166,7 +166,7 @@ async function api(req, env, url) {
   }
   if (accounts && req.method === 'POST' && path0 === '/api/logout') return logout(req, env);
   const user = await currentUser(req, env);
-  if (!user) return json({ error: 'not_signed_in', login: accounts ? 'login.html' : null }, 401);
+  if (!user) return json({ error: 'not_signed_in', login: accounts ? '/login' : null }, 401);
   const email = user.email, farm = user.farm || await farmOf(env, email), path = url.pathname, m = req.method;
   // writes need our own header: a cross-site form or script can't add it without a CORS preflight we never allow
   if (m !== 'GET' && req.headers.get('X-Agent-Farm') !== '1') return json({ error: 'missing_header' }, 403);
