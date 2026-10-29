@@ -204,8 +204,8 @@ async function api(req, env, url) {
   }
 
   if (path === '/api/devices' && m === 'GET') {
-    const r = await env.DB.prepare('SELECT id, name, created_at, last_seen FROM devices WHERE farm_key = ? ORDER BY created_at DESC').bind(farm.key).all();
-    return json({ devices: r.results });
+    const r = await env.DB.prepare('SELECT id, name, created_at, last_seen, sources FROM devices WHERE farm_key = ? ORDER BY created_at DESC').bind(farm.key).all();
+    return json({ devices: r.results.map(d => ({ ...d, sources: d.sources ? d.sources.split(',') : [] })) });
   }
   if (path === '/api/devices' && m === 'POST') {
     const body = await req.json().catch(() => ({}));
@@ -330,7 +330,7 @@ async function ingest(req, env, url, ctx) {
   if (!SOURCES[source]) return empty(404);
   const token = (req.headers.get('Authorization') || '').replace(/^Bearer\s+/i, '').trim();
   if (!token) return empty(401);
-  const dev = await env.DB.prepare('SELECT id, farm_key FROM devices WHERE token_hash = ?').bind(await sha256hex(token)).first();
+  const dev = await env.DB.prepare('SELECT id, farm_key, sources FROM devices WHERE token_hash = ?').bind(await sha256hex(token)).first();
   if (!dev) return empty(401);
   const text = await req.text();
   if (text.length > MAX_BODY) return empty(413);
@@ -338,7 +338,10 @@ async function ingest(req, env, url, ctx) {
   const ev = normalize(body);
   if (ev) await applyEvent(env, dev.farm_key, source, ev, Date.now());
   const now = Date.now();
-  ctx.waitUntil(env.DB.prepare('UPDATE devices SET last_seen = ? WHERE id = ? AND (last_seen IS NULL OR last_seen < ?)').bind(now, dev.id, now - 5 * 60e3).run());
+  // the first event from a tool is written before replying, so the setup page can show "connected" right away
+  const known = dev.sources ? dev.sources.split(',') : [];
+  if (!known.includes(source)) await env.DB.prepare('UPDATE devices SET last_seen = ?, sources = ? WHERE id = ?').bind(now, [...known, source].join(','), dev.id).run();
+  else ctx.waitUntil(env.DB.prepare('UPDATE devices SET last_seen = ? WHERE id = ? AND (last_seen IS NULL OR last_seen < ?)').bind(now, dev.id, now - 5 * 60e3).run());
   return empty(200); // an empty 2xx = "no decision": the hook never approves, blocks or adds anything
 }
 

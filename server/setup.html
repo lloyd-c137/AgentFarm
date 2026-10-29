@@ -46,6 +46,16 @@ pre code { background: none; padding: 0; }
 ol { padding-left: 22px; } li { margin: 3px 0; }
 table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; vertical-align: middle; background-image: repeating-linear-gradient(90deg, var(--paper-lo) 0 6px, transparent 6px 12px); background-size: 100% 3px; background-repeat: no-repeat; } td:last-child { text-align: right; }
 .err { color: var(--alert); }
+/* live connection status under step 2: waits for the first event from the agent, then turns green on its own */
+.link { display: flex; gap: 12px; align-items: flex-start; margin: 10px 0 6px; padding: 12px 14px; background: var(--paper-hi); box-shadow: inset 0 0 0 3px var(--wood-1); }
+.link .dot { flex: none; width: 12px; height: 12px; margin-top: 3px; background: var(--y-2); box-shadow: 0 0 0 3px var(--ol); animation: blink 1s steps(2, start) infinite; }
+.link[hidden] { display: none; }
+.link.ok { box-shadow: inset 0 0 0 3px var(--g-2); }
+.link.ok .dot { background: var(--g-3); animation: none; }
+.link b { font-weight: normal; color: var(--ink); }
+.link a { color: var(--g-1); }
+@keyframes blink { to { visibility: hidden; } }
+@media (prefers-reduced-motion: reduce) { .link .dot { animation: none; } }
 </style>
 </head>
 <body>
@@ -78,6 +88,7 @@ table { width: 100%; border-collapse: collapse; } td { padding: 8px 4px; vertica
       <button role="tab" aria-selected="true" data-tab="cc">Claude Code</button>
       <button role="tab" aria-selected="false" data-tab="codex">Codex</button>
     </div>
+    <div class="link" id="link" role="status" aria-live="polite"><span class="dot" aria-hidden="true"></span><div id="link-text"></div></div>
 
     <div data-panel="cc">
       <ol>
@@ -152,9 +163,44 @@ async function me() {
 async function list() {
   try {
     const r = await fetch('/api/devices', { cache: 'no-store' }); if (!r.ok) throw 0; const j = await r.json();
-    remember('devices', j.devices); showDevices(j.devices);
+    remember('devices', j.devices); showDevices(j.devices); return j.devices;
   } catch (e) { if (!cached.devices) $('devices').innerHTML = '<tr><td class="err">读取设备失败</td></tr>'; }
 }
+/* after a key is made, keep checking whether an agent has used it; the prompt ends with a test event, so the moment
+   the agent finishes, the device shows up as connected and this box says so (no reload needed) */
+const TOOL = { 'claude-code': 'Claude Code', codex: 'Codex', 'claude-web': 'Claude 网页', 'chatgpt-web': 'ChatGPT 网页' };
+const NEXT = {
+  'claude-code': '新开一个 Claude Code 会话发句话，农场里就会冒出一株新苗。',
+  codex: '重启 Codex，输入 <code>/hooks</code> 把 Agent Farm 的几条 hook 标记为信任，之后发句话就会冒出新苗。'
+};
+const watch = { id: null, seen: [], timer: 0, until: 0 };
+const tabTool = () => (document.querySelector('[role=tab][aria-selected=true]') || {}).dataset?.tab === 'codex' ? 'codex' : 'claude-code';
+function drawLink() {
+  const box = $('link'), t = $('link-text'), want = tabTool(), seen = watch.seen;
+  box.hidden = !watch.id;
+  if (!watch.id) return;
+  if (seen.includes(want)) {
+    box.className = 'link ok';
+    const also = seen.filter(x => x !== want).map(x => TOOL[x] || x);
+    t.innerHTML = `<b>✓ ${TOOL[want]} 已经连上 Agent Farm 了</b>${also.length ? `（${also.join('、')} 也连上了）` : ''}<br><span class="muted">${NEXT[want]}</span> <a href="/">回农场看看 →</a>`;
+  } else {
+    box.className = 'link';
+    const other = seen.map(x => TOOL[x] || x);
+    t.innerHTML = `<b>等待 ${TOOL[want]} 完成配置……</b>${other.length ? `（${other.join('、')} 已经连上）` : ''}<br><span class="muted">把提示词发给它，它跑完最后一步测试时，这里会自动变成「已连接」，不用刷新页面。</span>`;
+  }
+}
+async function pollLink() {
+  clearTimeout(watch.timer);
+  if (!watch.id || document.hidden || Date.now() > watch.until) return;
+  const devs = await list();
+  const d = devs && devs.find(x => x.id === watch.id);
+  if (d) { const before = watch.seen.join(); watch.seen = d.sources || []; if (watch.seen.join() !== before) drawLink(); }
+  if (watch.seen.includes('claude-code') && watch.seen.includes('codex')) return;
+  watch.timer = setTimeout(pollLink, 2500);
+}
+function watchLink(id, until) { const known = (cached.devices || []).find(x => x.id === id); watch.id = id; watch.seen = (known && known.sources) || []; watch.until = until || Date.now() + 30 * 60e3; remember('watch', { id, until: watch.until }); drawLink(); watch.timer = setTimeout(pollLink, until ? 0 : 2500); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden && watch.id) pollLink(); });
+
 function showDevices(devices) {
   const tb = $('devices');
   tb.replaceChildren();
@@ -162,7 +208,7 @@ function showDevices(devices) {
   for (const d of devices) {
     const tr = document.createElement('tr');
     const a = document.createElement('td'); a.textContent = d.name;
-    const b = document.createElement('td'); b.className = 'muted'; b.textContent = '最近上报：' + fmt(d.last_seen);
+    const b = document.createElement('td'); b.className = 'muted'; b.textContent = (d.sources && d.sources.length ? '已接入 ' + d.sources.map(x => TOOL[x] || x).join('、') + ' · ' : '') + '最近上报：' + fmt(d.last_seen);
     const c = document.createElement('td'); const del = document.createElement('button'); del.className = 'ghost danger'; del.textContent = '删除';
     del.onclick = async () => { del.disabled = true; await fetch('/api/devices/' + d.id, { method: 'DELETE', headers: H }); list(); };
     c.appendChild(del); tr.append(a, b, c); tb.appendChild(tr);
@@ -240,6 +286,7 @@ $('new-form').addEventListener('submit', async e => {
     $('codex-sh').textContent = codexScript(j.token);
     $('codex-json').textContent = codexConfig();
     $('cfg').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    watchLink(j.id);
     list();
   } catch (err) { $('new-err').textContent = '生成失败：' + err.message; }
   finally { if (btn) btn.disabled = false; }
@@ -247,7 +294,9 @@ $('new-form').addEventListener('submit', async e => {
 document.querySelectorAll('[role=tab]').forEach(t => t.addEventListener('click', () => {
   document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === t));
   document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== t.dataset.tab);
+  remember('tab', t.dataset.tab); drawLink();
 }));
+if (cached.tab === 'codex') { const t = document.querySelector('[data-tab=codex]'); document.querySelectorAll('[role=tab]').forEach(x => x.setAttribute('aria-selected', x === t)); document.querySelectorAll('[data-panel]').forEach(p => p.hidden = p.dataset.panel !== 'codex'); drawLink(); }
 document.querySelectorAll('pre .copy').forEach(b => b.addEventListener('click', async () => {
   const code = b.parentElement.querySelector('code').textContent, label = b.dataset.label || '复制';
   try { await navigator.clipboard.writeText(code); b.textContent = '已复制'; } catch (e) { b.textContent = '请手动选中复制'; }
@@ -263,7 +312,9 @@ $('pw-form').addEventListener('submit', async e => {
   if (r && r.ok) e.target.reset();
 });
 if (cached.email) showMe(cached.email); if (Array.isArray(cached.devices)) showDevices(cached.devices);
-me(); list();
+me();
+// reopened or reloaded while an agent is still setting itself up: keep watching that key
+if (cached.watch && cached.watch.until > Date.now()) { $('cfg').hidden = false; $('cc-prompt').textContent = $('codex-prompt').textContent = '钥匙只在生成时显示一次。要重新复制提示词，请在上面再生成一把钥匙。'; watchLink(cached.watch.id, cached.watch.until); } else list();
 })();
 </script>
 </body>
