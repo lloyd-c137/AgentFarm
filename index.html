@@ -876,6 +876,10 @@ const Sound = (() => {
     unlock() { if (wanted && !on) setOn(true); },
     ding: () => play(t => { tone(midi(84), t, 0.35, 'triangle', 0.3, sfx); tone(midi(79), t + 0.16, 0.5, 'triangle', 0.26, sfx); }),
     water: () => play(t => { noise(t, 0.5, 2600, 0.8, 0.22, sfx); tone(midi(76), t + 0.2, 0.18, 'sine', 0.12, sfx, midi(88)); }),
+    hurt: () => play(t => { tone(220, t, 0.14, 'square', 0.07, sfx, 110); noise(t, 0.1, 900, 1.2, 0.18, sfx); }),
+    whack: () => play(t => { noise(t, 0.06, 1800, 2, 0.22, sfx); tone(330, t, 0.06, 'square', 0.05, sfx, 200); }),
+    faint: () => play(t => { [67, 63, 60, 55].forEach((n, i) => tone(midi(n), t + i * 0.18, 0.3, 'triangle', 0.14, sfx)); }),
+    bank: () => play(t => { [72, 76, 79, 84, 88].forEach((n, i) => tone(midi(n), t + i * 0.07, 0.18, 'square', 0.06, sfx)); bell(midi(96), t + 0.4, 0.8, 0.08, sfxE); }),
     coin: () => play(t => { [83, 88, 95].forEach((n, i) => tone(midi(n), t + i * 0.06, 0.16, 'square', 0.08, sfx)); }),
     buy: () => play(t => { noise(t, 0.05, 3000, 3, 0.2, sfx); tone(midi(96), t + 0.06, 0.4, 'triangle', 0.12, sfxE); tone(midi(100), t + 0.06, 0.4, 'sine', 0.08, sfx); [83, 88].forEach((n, i) => tone(midi(n), t + 0.12 + i * 0.06, 0.12, 'square', 0.05, sfx)); }),
     plant: () => play(t => { tone(midi(67), t, 0.12, 'triangle', 0.22, sfx); tone(midi(74), t + 0.08, 0.2, 'triangle', 0.18, sfx); }),
@@ -2489,6 +2493,7 @@ ucv.addEventListener('click', e => {
   if (scene === 'mine' && !dialog && !helpOpen && !panelView && !shopOpen) {
     const h = uiHitAt();
     if (h && h.kind === 'auto') { toggleAuto(); return; }
+    if (h && h.kind === 'peace') { togglePeace(); return; }
     if (h) { if (h.kind === 'slot') { if (h.i === 5) deployLadder(); else { mine.sel = h.i; Sound.blip(); } } else if (h.kind === 'help') { helpOpen = true; Sound.paper(); } else if (h.kind === 'clock') cycleWeather(); else if (h.kind === 'board') toggleBoard(); else if (h.kind === 'coins') hint('回到农场再逛商店'); else if (h.kind === 'quest') { const t = find(h.id); if (t) { const { tx, ty } = slotPos(t.slot); leaveMine(() => walkTo(tx + 8, ty + 22, { kind: 'crop', id: t.id })); } } }
     return;
   }
@@ -3285,6 +3290,7 @@ function genMine() {
   }
   for (let n = 0, tries = 0; n < 5 && tries < 400; tries++) { const x = 6 + Math.floor(r() * (MC - 12)), y = 22 + Math.floor(r() * (MR - 30)); let open = true; for (let dy = -2; dy <= 2 && open; dy++) for (let dx = -3; dx <= 3; dx++) if (t[mi(x + dx, y + dy)]) { open = false; break; } if (open) { mine.bats.push({ hx: x * MT, hy: y * MT, p: r() * 6, x: x * MT, y: y * MT }); n++; } }
   for (const [x, y] of [[6, 14], [12, 14]]) { mine.deco[mi(x, y)] = D_TORCH; mine.torches.add(mi(x, y)); }
+  placeTreasureRooms(r);
   mine.p.x = 40; mine.p.y = 15 * MT - 28;
 }
 
@@ -3308,6 +3314,7 @@ function drawTileAt(c, r) {
     else if (dd === D_MUSH) { R(g, '#d8e8f0', x + 2, y + 5, 1, 3); R(g, '#3ac8d8', x, y + 3, 5, 2); R(g, '#a0f0f8', x + 1, y + 3, 2, 1); if (v & 1) { R(g, '#d8e8f0', x + 6, y + 6, 1, 2); R(g, '#3ac8d8', x + 5, y + 5, 3, 1); } }
     else if (dd === D_POT) { R(g, '#2a1410', x + 2, y, 4, 2); R(g, '#2a1410', x + 1, y + 2, 6, 6); R(g, '#2a1410', x, y + 3, 8, 4); R(g, '#c87850', x + 3, y + 1, 2, 1); R(g, '#a8583a', x + 2, y + 2, 4, 5); R(g, '#a8583a', x + 1, y + 3, 6, 3); R(g, '#d89060', x + 2, y + 3, 1, 2); R(g, '#e8b070', x + 2, y + 4, 4, 1); R(g, '#7a3a24', x + 2, y + 6, 4, 1); }
     else if (dd === D_TORCH) { R(g, '#5a3424', x + 3, y + 3, 2, 5); R(g, '#7a4a30', x + 3, y + 3, 1, 5); }
+    else if (dd === 7 || dd === 8) { const op = dd === 8; R(g, '#2a1410', x, y + (op ? 3 : 1), 8, op ? 5 : 7); R(g, '#9a6038', x + 1, y + (op ? 4 : 2), 6, op ? 3 : 5); R(g, '#c8843a', x + 1, y + (op ? 4 : 2), 6, 1); R(g, '#f0c840', x + 1, y + 4, 6, 1); if (!op) { R(g, '#f0c840', x + 3, y + 4, 2, 2); R(g, '#2a1410', x + 4, y + 5, 1, 1); } else { R(g, '#5a3424', x + 1, y + 1, 6, 2); R(g, '#14101a', x + 2, y + 4, 4, 1); } }
     return;
   }
   const tx = mine.tex[t]; g.drawImage(tx[v], x, y);
@@ -3435,12 +3442,16 @@ function paintWall(c, r) {
 const MINE_KEY = 'ai-farm-mine-v1';
 const enc = a => { let s = ''; for (let i = 0; i < a.length; i += 8192) s += String.fromCharCode.apply(null, a.subarray(i, i + 8192)); return btoa(s); };
 const dec = (b, a) => { const s = atob(b); if (s.length !== a.length) return false; for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return true; };
-function saveMine() { if (!mine.built) return; try { localStorage.setItem(MINE_KEY, JSON.stringify({ t: enc(mine.tiles), w: enc(mine.wall), d: enc(mine.deco), f: mine.furn, inv: mine.inv })); } catch (e) { /* storage full or unavailable */ } }
+function saveMine() { if (!mine.built) return; try { localStorage.setItem(MINE_KEY, JSON.stringify({ t: enc(mine.tiles), w: enc(mine.wall), d: enc(mine.deco), f: mine.furn, inv: mine.inv, rooms: mine.rooms, bag: mine.bag, lost: mine.lost })); } catch (e) { /* storage full or unavailable */ } }
 function loadMine() {
   try {
     const s = JSON.parse(localStorage.getItem(MINE_KEY) || 'null'); if (!s) return false;
     if (!dec(s.t, mine.tiles) || !dec(s.w, mine.wall) || !dec(s.d, mine.deco)) return false;
-    mine.furn = Array.isArray(s.f) ? s.f.filter(f => FDEF[f.type]) : []; Object.assign(mine.inv, s.inv || {}); return true;
+    mine.furn = Array.isArray(s.f) ? s.f.filter(f => FDEF[f.type]) : []; Object.assign(mine.inv, s.inv || {});
+    if (s.bag && Array.isArray(s.bag.relics)) mine.bag = { relics: s.bag.relics.filter(k => RELIC[k]), coins: +s.bag.coins || 0 };
+    if (s.lost && Number.isFinite(s.lost.x) && Number.isFinite(s.lost.y)) mine.lost = { x: s.lost.x, y: s.lost.y, ores: s.lost.ores || {}, relics: (s.lost.relics || []).filter(k => RELIC[k]), coins: +s.lost.coins || 0 };
+    if (!s.rooms) placeTreasureRooms(rng(777)); // older saves get the treasure rooms dug into untouched rock
+    return true;
   } catch (e) { return false; }
 }
 function scanAmbient() {
@@ -3491,18 +3502,17 @@ function autoThink() {
 /* ---- entering and leaving ---- */
 function enterMine() {
   if (!mine.built) { buildMineTex(); if (!loadMine()) genMine(); scanAmbient(); buildFurnSprites(); bakeMine(); mineIcons(); mine.built = true; }
+  ICON.mush = mushIcon();
   Sound.cave();
-  startFade(() => { scene = 'mine'; const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.dir = 1; hover = null; hoverTag = null; placing = null; farmer.path = []; mine.hold = null; hint('进了矿洞 · 按住左键挖，B 建造家具，X 让农夫自己探索'); });
+  startFade(() => { scene = 'mine'; const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.dir = 1; mine.hp = HP_MAX; mine.iT = 60; mine.mobs = []; mine.faint = false; mine.airTop = null; mine.tier = -1; mine.banked = true; hover = null; hoverTag = null; placing = null; farmer.path = []; mine.hold = null; hint(mine.peace ? '进了矿洞 · 按住左键挖，B 建造家具，X 让农夫自己探索' : '进了矿洞 · 深处有怪物和宝箱，宝物要带回洞口才算你的'); });
 }
-function mineValue() { return ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0); }
+function mineValue() { return bagValue(); }
 function leaveMine(then) {
   Sound.cave(); mine.auto.on = false;
   startFade(() => {
     saveMine();
     scene = 'farm'; farmer.x = MX + 28; farmer.y = MY + 52; farmer.dir = 'down'; farmer.path = []; farmer.pending = null; mine.hold = null; rebuildWalk();
-    const v = mineValue();
-    if (v > 0) { const n = ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0); ORE_KEYS.forEach(k => { mine.inv[k] = 0; }); coins += v; coinPop = performance.now(); save(); Sound.coin(); hint(`卖掉 ${n} 块矿石，+${v} 金币`); }
-    else hint('回到了地面');
+    if (!bankBag(true)) hint('回到了地面');
     if (then) then();
   });
 }
@@ -3523,7 +3533,7 @@ function breakTile(c, r) {
   if (key) mine.drops.push({ k: key, x: cx - 3, y: cy - 3, vx: (Math.random() - 0.5) * 1.2, vy: -1.4, age: 0 });
   // things resting on or hanging from it go too
   const above = mi(c, r - 1), below = mi(c, r + 1);
-  if (r > 0 && [D_PEBBLE, D_MUSH].includes(mine.deco[above])) mine.deco[above] = 0;
+  if (r > 0 && mine.deco[above] === D_MUSH) pickMush(c, r - 1); else if (r > 0 && mine.deco[above] === D_PEBBLE) mine.deco[above] = 0;
   if (r > 0 && mine.deco[above] === D_POT) breakPot(c, r - 1);
   if (mine.deco[below] === D_ROOT) mine.deco[below] = 0;
   redrawAround(c, r); redrawAround(c, r - 1);
@@ -3531,9 +3541,9 @@ function breakTile(c, r) {
 }
 function breakPot(c, r) {
   const i = mi(c, r); mine.deco[i] = 0; drawTileAt(c, r);
-  const v = 4 + Math.floor(Math.random() * 10); coins += v; coinPop = performance.now(); save();
+  const v = 4 + Math.floor(Math.random() * 10); mine.bag.coins += v;
   for (let k = 0; k < 8; k++) mine.debris.push({ x: c * MT + 4, y: r * MT + 4, vx: (Math.random() - 0.5) * 1.8, vy: -Math.random() * 2, life: 30, c: k % 2 ? '#a8583a' : '#e8b070' });
-  popText(`+${v} 金币`, c * MT + 4, r * MT - 2, '#f0c840'); Sound.coin();
+  popText(`+${v} 金币（背包）`, c * MT + 4, r * MT - 2, '#f0c840'); Sound.coin();
   if (Math.random() < 0.4) { mine.inv.torch += 3; popText('+3 火把', c * MT + 4, r * MT - 12, '#ffd860'); }
 }
 function lightOkFor(c, r) { return tileAt(c, r) === 0 && (mine.wall[mi(c, r)] || isSolid(tileAt(c, r + 1)) || isSolid(tileAt(c - 1, r)) || isSolid(tileAt(c + 1, r))); }
@@ -3552,6 +3562,359 @@ function placeBlock(c, r) {
   const t = mine.inv.dirt > 0 ? 1 : 2; mine.inv[t === 1 ? 'dirt' : 'stone']--; mine.tiles[i] = r > 70 && t === 2 ? 3 : t; if (mine.deco[i]) mine.deco[i] = 0; redrawAround(c, r); Sound.place();
 }
 const REACH = 46;
+/* ---- adventure: health, monsters, the backpack, treasure rooms ----
+   Down here the farmer has 5 hearts (10 half-hearts). Monsters come out of the dark: never near the entrance, never in
+   lit spots or in rooms with painted walls. Ores, gems, relics, mushrooms and coins found in the mine ride in the
+   backpack (20 items, coins free) and only become yours in the entrance chamber; faint and the backpack stays where
+   you fell until you fetch it (only the newest lost backpack is kept). Blocks, torches and the ladder never drop. */
+const HP_MAX = 10, BAG_CAP = 20, ENTRY = { c1: 18, r0: 7, r1: 15 };
+const D_CHEST = 7, D_CHEST_OPEN = 8;
+const inEntry = (x, y) => x < (ENTRY.c1 + 1) * MT && y >= ENTRY.r0 * MT && y < (ENTRY.r1 + 1) * MT;
+const RELICS = [
+  { k: 'watch', name: '生锈的怀表', tier: 0, v: 30, pal: { a: '#6a4a14', b: '#c8a040', c: '#f4ead0', d: '#3a2420' }, rows: ['...aa...', '..abba..', '.abccba.', '.bccdcb.', '.bcdccb.', '.abccba.', '..abba..', '...aa...'] },
+  { k: 'lantern', name: '旧矿灯', tier: 0, v: 30, pal: { a: '#3a3640', b: '#7a7484', c: '#ffd860', d: '#fff0a0' }, rows: ['..aaaa..', '...aa...', '..abba..', '.abccba.', '.abcdba.', '.abccba.', '..abba..', '.aaaaaa.'] },
+  { k: 'fossil', name: '三叶虫化石', tier: 0, v: 30, pal: { a: '#5a5048', b: '#a89a88', c: '#6e6458', d: '#d8ccb8' }, rows: ['..aaaa..', '.abbbba.', 'abcbcbba', 'abdbdbba', 'abcbcbba', '.abbbba.', '..abba..', '...aa...'] },
+  { k: 'pouch', name: '古钱袋', tier: 0, v: 30, pal: { a: '#4a2a18', b: '#9a6038', c: '#f0c840', d: '#fff0a0' }, rows: ['...aa...', '..abba..', '...aa...', '..abba..', '.abbbba.', 'abbccbba', 'abbcdbba', '.aaaaaa.'] },
+  { k: 'helmet', name: '矮人头盔', tier: 1, v: 80, pal: { a: '#3a3846', b: '#8a8698', c: '#d0ccdc', d: '#c8a040' }, rows: ['a......a', 'ab....ba', '.abbbba.', 'abccccba', 'abccccba', 'dddddddd', 'a.a..a.a', '........'] },
+  { k: 'goblet', name: '银酒杯', tier: 1, v: 80, pal: { a: '#5a6270', b: '#c8d0dc', c: '#ffffff', d: '#a01830' }, rows: ['aaaaaaaa', 'abddddba', '.abcbba.', '..abba..', '...bb...', '...bb...', '..abba..', '.aaaaaa.'] },
+  { k: 'frog', name: '翡翠青蛙', tier: 1, v: 80, pal: { a: '#0e4a2a', b: '#3aa860', c: '#a0f0b8', d: '#14101a' }, rows: ['........', '.aa..aa.', 'adba.adb', 'abbbbbba', 'abcbbcba', 'abbbbbba', '.abbbba.', '.bb..bb.'] },
+  { k: 'starmap', name: '星图卷轴', tier: 1, v: 80, pal: { a: '#6a5030', b: '#e8d8b0', c: '#3a5aa0', d: '#f0c840' }, rows: ['.aaaaaa.', 'abbbbbba', 'abcbbdba', 'abbbcbba', 'abdbbbca', 'abbcbbba', 'abbbbbba', '.aaaaaa.'] },
+  { k: 'skull', name: '水晶骷髅', tier: 2, v: 200, pal: { a: '#3a6a88', b: '#a8e0f8', c: '#14202a', d: '#ffffff' }, rows: ['..aaaa..', '.abbbba.', 'abdbbdba', 'abccbcca', 'abbbbbba', '.abcbca.', '..abba..', '...aa...'] },
+  { k: 'crown', name: '黄金王冠', tier: 2, v: 200, pal: { a: '#8a5a10', b: '#f0c840', c: '#c8322a', d: '#fff0a0' }, rows: ['........', 'a..a..a.', 'ab.ab.ab', 'abdabdab', 'abbbbbba', 'acbcbcba', 'abbbbbba', 'aaaaaaaa'] },
+  { k: 'egg', name: '龙蛋', tier: 2, v: 200, pal: { a: '#3a1a5a', b: '#8a50c0', c: '#d8a0ff', d: '#f0c840' }, rows: ['...aa...', '..abba..', '.abcbba.', '.abbbda.', 'abdbbbba', 'abbbcbba', '.abbbba.', '..aaaa..'] },
+  { k: 'shard', name: '星辰碎片', tier: 2, v: 200, pal: { a: '#8a7a20', b: '#fff0a0', c: '#ffffff', d: '#f0c840' }, rows: ['...a....', '...ab...', '..abba..', 'aabbcbaa', '.abccba.', '..abda..', '.ab..ba.', 'a......a'] }
+];
+const RELIC = Object.fromEntries(RELICS.map(r => [r.k, r]));
+const RELIC_SPR = {};
+function relicSprite(k) {
+  if (RELIC_SPR[k]) return RELIC_SPR[k];
+  const d = RELIC[k], [c, g] = mk(8, 8);
+  d.rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(g, d.pal[ch], x, y); }));
+  return (RELIC_SPR[k] = outline(c, P.OL));
+}
+const RELIC_KEY = 'ai-farm-relics', PEACE_KEY = 'ai-farm-mine-peace';
+let relicBook = {}; try { relicBook = JSON.parse(localStorage.getItem(RELIC_KEY) || '{}') || {}; } catch (e) { relicBook = {}; }
+const saveRelics = () => { try { localStorage.setItem(RELIC_KEY, JSON.stringify(relicBook)); } catch (e) { /* storage unavailable */ } };
+Object.assign(mine, { hp: HP_MAX, iT: 0, lastHurt: -1e9, hurtAt: -1e9, mobs: [], lost: null, bag: { relics: [], coins: 0 }, faint: false, airTop: null, tier: -1, rooms: false, fullHint: -1e9, banked: false });
+try { mine.peace = localStorage.getItem(PEACE_KEY) === '1'; } catch (e) { mine.peace = false; }
+if (mine.inv.mush === undefined) mine.inv.mush = 0;
+ITEM_NAME.mush = '蘑菇';
+
+const bagCount = () => ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0) + (mine.inv.mush || 0) + mine.bag.relics.length;
+const bagValue = () => ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0) + mine.bag.relics.reduce((s, k) => s + (RELIC[k] ? RELIC[k].v : 0), 0) + mine.bag.coins;
+const BAG_KINDS = new Set([...ORE_KEYS, 'mush', 'relic']);
+const bagFull = d => BAG_KINDS.has(d.k) && bagCount() >= BAG_CAP;
+function takeDrop(d) {
+  if (d.k === 'coin') { mine.bag.coins += d.n || 1; return true; }
+  if (!BAG_KINDS.has(d.k)) { mine.inv[d.k] = (mine.inv[d.k] || 0) + 1; return true; }
+  if (bagCount() >= BAG_CAP) return false;
+  if (d.k === 'relic') mine.bag.relics.push(d.r); else mine.inv[d.k] = (mine.inv[d.k] || 0) + 1;
+  return true;
+}
+function dropImg(d) { return d.k === 'relic' ? relicSprite(d.r) : d.k === 'coin' ? SPR.coin : d.k === 'dirt' || d.k === 'stone' ? ICON.block : ICON[d.k]; }
+function dropLabel(d) { return d.k === 'relic' ? `宝物 · ${RELIC[d.r].name}` : d.k === 'coin' ? `+${d.n} 金币（在背包里）` : `+1 ${ITEM_NAME[d.k]}`; }
+
+/* light and safety: monsters never appear near light, in the entrance or inside painted-wall rooms */
+function nearLight(c, r, rad) {
+  for (const i of mine.torches) { const dc = (i % MC) - c, dr = Math.floor(i / MC) - r; if (dc * dc + dr * dr <= rad * rad) return true; }
+  for (const f of mine.furn) { const d = FDEF[f.type]; if (!d.light || f.off) continue; const dc = f.c + d.w / 2 - c, dr = f.r - d.h / 2 - r; if (dc * dc + dr * dr <= (rad + 1) * (rad + 1)) return true; }
+  return false;
+}
+const spawnSafe = (c, r) => (c <= ENTRY.c1 + 12 && r <= ENTRY.r1 + 5) || mine.wall[mi(c, r)] === 4 || nearLight(c, r, 6);
+
+/* monsters */
+const MOB = {
+  slime: { name: '洞穴史莱姆', w: 8, h: 6, hp: 3, dmg: 2, from: 16, gold: [2, 6] },
+  bat: { name: '吸血蝙蝠', w: 8, h: 5, hp: 2, dmg: 2, from: 40, gold: [3, 9], fly: true },
+  skel: { name: '骷髅矿工', w: 8, h: 24, hp: 6, dmg: 3, from: 55, gold: [10, 22] }
+};
+const mobBlocked = (m, x, y) => boxHits(x, y, m.w, m.h) || (x < (ENTRY.c1 + 1) * MT && y + m.h > ENTRY.r0 * MT && y < (ENTRY.r1 + 1) * MT) || x < 0 || y < 0 || x + m.w > MW || y + m.h > MH;
+function moveMob(m, ax, ay) {
+  // move one pixel at a time so a monster can never end up inside rock
+  let n = Math.ceil(Math.abs(ax)), s = n ? ax / n : 0, hitX = false, hitY = false;
+  for (let k = 0; k < n; k++) { if (mobBlocked(m, m.x + s, m.y)) { hitX = true; break; } m.x += s; }
+  n = Math.ceil(Math.abs(ay)); s = n ? ay / n : 0;
+  for (let k = 0; k < n; k++) { if (mobBlocked(m, m.x, m.y + s)) { hitY = true; break; } m.y += s; }
+  return { hitX, hitY };
+}
+function spawnMobs(p) {
+  if (mine.peace || tick % 40 !== 0 || Math.random() > 0.7) return;
+  const pc = Math.floor((p.x + p.w / 2) / MT), pr = Math.floor((p.y + p.h / 2) / MT);
+  if (pr < 16 && pc <= ENTRY.c1 + 4) return;
+  const tier = pr < 40 ? 0 : pr < 70 ? 1 : 2, cap = [4, 6, 8][tier];
+  if (mine.mobs.length >= cap) return;
+  for (let tries = 0; tries < 14; tries++) {
+    const a = Math.random() * Math.PI * 2, d = 8 + Math.random() * 12, c = Math.round(pc + Math.cos(a) * d), r = Math.round(pr + Math.sin(a) * d * 0.7);
+    if (c < 2 || r < 16 || c >= MC - 2 || r >= MR - 2 || spawnSafe(c, r)) continue;
+    const roll = Math.random(), type = r >= 55 && roll < [0, 0.2, 0.42][tier] ? 'skel' : r >= 40 && roll < [0, 0.6, 0.78][tier] ? 'bat' : 'slime', def = MOB[type];
+    const m = { type, w: def.w, h: def.h, hp: def.hp, x: c * MT, y: 0, vx: 0, vy: 0, dir: Math.random() < 0.5 ? -1 : 1, ground: false, t: Math.floor(Math.random() * 100), cd: 30, hurt: 0 };
+    if (def.fly) { m.y = r * MT + 1; if (mobBlocked(m, m.x, m.y)) continue; }
+    else { m.y = (r + 1) * MT - m.h - 0.01; if (mobBlocked(m, m.x, m.y) || !isSolid(tileAt(c, r + 1))) continue; }
+    mine.mobs.push(m); return;
+  }
+}
+function stepMob(m, p) {
+  const def = MOB[m.type], pcx = p.x + p.w / 2, pcy = p.y + p.h / 2, dx = pcx - (m.x + m.w / 2), dy = pcy - (m.y + m.h / 2), dist = Math.hypot(dx, dy);
+  m.t++; if (m.hurt > 0) m.hurt--;
+  if (def.fly) {
+    const aggro = dist < 22 * MT && !mine.faint;
+    const tx = aggro ? dx : Math.cos(m.t / 40) * 20, ty = aggro ? dy - 6 + Math.sin(m.t / 9) * 7 : Math.sin(m.t / 30) * 10;
+    const sp = aggro ? (dist < 48 ? 1.75 : 1.2) : 0.4, n = Math.hypot(tx, ty) || 1;
+    m.vx += (tx / n * sp - m.vx) * 0.09; m.vy += (ty / n * sp - m.vy) * 0.09;
+    const h = moveMob(m, m.vx, m.vy); if (h.hitX) m.vx *= -0.6; if (h.hitY) m.vy *= -0.6;
+    if (Math.abs(m.vx) > 0.1) m.dir = Math.sign(m.vx);
+  } else {
+    m.vy = Math.min(5, m.vy + 0.25);
+    const chase = dist < 24 * MT && Math.abs(dy) < 9 * MT && !mine.faint;
+    if (m.type === 'slime') {
+      if (m.ground) { m.vx *= 0.6; if (--m.cd <= 0 && chase) { m.dir = Math.sign(dx) || 1; m.vx = m.dir * 1.5; m.vy = -3 - Math.random() * 0.9; m.cd = 34 + Math.random() * 30; m.ground = false; } }
+    } else {
+      if (chase) { m.dir = Math.sign(dx) || m.dir; m.vx = m.dir * 0.85; }
+      else { if (m.t % 140 === 0) m.dir = Math.random() < 0.5 ? -1 : 1; m.vx = m.dir * 0.3; }
+    }
+    const h = moveMob(m, m.vx, 0);
+    if (h.hitX) {
+      if (m.type === 'skel' && m.ground && !mobBlocked(m, m.x + m.dir * 1.5, m.y - MT - 0.5)) { m.y -= MT + 0.5; moveMob(m, m.dir * 1.5, 0); }
+      else if (m.type === 'skel' && m.ground) { m.vy = -3.4; }
+      else m.vx = 0;
+    }
+    const v = moveMob(m, 0, m.vy); m.ground = v.hitY && m.vy > 0; if (v.hitY) m.vy = 0;
+    if (m.ground && m.type === 'slime' && m.cd > 30) m.vx = 0;
+  }
+  // touching the farmer hurts him
+  if (!mine.faint && m.x < p.x + p.w - 1 && m.x + m.w > p.x + 1 && m.y < p.y + p.h - 1 && m.y + m.h > p.y + 1) hurtPlayer(def.dmg, m.x + m.w / 2);
+  return dist < 40 * MT;
+}
+function hurtPlayer(n, fromX) {
+  const p = mine.p;
+  if (mine.peace || mine.iT > 0 || mine.faint || n <= 0) return;
+  mine.hp = Math.max(0, mine.hp - n); mine.iT = 50; mine.lastHurt = tick; mine.hurtAt = performance.now();
+  const away = Math.sign(p.x + p.w / 2 - fromX) || -p.dir; p.vx = away * 2.2; p.vy = Math.min(p.vy, -2); p.climb = false; p.sit = null;
+  Sound.hurt(); for (let k = 0; k < 6; k++) mine.debris.push({ x: p.x + p.w / 2, y: p.y + 10, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.6, life: 18, c: '#e0483c' });
+  popText(`-${n % 2 ? (n / 2).toFixed(1) : n / 2} 心`, p.x + p.w / 2, p.y - 4, '#ff7060');
+  if (mine.hp <= 0) faint();
+}
+function faint() {
+  const p = mine.p;
+  mine.faint = true; mine.auto.on = false; keys.clear(); mine.hold = null; mine.jHeld = false; mine.spaceHeld = false;
+  const carried = bagCount() + (mine.bag.coins ? 1 : 0);
+  if (carried) {
+    const ores = {}; for (const k of [...ORE_KEYS, 'mush']) { ores[k] = mine.inv[k] || 0; mine.inv[k] = 0; }
+    if (mine.lost) hint('上一只遗落的背包没捡回来，已经找不到了');
+    mine.lost = { x: p.x + p.w / 2, y: p.y + p.h - 4, ores, relics: mine.bag.relics.slice(), coins: mine.bag.coins };
+    mine.bag = { relics: [], coins: 0 };
+  }
+  Sound.faint();
+  const depth = Math.max(0, Math.floor((p.y + p.h) / MT) - 15);
+  say(carried ? `农夫晕倒了……背包掉在深 ${depth} 米处，回去捡回来` : '农夫晕倒了……身上没带值钱的东西');
+  setTimeout(() => startFade(() => {
+    p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.climb = false; p.sit = null; p.dir = 1;
+    mine.hp = HP_MAX; mine.iT = 90; mine.faint = false; mine.mobs = []; mine.airTop = null; saveMine();
+  }), 900);
+}
+function pickLost(p) {
+  const L = mine.lost; if (!L) return;
+  if (Math.hypot(p.x + p.w / 2 - L.x, p.y + p.h - 4 - L.y) > 12) return;
+  mine.bag.coins += L.coins; L.coins = 0;
+  for (const k of [...ORE_KEYS, 'mush']) while (L.ores[k] > 0 && bagCount() < BAG_CAP) { L.ores[k]--; mine.inv[k] = (mine.inv[k] || 0) + 1; }
+  while (L.relics.length && bagCount() < BAG_CAP) mine.bag.relics.push(L.relics.shift());
+  const left = L.relics.length + Object.values(L.ores).reduce((a, b) => a + b, 0);
+  Sound.gem();
+  if (!left) { mine.lost = null; popText('捡回了背包', p.x + p.w / 2, p.y - 6, '#fff0a0'); }
+  else if (performance.now() - mine.fullHint > 4000) { mine.fullHint = performance.now(); hint(`背包装满了，遗落的背包里还剩 ${left} 件`); }
+}
+// the entrance chamber is where things become yours: ores and gems sell, coins count, relics join the collection
+function bankBag(quiet) {
+  const n = ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0), oreV = ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0), rel = mine.bag.relics.slice(), found = mine.bag.coins;
+  if (!n && !rel.length && !found) return false;
+  ORE_KEYS.forEach(k => { mine.inv[k] = 0; }); mine.bag = { relics: [], coins: 0 };
+  let dup = 0; const fresh = [];
+  for (const k of rel) { if (!relicBook[k]) fresh.push(RELIC[k].name); else dup += RELIC[k].v; relicBook[k] = (relicBook[k] || 0) + 1; }
+  const total = oreV + found + dup; coins += total; coinPop = performance.now(); save(); saveRelics(); saveMine();
+  Sound.bank();
+  const parts = []; if (n) parts.push(`${n} 块矿石`); if (found) parts.push(`${found} 金币`); if (rel.length) parts.push(`${rel.length} 件宝物`);
+  const owned = Object.keys(relicBook).filter(k => RELIC[k]).length;
+  say(`存入了${parts.join('、')}，共 +${total} 金币${fresh.length ? ` · 新收藏：${fresh.join('、')}（${owned}/${RELICS.length}）` : ''}`);
+  if (!quiet) popText(`+${total} 金币`, mine.p.x + mine.p.w / 2, mine.p.y - 6, '#f0c840');
+  return true;
+}
+
+/* treasure rooms: plank-and-stone chambers sealed in the rock, a chest inside; dig your way in */
+function placeTreasureRooms(r) {
+  const rooms = [], W = 9, H = 6;
+  const furnAt = (c, rr) => mine.furn.some(f => { const d = FDEF[f.type]; return c >= f.c - 1 && c <= f.c + d.w && rr >= f.r - d.h && rr <= f.r + 1; });
+  for (let tries = 0; rooms.length < 7 && tries < 3000; tries++) {
+    const c0 = 22 + Math.floor(r() * (MC - 34)), r0 = 30 + Math.floor(r() * (MR - 40));
+    if (rooms.some(q => Math.abs(q.c - c0) < W + 6 && Math.abs(q.r - r0) < H + 6)) continue;
+    let ok = true;
+    for (let y = r0 - 1; y <= r0 + H && ok; y++) for (let x = c0 - 1; x <= c0 + W && ok; x++) if (!mine.tiles[mi(x, y)] || mine.tiles[mi(x, y)] === 11 || furnAt(x, y) || mine.deco[mi(x, y)] === D_TORCH) ok = false;
+    if (!ok) continue;
+    for (let y = r0; y < r0 + H; y++) for (let x = c0; x < c0 + W; x++) {
+      const i = mi(x, y), edgeY = y === r0 || y === r0 + H - 1, edgeX = x === c0 || x === c0 + W - 1;
+      if (edgeY) mine.tiles[i] = 11; else if (edgeX) mine.tiles[i] = y > 70 ? 3 : 2; else { mine.tiles[i] = 0; mine.wall[i] = 4; }
+      mine.deco[i] = 0;
+    }
+    const cc = c0 + 2 + Math.floor(r() * (W - 4)); mine.deco[mi(cc, r0 + H - 2)] = D_CHEST;
+    if (r() < 0.6) { const c2 = cc + (cc < c0 + W / 2 ? 2 : -2); mine.deco[mi(c2, r0 + H - 2)] = D_CHEST; }
+    rooms.push({ c: c0, r: r0 });
+  }
+  mine.rooms = true; return rooms;
+}
+function openChest(c, r) {
+  const i = mi(c, r); mine.deco[i] = D_CHEST_OPEN; drawTileAt(c, r);
+  const w = r < 55 ? [0.72, 0.25, 0.03] : r < 75 ? [0.48, 0.4, 0.12] : [0.28, 0.45, 0.27];
+  const n = 1 + (Math.random() < 0.35 ? 1 : 0), cx = c * MT + 4, cy = r * MT;
+  for (let k = 0; k < n; k++) {
+    const q = Math.random(), tier = q < w[0] ? 0 : q < w[0] + w[1] ? 1 : 2, pool = RELICS.filter(x => x.tier === tier), rel = pool[Math.floor(Math.random() * pool.length)];
+    mine.drops.push({ k: 'relic', r: rel.k, x: cx - 3, y: cy - 4, vx: (Math.random() - 0.5) * 1.4, vy: -2.2, age: 0 });
+  }
+  mine.drops.push({ k: 'coin', n: 10 + Math.floor(r / 2 + Math.random() * 30), x: cx - 3, y: cy - 4, vx: (Math.random() - 0.5) * 1.4, vy: -1.8, age: 0 });
+  for (let k = 0; k < 14; k++) mine.debris.push({ x: cx, y: cy + 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2.2, life: 30, c: k % 2 ? '#f0c840' : '#fff0a0' });
+  popText('宝箱！', cx, cy - 6, '#f0c840'); Sound.gem(); Sound.coin();
+}
+
+/* combat: the same button digs and swings at monsters; a monster in reach takes the swing first */
+function foeInReach(p) {
+  if (!mine.mobs.length) return null;
+  const pcx = p.x + p.w / 2, pcy = p.y + p.h / 2;
+  let dir = p.dir;
+  if (!mine.jHeld && mouse.x !== -1) {
+    const wx = mouse.x + OX + mine.camX, wy = mouse.y + OY + mine.camY;
+    const hitM = mine.mobs.find(m => wx >= m.x - 3 && wx <= m.x + m.w + 3 && wy >= m.y - 3 && wy <= m.y + m.h + 3 && Math.hypot(m.x + m.w / 2 - pcx, m.y + m.h / 2 - pcy) <= REACH);
+    if (hitM) return hitM;
+    dir = wx >= pcx ? 1 : -1;
+  }
+  let best = null, bd = 1e9;
+  for (const m of mine.mobs) {
+    const dx = m.x + m.w / 2 - pcx, ov = Math.min(p.y + p.h, m.y + m.h) - Math.max(p.y, m.y);
+    if (dx * dir < -4 || Math.abs(dx) > 22 || ov < -6) continue;
+    if (Math.abs(dx) < bd) { bd = Math.abs(dx); best = m; }
+  }
+  return best;
+}
+function strikeFoe(m, p) {
+  if (!mine.mobs.includes(m)) return;
+  if (Math.hypot(m.x + m.w / 2 - (p.x + p.w / 2), m.y + m.h / 2 - (p.y + p.h / 2)) > REACH + 6) return;
+  m.hp--; m.hurt = 10; m.vx = p.dir * 1.7; m.vy = MOB[m.type].fly ? -1 : -2;
+  Sound.whack();
+  for (let k = 0; k < 4; k++) mine.debris.push({ x: m.x + m.w / 2, y: m.y + m.h / 2, vx: p.dir * Math.random() * 1.6, vy: -Math.random() * 1.4, life: 14, c: m.type === 'slime' ? '#8ae090' : m.type === 'bat' ? '#8a5ab0' : '#e8e4d0' });
+  if (m.hp <= 0) killMob(m);
+}
+function killMob(m) {
+  mine.mobs = mine.mobs.filter(x => x !== m);
+  const def = MOB[m.type], cx = m.x + m.w / 2 - 3, cy = m.y + m.h / 2 - 3;
+  mine.drops.push({ k: 'coin', n: def.gold[0] + Math.floor(Math.random() * (def.gold[1] - def.gold[0] + 1)), x: cx, y: cy, vx: (Math.random() - 0.5), vy: -1.6, age: 0 });
+  if (m.type === 'slime' && Math.random() < 0.25) mine.drops.push({ k: 'mush', x: cx, y: cy, vx: 0.4, vy: -1.4, age: 0 });
+  if (m.type === 'skel' && Math.random() < 0.35) mine.drops.push({ k: Math.random() < 0.6 ? 'iron' : 'silver', x: cx, y: cy, vx: -0.4, vy: -1.4, age: 0 });
+  for (let k = 0; k < 12; k++) mine.debris.push({ x: m.x + m.w / 2, y: m.y + m.h / 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2, life: 24, c: m.type === 'slime' ? '#4ab05a' : m.type === 'bat' ? '#5a3a7a' : '#d8d4c4' });
+  Sound.pop();
+}
+function eatMushroom() {
+  if (!mine.inv.mush) { Sound.nope(); hint('背包里没有蘑菇 · 矿洞深处的蓝蘑菇可以采'); return; }
+  if (mine.hp >= HP_MAX) { Sound.nope(); hint('现在是满血'); return; }
+  mine.inv.mush--; mine.hp = Math.min(HP_MAX, mine.hp + 3); Sound.pop(); popText('+1.5 心', mine.p.x + mine.p.w / 2, mine.p.y - 6, '#a0f0b8');
+}
+function togglePeace() {
+  mine.peace = !mine.peace; mine.mobs = mine.peace ? [] : mine.mobs; if (mine.peace) mine.hp = HP_MAX;
+  try { localStorage.setItem(PEACE_KEY, mine.peace ? '1' : '0'); } catch (e) { /* ignore */ }
+  Sound.blip(); hint(mine.peace ? '和平模式：矿洞里不会出现怪物，也不会受伤' : '冒险模式：小心黑暗里的怪物');
+}
+
+// once per frame, after the farmer has moved
+function stepAdventure(p, was) {
+  if (mine.iT > 0) mine.iT--;
+  // falls: measured from the highest point since leaving the ground
+  if (p.ground || p.climb || p.sit) {
+    if (p.ground && !was && mine.airTop !== null) { const tiles = (p.y - mine.airTop) / MT; if (tiles > 10 && !mine.peace) hurtPlayer(2 + Math.floor((tiles - 10) / 3), p.x + p.w / 2 - p.dir); }
+    mine.airTop = null;
+  } else mine.airTop = mine.airTop === null ? p.y : Math.min(mine.airTop, p.y);
+  const pc = Math.floor((p.x + p.w / 2) / MT), pr = Math.floor((p.y + p.h / 2) / MT), home = inEntry(p.x + p.w / 2, p.y + p.h / 2);
+  // healing: quickly in the entrance chamber, slowly in the light once you have not been hit for a while
+  if (mine.hp < HP_MAX && !mine.faint) {
+    if (home ? tick % 60 === 0 : (nearLight(pc, pr, 6) && tick - mine.lastHurt > 480 && tick % 240 === 0)) mine.hp++;
+  }
+  if (home) { if (!mine.banked) mine.banked = bankBag(); } else mine.banked = false;
+  pickLost(p);
+  // depth layers
+  const tier = pr < 16 ? -1 : pr < 40 ? 0 : pr < 70 ? 1 : 2;
+  if (tier !== mine.tier) { if (tier > mine.tier && tier >= 0) hint(['浅层 · 史莱姆出没，带好火把', '中层 · 吸血蝙蝠和骷髅矿工，越往下越危险', '深层 · 宝藏最多的地方，也最危险'][tier]); mine.tier = tier; }
+  if (mine.auto.on && mine.hp <= 4 && !mine.peace) { toggleAuto(); hint('血量低，自动探索先停下了 · 回洞口或亮处休息一下'); }
+  if (mine.peace) { mine.mobs.length = 0; return; }
+  spawnMobs(p);
+  mine.mobs = mine.mobs.filter(m => stepMob(m, p));
+}
+
+/* drawing */
+function drawMobs(now, anim) {
+  for (const m of mine.mobs) {
+    const x = Math.round(m.x), y = Math.round(m.y), f = anim ? Math.floor((now + m.t * 7) / 120) % 2 : 0, fl = m.hurt > 0 && m.hurt % 4 < 2;
+    if (m.type === 'slime') {
+      const sq = !m.ground ? 1 : 0, c = fl ? ['#fff', '#fff', '#fff'] : ['#1e4a26', '#4ab05a', '#8ae090'];
+      R(ctx, c[0], x, y + 1 + sq, 8, 5 - sq); R(ctx, c[1], x + 1, y + sq, 6, 5 - sq); R(ctx, c[2], x + 2, y + 1 + sq, 2, 1);
+      R(ctx, '#14101a', x + (m.dir > 0 ? 4 : 2), y + 2 + sq, 1, 1); R(ctx, '#14101a', x + (m.dir > 0 ? 6 : 4), y + 2 + sq, 1, 1);
+    } else if (m.type === 'bat') {
+      const c = fl ? '#fff' : '#3a2450', w = fl ? '#fff' : '#5a3a7a';
+      R(ctx, c, x + 3, y + 1, 3, 3);
+      if (f) { R(ctx, w, x, y, 3, 1); R(ctx, w, x + 6, y, 3, 1); R(ctx, w, x + 1, y + 1, 2, 1); R(ctx, w, x + 6, y + 1, 2, 1); }
+      else { R(ctx, w, x, y + 3, 3, 1); R(ctx, w, x + 6, y + 3, 3, 1); R(ctx, w, x + 1, y + 2, 2, 1); R(ctx, w, x + 6, y + 2, 2, 1); }
+    } else {
+      const b = fl ? '#fff' : '#e8e4d0', s = fl ? '#fff' : '#9a968a', step = anim && Math.abs(m.vx) > 0.2 ? Math.floor((now + m.t) / 160) % 2 : 0;
+      R(ctx, s, x + 1, y, 6, 6); R(ctx, b, x + 1, y, 5, 5); R(ctx, '#14101a', x + (m.dir > 0 ? 3 : 2), y + 2, 1, 1); R(ctx, '#14101a', x + (m.dir > 0 ? 5 : 1), y + 2, 1, 1); R(ctx, s, x + 2, y + 5, 3, 1);
+      R(ctx, b, x + 3, y + 6, 2, 9); for (let k = 0; k < 3; k++) R(ctx, b, x + 1, y + 8 + k * 2, 6, 1);
+      R(ctx, s, x + 2, y + 15, 4, 1); R(ctx, b, x + 2 + step, y + 16, 1, 8); R(ctx, b, x + 5 - step, y + 16, 1, 8);
+      R(ctx, b, x + (m.dir > 0 ? 6 : 0), y + 8, 2, 1); R(ctx, '#7a4a30', x + (m.dir > 0 ? 7 : 0), y + 4, 1, 6); R(ctx, '#9e9aaa', x + (m.dir > 0 ? 5 : -1), y + 4, 4, 1);
+    }
+  }
+  const L = mine.lost;
+  if (L) { const x = Math.round(L.x) - 4, y = Math.round(L.y) - 6; R(ctx, P.OL, x, y, 9, 8); R(ctx, '#8a5a30', x + 1, y + 1, 7, 6); R(ctx, '#b07a40', x + 2, y + 1, 5, 2); R(ctx, '#f0c840', x + 4, y + 3, 1, 2); }
+}
+// after the light pass: eyes glint in the dark, the lost backpack glows so you can find it
+function drawMobGlints(now, anim) {
+  for (const m of mine.mobs) {
+    const x = Math.round(m.x), y = Math.round(m.y), col = m.type === 'slime' ? '#c8ff90' : '#ff4a30';
+    if (m.type === 'slime') { R(ctx, col, x + (m.dir > 0 ? 4 : 2), y + 2 + (m.ground ? 0 : 1), 1, 1); R(ctx, col, x + (m.dir > 0 ? 6 : 4), y + 2 + (m.ground ? 0 : 1), 1, 1); }
+    else if (m.type === 'bat') { R(ctx, col, x + 3, y + 2, 1, 1); R(ctx, col, x + 5, y + 2, 1, 1); }
+    else { R(ctx, col, x + (m.dir > 0 ? 3 : 2), y + 2, 1, 1); R(ctx, col, x + (m.dir > 0 ? 5 : 1), y + 2, 1, 1); }
+  }
+  const L = mine.lost;
+  if (L) { const a = anim ? 0.35 + 0.25 * Math.sin(now / 300) : 0.45; ctx.globalAlpha = a; R(ctx, '#fff0a0', Math.round(L.x) - 5, Math.round(L.y) - 7, 11, 10); ctx.globalAlpha = 1; R(ctx, '#f0c840', Math.round(L.x), Math.round(L.y) - 3, 1, 2); }
+}
+const HEART = ['.aa.aa.', 'abbabba', 'abbbbba', '.abbba.', '..aba..', '...a...'];
+function drawHearts(now) {
+  const k = 3, shake = now - mine.hurtAt < 300 ? Math.round(Math.sin(now / 25) * 2) : 0, low = mine.hp <= 2 && Math.floor(now / 300) % 2;
+  for (let h = 0; h < HP_MAX / 2; h++) {
+    const x0 = 104 + h * 25 + shake, y0 = 14, full = mine.hp >= (h + 1) * 2, half = !full && mine.hp === h * 2 + 1;
+    HEART.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      const red = full || (half && x < 4), col = ch === 'a' ? P.OL : red ? (low ? '#ff9a8a' : '#e0483c') : '#5a4a54';
+      UR(col, x0 + x * k, y0 + y * k, k, k);
+    }));
+  }
+  if (mine.peace) text('和平模式', 104 + 5 * 25 + 8, 18, 12, P.CREAM, { shadow: P.OL });
+}
+// arrows at the edge of the screen toward the entrance and the lost backpack, with the distance in tiles
+function edgeArrow(wx, wy, col, label) {
+  // kept inside the open middle of the screen, clear of the panels on the left and right and the hotbar
+  const ux = (wx - mine.camX) * UW / VW, uy = (wy - mine.camY) * UH / VH, L = 290, Rr = UW - 240, T = 56, B = UH - 90;
+  if (ux > L && ux < Rr && uy > T && uy < B) return;
+  const cx = (L + Rr) / 2, cy = (T + B) / 2, a = Math.atan2(uy - cy, ux - cx), s = Math.min((Rr - L) / 2 / Math.abs(Math.cos(a) || 1e-6), (B - T) / 2 / Math.abs(Math.sin(a) || 1e-6));
+  const ax = cx + Math.cos(a) * s, ay = cy + Math.sin(a) * s;
+  uctx.save(); uctx.translate(Math.round(ax), Math.round(ay)); uctx.rotate(a);
+  uctx.fillStyle = P.OL; uctx.beginPath(); uctx.moveTo(14, 0); uctx.lineTo(-8, -10); uctx.lineTo(-8, 10); uctx.closePath(); uctx.fill();
+  uctx.fillStyle = col; uctx.beginPath(); uctx.moveTo(10, 0); uctx.lineTo(-5, -6); uctx.lineTo(-5, 6); uctx.closePath(); uctx.fill(); uctx.restore();
+  text(label, ax - Math.cos(a) * 30, ay - Math.sin(a) * 26 - 6, 12, P.CREAM, { align: 'center', shadow: P.OL });
+}
+function drawAdventureHUD(now) {
+  drawHearts(now);
+  const p = mine.p, pcx = p.x + p.w / 2, pcy = p.y + p.h / 2, tiles = (x, y) => Math.round(Math.hypot(x - pcx, y - pcy) / MT);
+  if (bagCount() || mine.bag.coins) edgeArrow(9 * MT, 12 * MT, '#f0c840', `洞口 ${tiles(9 * MT, 12 * MT)} 格`);
+  if (mine.lost) edgeArrow(mine.lost.x, mine.lost.y, '#ffd860', `背包 ${tiles(mine.lost.x, mine.lost.y)} 格`);
+  if (mine.faint) { uctx.globalAlpha = 0.55; UR('#140a14', 0, 0, UW, UH); uctx.globalAlpha = 1; text('农夫晕倒了……', UW / 2, UH / 2 - 20, 24, P.CREAM, { align: 'center', shadow: P.OL }); text(mine.lost ? '背包掉在了原地，醒来后回去捡' : '醒来就回到洞口了', UW / 2, UH / 2 + 16, 12, P.CREAM, { align: 'center', shadow: P.OL }); }
+}
+function mushIcon() { const [c, g] = mk(8, 8); R(g, '#d8e8f0', 3, 4, 2, 4); R(g, '#3ac8d8', 0, 1, 8, 3); R(g, '#3ac8d8', 1, 0, 6, 1); R(g, '#a0f0f8', 2, 1, 2, 1); R(g, '#1a8898', 0, 3, 8, 1); return outline(c, P.OL); }
+function pickMush(c, r) { mine.deco[mi(c, r)] = 0; drawTileAt(c, r); mine.drops.push({ k: 'mush', x: c * MT + 1, y: r * MT, vx: (Math.random() - 0.5) * 0.8, vy: -1.4, age: 0 }); Sound.pop(); }
+const m_dir = (m, p) => (m.x + m.w / 2 >= p.x + p.w / 2 ? 1 : -1);
+
 function mineTarget() {
   const p = mine.p, pcx = p.x + p.w / 2, pcy = p.y + p.h / 2;
   let c, r;
@@ -3589,6 +3952,7 @@ function unstick(p) {
 }
 function stepMine() {
   const p = mine.p, now = performance.now();
+  if (mine.faint) { p.vx = 0; for (let k = mine.pops.length - 1; k >= 0; k--) if (now - mine.pops[k].t0 > 1100) mine.pops.splice(k, 1); return; }
   if (p.sit) { if (keys.size || mine.spaceHeld || mine.jHeld || mine.hold === 'main' || !mine.furn.some(f => f.type === 'chair' && f.c * MT + 4 === p.sit.x)) p.sit = null; else { p.vx = p.vy = 0; return; } }
   unstick(p);
   mine.target = null;
@@ -3630,6 +3994,8 @@ function stepMine() {
   }
   p.y = ny;
   keepInMine(p);
+  stepAdventure(p, was);
+  if (mine.faint) return;
   if (p.ground && !p.climb && !keys.has('left') && !keys.has('right')) {
     const fy = Math.floor((p.y + p.h + 1) / MT), cl = Math.floor(p.x / MT), cr = Math.floor((p.x + p.w - 0.01) / MT);
     if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support < 3.5 && !boxHits(p.x + (sl ? 0.5 : -0.5), p.y, p.w, p.h)) p.x += sl ? 0.5 : -0.5; } }
@@ -3644,10 +4010,13 @@ function stepMine() {
   if (ai && ai.dig) { const d = Math.hypot(ai.dig.c * MT + 4 - (p.x + p.w / 2), ai.dig.r * MT + 4 - (p.y + p.h / 2)); tg = { c: ai.dig.c, r: ai.dig.r, ok: d <= REACH + 6 }; }
   mine.target = tg;
   const digging = (mine.hold === 'main' && mine.sel === 0) || mine.jHeld || !!(ai && ai.dig);
-  if (p.swing > 0) { p.swing--; if (p.swing === 9 && p.swingT) hitTile(p.swingT); }
-  if (digging && tg && tg.ok && p.swing === 0) {
+  if (p.swing > 0) { p.swing--; if (p.swing === 9 && p.swingFoe) strikeFoe(p.swingFoe, p); else if (p.swing === 9 && p.swingT) hitTile(p.swingT); }
+  const foe = p.swing === 0 && (digging || (A.on && ai)) ? foeInReach(p) : null;
+  if (foe) { p.swing = 16; p.swingT = null; p.swingFoe = foe; p.dir = m_dir(foe, p); }
+  else if (digging && tg && tg.ok && p.swing === 0) {
+    p.swingFoe = null;
     const i = mi(tg.c, tg.r);
-    if (isSolid(mine.tiles[i]) || mine.deco[i] === D_POT || mine.deco[i] === D_TORCH || (mine.occ[i] && !ai)) { p.swing = 18; p.swingT = { c: tg.c, r: tg.r }; p.dir = (tg.c * MT + 4) >= p.x + p.w / 2 ? 1 : -1; }
+    if (isSolid(mine.tiles[i]) || mine.deco[i] === D_POT || mine.deco[i] === D_TORCH || mine.deco[i] === D_CHEST || mine.deco[i] === D_MUSH || (mine.occ[i] && !ai)) { p.swing = 18; p.swingT = { c: tg.c, r: tg.r }; p.dir = (tg.c * MT + 4) >= p.x + p.w / 2 ? 1 : -1; }
   }
   if (mine.hold === 'main' && tg && tg.ok && mine.sel === 2 && tick % 8 === 0) placeBlock(tg.c, tg.r);
   if (mine.hold === 'main' && tg && tg.ok && mine.sel === 3) paintWall(tg.c, tg.r);
@@ -3657,10 +4026,13 @@ function stepMine() {
   for (let k = mine.drops.length - 1; k >= 0; k--) {
     const d = mine.drops[k]; d.age++;
     const dx = pcx - (d.x + 3), dy = pcy - (d.y + 3), dist = Math.hypot(dx, dy);
-    if (d.age > 20 && dist < 44) { d.vx += dx / dist * 0.35; d.vy += dy / dist * 0.35; d.vx *= 0.9; d.vy *= 0.9; }
+    const room = !bagFull(d);
+    if (d.age > 20 && dist < 44 && room) { d.vx += dx / dist * 0.35; d.vy += dy / dist * 0.35; d.vx *= 0.9; d.vy *= 0.9; }
     else { d.vy = Math.min(4, d.vy + 0.2); d.vx *= 0.95; if (boxHits(d.x, d.y + d.vy, 6, 6)) { d.vy = 0; d.vx *= 0.7; } if (boxHits(d.x + d.vx, d.y, 6, 6)) d.vx = 0; }
     d.x += d.vx; d.y += d.vy;
-    if (d.age > 20 && dist < 9) { mine.inv[d.k]++; mine.drops.splice(k, 1); if (ORE_KEYS.includes(d.k)) Sound.gem(); else Sound.pop(); popText(`+1 ${ITEM_NAME[d.k]}`, pcx, p.y - 4, ORE_KEYS.includes(d.k) ? '#fff0a0' : '#fbefd2'); }
+    if (d.age > 20 && dist < 9) {
+      if (takeDrop(d)) { mine.drops.splice(k, 1); const shiny = ORE_KEYS.includes(d.k) || d.k === 'relic'; if (shiny) Sound.gem(); else if (d.k === 'coin') Sound.coin(); else Sound.pop(); popText(dropLabel(d), pcx, p.y - 4, d.k === 'relic' ? '#ffd860' : shiny ? '#fff0a0' : '#fbefd2'); }
+    } else if (!room && dist < 14 && now - mine.fullHint > 4000) { mine.fullHint = now; hint(`背包满了（${BAG_CAP} 件）· 先回洞口存起来`); }
   }
   for (let k = mine.debris.length - 1; k >= 0; k--) { const d = mine.debris[k]; d.life--; d.vy += 0.15; d.x += d.vx; d.y += d.vy; if (isSolid(tileAt(Math.floor(d.x / MT), Math.floor(d.y / MT)))) { d.vy *= -0.3; d.vx *= 0.6; d.y -= 1; } if (d.life <= 0) mine.debris.splice(k, 1); }
   for (const s of mine.dripSrc) if (++s.t > 420) { s.t = Math.floor(Math.random() * 120); if (!tileAt(s.c, s.r)) mine.drips.push({ x: s.c * MT + 3 + (s.c % 3), y: s.r * MT, vy: 0, hang: 40 }); }
@@ -3672,7 +4044,7 @@ function hitTile(tg) {
   const { c, r } = tg, i = mi(c, r), t = mine.tiles[i];
   if (!t && mine.occ[i]) { removeFurn(mine.occ[i] - 1); return; }
   if (t && mine.occ[mi(c, r - 1)] && !FDEF[mine.furn[mine.occ[mi(c, r - 1)] - 1].type].wall) { Sound.nope(); if (!mine.auto.on) hint('上面放着家具，先把家具拆掉'); return; }
-  if (!t) { if (mine.deco[i] === D_POT) breakPot(c, r); else if (mine.deco[i] === D_TORCH) { mine.deco[i] = 0; mine.torches.delete(i); mine.inv.torch++; drawTileAt(c, r); Sound.pop(); } return; }
+  if (!t) { if (mine.deco[i] === D_CHEST) openChest(c, r); else if (mine.deco[i] === D_MUSH) pickMush(c, r); else if (mine.deco[i] === D_POT) breakPot(c, r); else if (mine.deco[i] === D_TORCH) { mine.deco[i] = 0; mine.torches.delete(i); mine.inv.torch++; drawTileAt(c, r); Sound.pop(); } return; }
   const hp = ORE[t] ? ORE[t].hp : TILE_HP[t] || 100, d = (mine.dmg.get(i) || 0) + 35;
   const ramp = ORE[t] ? ORE[t].c : rampFor(t, r);
   for (let k = 0; k < 3; k++) mine.debris.push({ x: c * MT + 4, y: r * MT + 4, vx: (Math.random() - 0.5) * 1.4, vy: -Math.random() * 1.4, life: 18, c: ramp[1 + (k % 3)] });
@@ -3740,13 +4112,15 @@ function renderMine(now) {
   for (const [i, d] of mine.dmg) { const c = i % MC, r = Math.floor(i / MC), t = mine.tiles[i]; if (!t) continue; const hp = ORE[t] ? ORE[t].hp : TILE_HP[t] || 100, s = Math.min(3, Math.floor(d / hp * 4)), x = c * MT, y = r * MT; ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.fillRect(x + 3, y + 2, 1, 3); if (s >= 1) { ctx.fillRect(x + 4, y + 4, 2, 1); ctx.fillRect(x + 1, y + 5, 2, 1); } if (s >= 2) { ctx.fillRect(x + 5, y + 1, 1, 3); ctx.fillRect(x + 2, y + 6, 1, 2); ctx.fillRect(x + 6, y + 5, 1, 2); } if (s >= 3) { ctx.fillRect(x + 1, y + 1, 1, 2); ctx.fillRect(x + 6, y + 7, 2, 1); } }
   for (const b of mine.bats) { const x = Math.round(b.x), y = Math.round(b.y), f = anim && Math.floor(now / 110 + b.p) % 2; R(ctx, '#2a1c34', x + 3, y + 1, 3, 3); R(ctx, '#e04a40', x + 3, y + 2, 1, 1); R(ctx, '#e04a40', x + 5, y + 2, 1, 1); if (f) { R(ctx, '#2a1c34', x, y, 3, 1); R(ctx, '#2a1c34', x + 6, y, 3, 1); R(ctx, '#2a1c34', x + 1, y + 1, 2, 1); R(ctx, '#2a1c34', x + 6, y + 1, 2, 1); } else { R(ctx, '#2a1c34', x, y + 3, 3, 1); R(ctx, '#2a1c34', x + 6, y + 3, 3, 1); R(ctx, '#2a1c34', x + 1, y + 2, 2, 1); R(ctx, '#2a1c34', x + 6, y + 2, 2, 1); } }
-  for (const d of mine.drops) { const bob = d.age > 20 ? 0 : 0; ctx.drawImage(ICON[d.k === 'dirt' || d.k === 'stone' ? 'block' : d.k], Math.round(d.x) - 2, Math.round(d.y) - 2 + bob, 10, 10); }
+  for (const d of mine.drops) { const img = dropImg(d); if (img) ctx.drawImage(img, Math.round(d.x) - 2, Math.round(d.y) - 2, 10, 10); }
+  drawMobs(now, anim);
   for (const d of mine.debris) R(ctx, d.c, Math.round(d.x), Math.round(d.y), 1, 1);
   // the farmer, side view: walk cycle on the ground, a stretched frame in the air, pickaxe swing in front
   const px = Math.round(p.x + p.w / 2), py = Math.round(p.y + p.h + p.off), dir = p.dir > 0 ? 'right' : 'left';
   const fr = !p.ground ? 2 : Math.abs(p.vx) > 0.2 ? Math.floor(p.anim / 7) % 4 : 4;
   drawLadder(now); drawPetMine(now);
-  if (p.sit) ctx.drawImage(SITF.right, p.sit.x - 9, Math.round(p.sit.hip) - 28); else if (p.climb) ctx.drawImage(FARMER.up[Math.floor((p.climbAnim || 0) / 6) % 4], px - 9, py - 33); else ctx.drawImage(FARMER[dir][fr], px - 9, py - 33);
+  const blinkOff = mine.iT > 0 && mine.lastHurt > 0 && tick - mine.lastHurt < 50 && Math.floor(mine.iT / 4) % 2;
+  if (blinkOff) { /* flickers while invulnerable after a hit */ } else if (p.sit) ctx.drawImage(SITF.right, p.sit.x - 9, Math.round(p.sit.hip) - 28); else if (p.climb) ctx.drawImage(FARMER.up[Math.floor((p.climbAnim || 0) / 6) % 4], px - 9, py - 33); else ctx.drawImage(FARMER[dir][fr], px - 9, py - 33);
   if (p.swing > 0) { const k = Math.min(8, Math.floor((18 - p.swing) / 18 * 9)), img = PICK_FRAMES[k][p.dir > 0 ? 0 : 1]; ctx.drawImage(img, px + (p.dir > 0 ? 4 : -4) - 13, py - 21 - 13); }
   if (mine.target && !modal() && mine.sel !== 4) { const t = mine.target, x = t.c * MT, y = t.r * MT, col = t.ok ? '#fbefd2' : '#e0483c', blink = Math.floor(now / 300) % 2 ? 1 : 0; ctx.globalAlpha = t.ok ? 0.85 : 0.5; R(ctx, col, x - 1, y - 1, 3, 1); R(ctx, col, x - 1, y - 1, 1, 3); R(ctx, col, x + MT - 2, y - 1, 3, 1); R(ctx, col, x + MT, y - 1, 1, 3); R(ctx, col, x - 1, y + MT, 3, 1); R(ctx, col, x - 1, y + MT - 2, 1, 3); R(ctx, col, x + MT - 2, y + MT, 3, 1); R(ctx, col, x + MT, y + MT - 2, 1, 3); ctx.globalAlpha = 1; void blink; }
   // light pass
@@ -3758,11 +4132,16 @@ function renderMine(now) {
   for (const i of mine.torches) glow((i % MC) * MT + 4, Math.floor(i / MC) * MT + 2, 12, 0.5);
   glow(75, 72, 12, 0.5);
   for (const f of mine.furn) { const d = FDEF[f.type]; if (d.light && !f.off) glow((f.c + d.w / 2) * MT, (f.r - d.h + 1) * MT + 4, 14, 0.4); }
-  ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  drawMobGlints(now, anim);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // a brief red flash when hurt
+  const hurtAgo = performance.now() - mine.hurtAt;
+  if (hurtAgo < 220) { ctx.globalAlpha = 0.28 * (1 - hurtAgo / 220); R(ctx, '#c01818', 0, 0, VW, VH); ctx.globalAlpha = 1; }
 }
 function drawMineHUD(now) {
   // hotbar: pickaxe, torches, blocks, then ores carried
-  const slots = [{ ic: 'pick', n: null, sel: 0 }, { ic: 'torch', n: mine.inv.torch, sel: 1 }, { ic: 'block', n: mine.inv.dirt + mine.inv.stone, sel: 2 }, { ic: 'wall', n: null, sel: 3 }, { ic: 'furn', n: null, sel: 4 }, { ic: 'ladder', n: null, sel: 5 }].concat(ORE_KEYS.map(k => ({ ic: k, n: mine.inv[k] })));
+  const slots = [{ ic: 'pick', n: null, sel: 0 }, { ic: 'torch', n: mine.inv.torch, sel: 1 }, { ic: 'block', n: mine.inv.dirt + mine.inv.stone, sel: 2 }, { ic: 'wall', n: null, sel: 3 }, { ic: 'furn', n: null, sel: 4 }, { ic: 'ladder', n: null, sel: 5 }].concat(ORE_KEYS.map(k => ({ ic: k, n: mine.inv[k] })), [{ ic: 'mush', n: mine.inv.mush || 0 }]);
   const sw = 44, gap = 4, tw = slots.length * (sw + gap) - gap, x0 = Math.round((UW - tw) / 2), y0 = UH - sw - 10;
   slots.forEach((s, i) => {
     const x = x0 + i * (sw + gap), sel = s.sel === mine.sel && s.sel !== undefined;
@@ -3774,16 +4153,22 @@ function drawMineHUD(now) {
   });
   uiPanels.push({ x: x0, y: y0, w: tw, h: sw });
   // depth and carry value
-  const depth = Math.max(0, Math.floor((mine.p.y + mine.p.h) / MT) - 15), v = mineValue(), w = 250, x = 8, y = 52, h = 108;
+  const depth = Math.max(0, Math.floor((mine.p.y + mine.p.h) / MT) - 15), v = bagValue(), w = 250, x = 8, y = 52, h = 162;
   panel(x, y, w, h);
   text(`矿洞 · 深 ${depth} 米`, x + 14, y + 12, 12, P.INK); icon(SPR.coin, x + w - 80, y + 13, 2); text(String(v), x + w - 14, y + 12, 12, P.INK, { align: 'right' });
-  text('L 伸缩梯爬上去 · R 魔镜回入口', x + 14, y + 32, 12, P.INK_MUTED);
-  text('B 建造家具 · 4 刷木墙 · 5 放家具', x + 14, y + 50, 12, P.INK_MUTED);
-  const ar = { x: x + 8, y: y + 68, w: w - 16, h: 28 }, hov = inRect(umouse, ar);
+  const n = bagCount(); text(`背包 ${n}/${BAG_CAP}${mine.bag.relics.length ? ` · 宝物 ${mine.bag.relics.length}` : ''}`, x + 14, y + 32, 12, n >= BAG_CAP ? P.ALERT : P.INK);
+  text('L 梯子 · R 魔镜回入口 · E 吃蘑菇', x + 14, y + 50, 12, P.INK_MUTED);
+  text('B 建造家具 · 4 刷木墙 · 5 放家具', x + 14, y + 68, 12, P.INK_MUTED);
+  const ar = { x: x + 8, y: y + 86, w: w - 16, h: 28 }, hov = inRect(umouse, ar);
   UR(hov ? P.PAPER_LO : P.PAPER_HI, ar.x, ar.y, ar.w, ar.h); UR(mine.auto.on ? '#3f6e33' : P.INK_MUTED, ar.x + 6, ar.y + 9, 10, 10);
   text(mine.auto.on ? `自动探索中${mine.ai && mine.ai.dig ? ' · 挖掘' : ''}（X 停止）` : '让农夫自己挖掘探索（X）', ar.x + 24, ar.y + 7, 12, mine.auto.on ? '#3f6e33' : P.INK);
   uiHits.push({ ...ar, kind: 'auto' });
+  const pr = { x: x + 8, y: y + 120, w: w - 16, h: 28 }, phov = inRect(umouse, pr);
+  UR(phov ? P.PAPER_LO : P.PAPER_HI, pr.x, pr.y, pr.w, pr.h); UR(mine.peace ? '#3f6e33' : P.INK_MUTED, pr.x + 6, pr.y + 9, 10, 10);
+  text(mine.peace ? '和平模式：没有怪物（P）' : '冒险模式 · 点这里换成和平（P）', pr.x + 24, pr.y + 7, 12, mine.peace ? '#3f6e33' : P.INK);
+  uiHits.push({ ...pr, kind: 'peace' });
   uiPanels.push({ x, y, w, h });
+  drawAdventureHUD(now);
   if (buildOpen) drawBuild();
   // floating pickup text
   for (const q of mine.pops) { const a = (now - q.t0) / 1100, ux = (q.x - mine.camX) * UW / VW, uy = (q.y - mine.camY) * UH / VH - a * 26; uctx.globalAlpha = Math.max(0, 1 - Math.max(0, a - 0.6) / 0.4); text(q.s, ux, uy - 14, 12, q.col, { align: 'center', shadow: P.OL }); uctx.globalAlpha = 1; }
@@ -3812,8 +4197,10 @@ function mineKey(e, down) {
   if (k >= '1' && k <= '5' && k.length === 1) { mine.sel = +k - 1; Sound.blip(); return true; }
   if (k === '6' || k === 'l' || k === 'L') { deployLadder(); return true; }
   if (k === 'x' || k === 'X') { toggleAuto(); return true; }
+  if (k === 'e' || k === 'E') { eatMushroom(); return true; }
+  if (k === 'p' || k === 'P') { togglePeace(); return true; }
   if (k === 'b' || k === 'B') { buildOpen = true; Sound.wood(); return true; }
-  if (k === 'r' || k === 'R') { if (performance.now() - mine.recallT < 800) return true; mine.recallT = performance.now(); startFade(() => { const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }); Sound.ding(); hint('魔镜一闪，回到了入口'); return true; }
+  if (k === 'r' || k === 'R') { if (performance.now() - mine.recallT < 800) return true; if (!mine.peace && tick - mine.lastHurt < 180) { Sound.nope(); hint('刚被打中，魔镜还聚不起光 · 先躲开怪物 3 秒'); return true; } mine.recallT = performance.now(); startFade(() => { const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }); Sound.ding(); hint('魔镜一闪，回到了入口'); return true; }
   if (k === 'f' || k === 'F') { const p = mine.p; placeTorch(Math.floor((p.x + p.w / 2) / MT), Math.floor((p.y + 10) / MT)); return true; }
   if (k === 'Enter') return true;
   return false;
