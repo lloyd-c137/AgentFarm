@@ -3907,7 +3907,6 @@ function edgeArrow(wx, wy, col, label) {
 function drawAdventureHUD(now) {
   drawHearts(now);
   const p = mine.p, pcx = p.x + p.w / 2, pcy = p.y + p.h / 2, tiles = (x, y) => Math.round(Math.hypot(x - pcx, y - pcy) / MT);
-  if (bagCount() || mine.bag.coins) edgeArrow(9 * MT, 12 * MT, '#f0c840', `洞口 ${tiles(9 * MT, 12 * MT)} 格`);
   if (mine.lost) edgeArrow(mine.lost.x, mine.lost.y, '#ffd860', `背包 ${tiles(mine.lost.x, mine.lost.y)} 格`);
   if (mine.faint) { uctx.globalAlpha = 0.55; UR('#140a14', 0, 0, UW, UH); uctx.globalAlpha = 1; text('农夫晕倒了……', UW / 2, UH / 2 - 20, 24, P.CREAM, { align: 'center', shadow: P.OL }); text(mine.lost ? '背包掉在了原地，醒来后回去捡' : '醒来就回到洞口了', UW / 2, UH / 2 + 16, 12, P.CREAM, { align: 'center', shadow: P.OL }); }
 }
@@ -3952,7 +3951,7 @@ function unstick(p) {
 }
 function stepMine() {
   const p = mine.p, now = performance.now();
-  if (mine.faint) { p.vx = 0; for (let k = mine.pops.length - 1; k >= 0; k--) if (now - mine.pops[k].t0 > 1100) mine.pops.splice(k, 1); return; }
+  if (mine.faint) { p.vx = 0; p.climb = false; p.vy = Math.max(0, Math.min(6, p.vy + 0.28)); for (let k = 0, n = Math.ceil(p.vy); k < n; k++) { const dy = Math.min(1, p.vy - k); if (boxHits(p.x, p.y + dy, p.w, p.h)) { p.vy = 0; break; } p.y += dy; } keepInMine(p); for (let k = mine.pops.length - 1; k >= 0; k--) if (now - mine.pops[k].t0 > 1100) mine.pops.splice(k, 1); return; }
   if (p.sit) { if (keys.size || mine.spaceHeld || mine.jHeld || mine.hold === 'main' || !mine.furn.some(f => f.type === 'chair' && f.c * MT + 4 === p.sit.x)) p.sit = null; else { p.vx = p.vy = 0; return; } }
   unstick(p);
   mine.target = null;
@@ -3998,7 +3997,10 @@ function stepMine() {
   if (mine.faint) return;
   if (p.ground && !p.climb && !keys.has('left') && !keys.has('right')) {
     const fy = Math.floor((p.y + p.h + 1) / MT), cl = Math.floor(p.x / MT), cr = Math.floor((p.x + p.w - 0.01) / MT);
-    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support < 3.5 && !boxHits(p.x + (sl ? 0.5 : -0.5), p.y, p.w, p.h)) p.x += sl ? 0.5 : -0.5; } }
+    // standing half over a gap: if no more than half of him is on rock, he slides in, lined up exactly with the hole
+    // (he is one tile wide, so a one-tile hole fits him only when aligned; the old half-pixel nudge could rock back
+    // and forth over a hole, leaving him hanging on a sliver of rock)
+    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support <= p.w / 2 + 0.01) { const tx = sl ? cr * MT : cl * MT + MT - p.w, step = Math.max(-1, Math.min(1, tx - p.x)); if (!boxHits(p.x + step, p.y, p.w, p.h)) p.x += step; } } }
   }
   if (p.ground) p.coyote = 6; else if (p.coyote > 0) p.coyote--;
   if (p.off > 0) p.off = Math.max(0, p.off - 1.2);
