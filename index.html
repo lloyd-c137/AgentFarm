@@ -655,7 +655,6 @@ const CLOUD_ROWS = ['....oooo....', '..oowwwwo...', '.owwwwwwwoo.', 'owwwwwwwwww
 SPR.cloud = fromRows(CLOUD_ROWS.concat(['............', '............']), { o: '#45425a', w: '#f4f1ea', g: '#c6c4d2' });
 SPR.rainCloud = fromRows(CLOUD_ROWS.concat(['..d..d..d...', '.d..d..d....']), { o: '#26232f', w: '#b4b2c4', g: '#8a889e', d: '#4384c8' });
 SPR.stormCloud = fromRows(CLOUD_ROWS.concat(['.....yy.....', '....yyyy....', '.....y......']), { o: '#16131c', w: '#8a889e', g: '#5c5a72', y: '#e8a020' });
-SPR.fogIcon = fromRows(['............', 'oooooooooo..', '............', '..oooooooooo', '............', 'ooooooooo...', '............'], { o: '#6c6a82' });
 
 /* ---------- sound: everything synthesized with Web Audio, nothing to download ---------- */
 const Sound = (() => {
@@ -833,7 +832,7 @@ const Sound = (() => {
     if (!k && scene === 'farm' && farmer.swim && T > nextStroke) { noise(T, 0.22, 1300, 0.9, 0.1, sfx); noise(T + 0.25, 0.18, 900, 0.9, 0.06, sfx); nextStroke = T + 0.9; }
     if (!k && scene === 'farm' && T > nextAmb) {
       const t = T + 0.05;
-      if (!wet && darkness() < 0.5 && weather.kind !== 'fog') { for (let i = 0; i < 3; i++) tone(2400 + Math.random() * 500, t + i * 0.11, 0.08, 'sine', 0.05, sfx, 3300); nextAmb = T + 4 + Math.random() * 6; }
+      if (!wet && darkness() < 0.5) { for (let i = 0; i < 3; i++) tone(2400 + Math.random() * 500, t + i * 0.11, 0.08, 'sine', 0.05, sfx, 3300); nextAmb = T + 4 + Math.random() * 6; }
       else if (!wet && darkness() >= 0.5) { for (let i = 0; i < 4; i++) tone(4300, t + i * 0.07, 0.04, 'sine', 0.025, sfx); nextAmb = T + 1.4 + Math.random() * 1.6; }
       else nextAmb = T + 3;
     }
@@ -1651,17 +1650,17 @@ function darkness() {
   const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
   if (h >= 19 || h < 5) return 1; if (h >= 17) return (h - 17) / 2; if (h < 6.5) return 1 - (h - 5) / 1.5; return 0;
 }
-const WNAME = { sunny: '晴', cloudy: '多云', rain: '小雨', storm: '雷雨', fog: '起雾' };
-const WCYCLE = ['sunny', 'cloudy', 'rain', 'storm', 'fog'];
-const WDIM = { sunny: '#ffffff', cloudy: '#e2e4ee', rain: '#b4bdd6', storm: '#8e97b8', fog: '#f0f1f5' };
+const WNAME = { sunny: '晴', cloudy: '多云', rain: '小雨', storm: '雷雨' };
+const WCYCLE = ['sunny', 'cloudy', 'rain', 'storm'];
+const WDIM = { sunny: '#ffffff', cloudy: '#e2e4ee', rain: '#b4bdd6', storm: '#8e97b8' };
 let weatherOverride = null;
 const weather = { kind: 'sunny', amt: 1, since: -1e9 };
 function scheduledWeather() {
   const d = new Date(), r = rng(d.getFullYear() * 1000 + d.getMonth() * 40 + d.getDate()); let k = 'sunny';
-  for (let i = 0; i <= Math.floor(d.getHours() / 6); i++) { const v = r(); k = v < 0.36 ? 'sunny' : v < 0.6 ? 'cloudy' : v < 0.82 ? 'rain' : v < 0.9 ? 'storm' : 'fog'; }
+  for (let i = 0; i <= Math.floor(d.getHours() / 6); i++) { const v = r(); k = v < 0.36 ? 'sunny' : v < 0.6 ? 'cloudy' : v < 0.82 ? 'rain' : v < 0.9 ? 'storm' : 'cloudy'; }
   return k;
 }
-const W_MSG = { sunny: '天晴了', cloudy: '云多了起来', rain: '下起了小雨，小鸡躲进了鸡舍', storm: '雷雨来了，小鸡躲进了鸡舍', fog: '起雾了' };
+const W_MSG = { sunny: '天晴了', cloudy: '云多了起来', rain: '下起了小雨，小鸡躲进了鸡舍', storm: '雷雨来了，小鸡躲进了鸡舍' };
 function updateWeather(now, quiet) {
   const target = weatherOverride || scheduledWeather();
   if (target !== weather.kind) { weather.kind = target; weather.since = quiet ? -1e9 : now; if (!quiet) { hint(W_MSG[target]); announce(W_MSG[target]); } }
@@ -1686,7 +1685,7 @@ function makeFogBand() {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = (1 - Math.abs(y - h / 2) / (h / 2)) * (0.45 + nz(x / 30, y / 8) * 0.55); if (bay(x, y) < v * 0.75) R(g, '#e9edf3', x, y); }
   return c;
 }
-let cloudShadow = null, fogBand = null;
+let cloudShadow = null;
 const wIconCache = new Map();
 function weatherIcon(kind, night) {
   const key = kind + (night ? 'n' : 'd'); let c = wIconCache.get(key); if (c) return c;
@@ -1695,7 +1694,6 @@ function weatherIcon(kind, night) {
   else if (kind === 'cloudy') { if (night) g.drawImage(SPR.moon, 7, 0); g.drawImage(SPR.cloud, 1, 4); }
   else if (kind === 'rain') g.drawImage(SPR.rainCloud, 1, 2);
   else if (kind === 'storm') g.drawImage(SPR.stormCloud, 1, 1);
-  else g.drawImage(SPR.fogIcon, 1, 4);
   wIconCache.set(key, cc); return cc;
 }
 
@@ -2087,11 +2085,6 @@ function renderFarm(now) {
       ctx.globalAlpha = 1;
     }
     ctx.globalCompositeOperation = 'source-over';
-    if (wk === 'fog') {
-      ctx.globalAlpha = 0.85 * wa;
-      for (let i = 0; i < Math.ceil(VH / 64); i++) { const x = Math.round(((now / 120 + i * 190) % 520) - 520) - OX, y = -OY + 24 + i * 64; for (let k = 0; k * 520 < VW + 520; k++) ctx.drawImage(fogBand, x + k * 520, y); }
-      ctx.globalAlpha = 1;
-    }
   }
   // night: a lightmap with soft warm pools around windows and lamps, multiplied over the scene
   const dk = darkness();
@@ -2117,7 +2110,7 @@ function renderFarm(now) {
     ctx.globalCompositeOperation = 'source-over';
     for (const [x, y, w, h] of houseWins.concat(coopWins)) { R(ctx, P.Y[3], x, y, w, h); R(ctx, P.Y[4], x, y, Math.ceil(w / 2), 2); R(ctx, P.WD[1], x + (w >> 1) - 1, y, 2, h); R(ctx, P.WD[1], x, y + (h >> 1) - 1, w, 2); }
     for (const [x, y, w, h] of lampGlass.concat(decorLamps)) { R(ctx, P.Y[3], x, y, w, h); R(ctx, P.Y[4], x, y, 2, 1); }
-    if (anim && !isWet() && wk !== 'fog' && season !== 'winter') for (const f of flies) {
+    if (anim && !isWet() && season !== 'winter') for (const f of flies) {
       const b = (Math.sin(now / 600 + f.p) + 1) / 2; if (b < 0.35) continue;
       const x = Math.round(f.x + Math.sin(now / 2100 + f.p) * 10), y = Math.round(f.y + Math.cos(now / 1700 + f.p) * 6);
       R(ctx, b > 0.8 ? P.Y[4] : P.Y[3], x, y, 1, 1); if (b > 0.8) { R(ctx, P.Y[1], x - 1, y); R(ctx, P.Y[1], x + 1, y); R(ctx, P.Y[1], x, y - 1); R(ctx, P.Y[1], x, y + 1); }
@@ -6557,7 +6550,7 @@ async function start() {
   introStep(0.3, '给作物浇水……'); await nextFrame();
   loadSave(); loadDaily(); loadOutfit(); buildFarmer(); loadPet();
   SPR.mailboxUp = makeMailbox(true); SPR.mailboxDown = makeMailbox(false);
-  cloudShadow = makeCloudShadow(); fogBand = makeFogBand();
+  cloudShadow = makeCloudShadow();
   updateWeather(performance.now(), true);
   introStep(0.5, '铺草地、种树……'); await nextFrame();
   buildVehicles(); try { lpresent = localStorage.getItem('ai-farm-xmas'); } catch (e) { /* ignore */ }
