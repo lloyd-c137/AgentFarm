@@ -3567,9 +3567,30 @@ function mineTarget() {
   const d = Math.hypot(c * MT + 4 - pcx, r * MT + 4 - pcy);
   return { c, r, ok: d <= REACH && c >= 0 && r >= 0 && c < MC && r < MR };
 }
+// the farmer's box must never sit inside rock: everything above that moves it checks first, and if it ever happens
+// anyway (blocks placed over the entrance, an old save) the farmer is lifted to the nearest open spot instead of being
+// shoved a tile per frame, which used to fling him through the walls and leave him hanging in mid-air
+function keepInMine(p) {
+  if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }
+  p.x = Math.max(0, Math.min(MC * MT - p.w - 0.001, p.x)); p.y = Math.max(0, Math.min(MR * MT - p.h - 0.001, p.y));
+}
+function unstick(p) {
+  keepInMine(p);
+  if (!boxHits(p.x, p.y, p.w, p.h)) return;
+  for (let d = 1; d <= 3 * MT; d++) for (const [dx, dy] of [[0, -d], [d, 0], [-d, 0], [0, d], [d, -d], [-d, -d], [d, d], [-d, d]]) {
+    const x = p.x + dx, y = p.y + dy;
+    if (x < 0 || y < 0 || x + p.w > MC * MT || y + p.h > MR * MT || boxHits(x, y, p.w, p.h)) continue;
+    p.x = x; p.y = y; p.vx = 0; p.vy = 0; return;
+  }
+  // nowhere near: back to the entrance, clearing it if something was built over it
+  p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.climb = false;
+  const c0 = Math.floor(p.x / MT), c1 = Math.floor((p.x + p.w - 0.01) / MT), r0 = Math.floor(p.y / MT), r1 = Math.floor((p.y + p.h - 0.01) / MT);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (isSolid(tileAt(c, r))) { mine.tiles[mi(c, r)] = 0; redrawAround(c, r); }
+}
 function stepMine() {
   const p = mine.p, now = performance.now();
   if (p.sit) { if (keys.size || mine.spaceHeld || mine.jHeld || mine.hold === 'main' || !mine.furn.some(f => f.type === 'chair' && f.c * MT + 4 === p.sit.x)) p.sit = null; else { p.vx = p.vy = 0; return; } }
+  unstick(p);
   mine.target = null;
   const A = mine.auto;
   if (keys.size || mine.hold || mine.jHeld || mine.spaceHeld) A.manualT = tick;
@@ -3591,20 +3612,27 @@ function stepMine() {
   if (!climbing) p.vy = Math.min(6, p.vy + 0.28);
   // horizontal, with a one-tile auto step like Terraria
   let nx = p.x + p.vx;
-  if (boxHits(nx, p.y, p.w, p.h)) {
+  if (p.vx !== 0 && boxHits(nx, p.y, p.w, p.h)) {
     if (p.ground && !boxHits(nx, p.y - MT, p.w, p.h) && boxHits(nx, p.y + p.h - MT, p.w, MT - 0.01) ) { p.y -= MT; p.off += MT; p.x = nx; }
-    else { nx = p.vx > 0 ? Math.floor((nx + p.w) / MT) * MT - p.w - 0.001 : Math.floor(nx / MT) * MT + MT + 0.001; p.x = nx; p.vx = 0; }
-  } else p.x = nx;
+    else {
+      // stop flush against the wall, on the side we came from; never jump past it
+      const snap = p.vx > 0 ? Math.floor((nx + p.w) / MT) * MT - p.w - 0.001 : Math.floor(nx / MT) * MT + MT + 0.001;
+      if (Math.abs(snap - p.x) <= Math.abs(p.vx) + 0.01 && !boxHits(snap, p.y, p.w, p.h)) p.x = snap;
+      p.vx = 0;
+    }
+  } else if (p.vx !== 0) p.x = nx;
   let ny = p.y + p.vy; const was = p.ground; p.ground = false;
   if (boxHits(p.x, ny, p.w, p.h)) {
-    if (p.vy > 0) { ny = Math.floor((ny + p.h) / MT) * MT - p.h - 0.001; p.ground = true; if (!was && p.vy > 3) { for (let k = 0; k < 4; k++) mine.debris.push({ x: p.x + p.w / 2, y: ny + p.h, vx: (k - 1.5) * 0.4, vy: -0.4, life: 16, c: '#8a7a6a' }); Sound.land(); } }
-    else { ny = Math.floor(ny / MT) * MT + MT + 0.001; p.jumpHold = 0; }
+    if (p.vy > 0) { ny = Math.min(ny, Math.max(p.y, Math.floor((ny + p.h) / MT) * MT - p.h - 0.001)); p.ground = true; if (!was && p.vy > 3) { for (let k = 0; k < 4; k++) mine.debris.push({ x: p.x + p.w / 2, y: ny + p.h, vx: (k - 1.5) * 0.4, vy: -0.4, life: 16, c: '#8a7a6a' }); Sound.land(); } }
+    else { ny = Math.max(ny, Math.min(p.y, Math.floor(ny / MT) * MT + MT + 0.001)); p.jumpHold = 0; }
     p.vy = 0;
+    if (boxHits(p.x, ny, p.w, p.h)) ny = p.y; // the snap would still be inside rock: stay put this frame
   }
   p.y = ny;
+  keepInMine(p);
   if (p.ground && !p.climb && !keys.has('left') && !keys.has('right')) {
     const fy = Math.floor((p.y + p.h + 1) / MT), cl = Math.floor(p.x / MT), cr = Math.floor((p.x + p.w - 0.01) / MT);
-    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support < 3.5) p.x += sl ? 0.5 : -0.5; } }
+    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support < 3.5 && !boxHits(p.x + (sl ? 0.5 : -0.5), p.y, p.w, p.h)) p.x += sl ? 0.5 : -0.5; } }
   }
   if (p.ground) p.coyote = 6; else if (p.coyote > 0) p.coyote--;
   if (p.off > 0) p.off = Math.max(0, p.off - 1.2);
@@ -3862,7 +3890,7 @@ function climbStep(p) {
   const fr = Math.floor((p.y + p.h - 0.01) / MT);
   const canExit = d => { for (let k = 1; k <= 2; k++) { const c = L.c + d * k; for (let q = fr - 3; q <= fr; q++) if (isSolid(tileAt(c, q))) return false; if (isSolid(tileAt(c, fr + 1))) return true; } return false; };
   if (side && canExit(side)) { p.climb = false; L.auto = false; p.push = { dir: side, t: 26 }; p.vx = side * 1.5; p.vy = -2.2; p.dir = side; return false; }
-  if (p.y <= L.top * MT + 0.5 && vy < 0) { vy = 0; p.y = L.top * MT;
+  if (p.y <= L.top * MT + 0.5 && vy < 0) { vy = 0; if (!boxHits(p.x, L.top * MT, p.w, p.h)) p.y = L.top * MT;
     if (L.auto) { const d = canExit(p.dir) ? p.dir : canExit(-p.dir) ? -p.dir : 0; if (d) { p.climb = false; L.auto = false; p.push = { dir: d, t: 26 }; p.vx = d * 1.5; p.vy = -2.2; p.dir = d; return false; } if (!L.told) { L.told = true; hint('爬到顶了 · 两边是岩层，挖开一条路再走'); } } }
   if (vy > 0 && p.y + p.h >= (L.bottom + 1) * MT - 0.5) { p.climb = false; return false; }
   // look for a side exit on the way up, so the ladder drops you at the first tunnel
