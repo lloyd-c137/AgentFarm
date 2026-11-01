@@ -4,8 +4,8 @@
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
-    "db:local": "wrangler d1 migrations apply agent-farm --local",
-    "db:remote": "wrangler d1 migrations apply agent-farm --remote",
+    "db:local": "wrangler d1 migrations apply agent-farm-apac --local",
+    "db:remote": "wrangler d1 migrations apply agent-farm-apac --remote",
     "dev": "npm run build && wrangler dev",
     "deploy": "npm run build && wrangler deploy"
   },

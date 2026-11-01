@@ -79,16 +79,16 @@ writeFileSync('public/_headers', `/favicon.*
 /farm-bg.*
   Cache-Control: public, max-age=31536000, immutable
 /
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 /index.html
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 /login
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 /login.html
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 /setup
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 /setup.html
-  Cache-Control: no-cache
+  Cache-Control: no-cache, no-transform
 `);
 console.log(`public/ ready · index.html ${(before / 1024).toFixed(0)} KB → ${(game.length / 1024).toFixed(0)} KB`);

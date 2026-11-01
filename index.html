@@ -25,6 +25,46 @@ body { background: #2a5634; color: var(--ink); font-family: var(--font-ui); }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* loading intro: pixel sunrise, title, block progress bar, then a stepped iris that opens onto the farm */
+/* goal window: the game's paper-and-wood look, over the farm */
+.gu-back { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; padding: 16px; background: rgba(20, 12, 24, .55); }
+.gu-card { width: min(440px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: #f3dfb6; color: #3a2420; font: 12px/1.75 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; -webkit-font-smoothing: none;
+  box-shadow: inset 0 3px 0 #fbefd2, inset 0 -3px 0 #dcc193, 0 0 0 3px #5a2f28, 0 0 0 9px #ad7044, 0 0 0 12px #20141c, 0 12px 0 12px rgba(0,0,0,.3); }
+.gu-head { display: flex; align-items: center; gap: 8px; padding: 14px 16px 6px; }
+.gu-title { flex: 1; margin: 0; font: 24px/1.25 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; font-weight: normal; word-break: break-all; }
+.gu-x { width: 28px; height: 28px; border: 0; background: #ad7044; color: #fbefd2; font: 16px/1 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 3px #20141c, inset 0 -3px 0 3px #5a2f28; }
+.gu-body { padding: 4px 16px 16px; }
+.gu-field { display: block; margin: 8px 0; }
+.gu-label { display: block; margin: 10px 0 3px; color: #6b4e3c; }
+.gu-note { display: block; color: #6b4e3c; }
+.gu-input { box-sizing: border-box; width: 100%; padding: 7px 9px 5px; border: 0; background: #fbefd2; color: #3a2420; font: 12px/1.5 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; outline: none; box-shadow: inset 0 0 0 3px #3a2420, inset 3px 3px 0 3px #dcc193; }
+.gu-input:focus { box-shadow: inset 0 0 0 3px #2a5634, inset 3px 3px 0 3px #b4d872; }
+.gu-fruits { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.gu-fruit { display: flex; align-items: center; gap: 6px; padding: 5px 8px; border: 0; background: #dcc193; color: #3a2420; font: 12px/1.5 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 3px #5a2f28; }
+.gu-fruit i { width: 12px; height: 12px; display: inline-block; }
+.gu-fruit[aria-checked="true"] { background: #fbefd2; box-shadow: inset 0 0 0 3px #2a5634, inset 0 0 0 5px #b4d872; }
+.gu-ms-edit { margin: 0 0 6px; padding: 0; list-style: none; }
+.gu-ms-edit li, .gu-add { display: flex; gap: 6px; margin: 6px 0; }
+.gu-ms { margin: 6px 0; padding: 0; list-style: none; }
+.gu-ms li { display: flex; align-items: center; gap: 6px; padding: 5px 0; background-image: repeating-linear-gradient(90deg, #dcc193 0 6px, transparent 6px 12px); background-size: 100% 3px; background-repeat: no-repeat; background-position: bottom; }
+.gu-ms label { flex: 1; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.gu-ms input { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; margin: 0; flex: none; background: #fbefd2; box-shadow: inset 0 0 0 3px #3a2420; cursor: pointer; }
+.gu-ms input:checked { background: #56943f; box-shadow: inset 0 0 0 3px #1d3a2b, inset 0 0 0 5px #b4d872; }
+.gu-done { color: #6b4e3c; text-decoration: line-through; }
+.gu-why { margin: 0 0 4px; color: #6b4e3c; }
+.gu-meta { margin: 0; }
+.gu-late { color: #b3302a; }
+.gu-bar { height: 12px; background: #dcc193; box-shadow: inset 0 0 0 3px #5a2f28; }
+.gu-bar i { display: block; height: 100%; background: #7fb450; box-shadow: inset 0 0 0 3px #5a2f28, inset 0 3px 0 3px #b4d872; }
+.gu-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+.gu-btn { padding: 7px 14px 10px; border: 0; background: #56943f; color: #fbefd2; font: 12px/1.5 "Fusion Pixel 12", "Fusion Pixel 12 Ext", monospace; cursor: pointer; text-shadow: 0 2px 0 #1d3a2b; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #2a5634, inset 0 3px 0 3px #7fb450; }
+.gu-btn:active { padding: 10px 14px 7px; box-shadow: inset 0 0 0 3px #20141c, inset 0 5px 0 3px #2a5634; }
+.gu-btn:disabled { filter: saturate(.4); cursor: wait; }
+.gu-wood { background: #ad7044; text-shadow: 0 2px 0 #341b22; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #5a2f28, inset 0 3px 0 3px #d39c60; }
+.gu-gold { background: #e2a630; color: #3a2420; text-shadow: none; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #9a6524, inset 0 3px 0 3px #ffe58a; }
+.gu-danger { background: #c4553e; text-shadow: 0 2px 0 #4a1a14; box-shadow: inset 0 0 0 3px #20141c, inset 0 -5px 0 3px #7a2a22, inset 0 3px 0 3px #e98a63; }
+.gu-mini { flex: none; padding: 2px 8px 4px; border: 0; background: #dcc193; color: #6b4e3c; font: 12px/1.5 "Fusion Pixel 12", monospace; cursor: pointer; box-shadow: inset 0 0 0 2px #5a2f28; }
+.gu-err { min-height: 1.5em; margin: 6px 0 0; color: #b3302a; }
+.gu-card button:focus-visible, .gu-card input:focus-visible { outline: 3px solid #f2c14e; outline-offset: 2px; }
 #setup-link { position: fixed; right: 12px; bottom: 12px; z-index: 20; padding: 6px 14px 9px; background: #ad7044; color: #fbefd2; font: 12px/1.5 "Fusion Pixel 12", monospace; text-decoration: none; text-shadow: 0 3px 0 #341b22; -webkit-font-smoothing: none; box-shadow: inset 0 0 0 3px #20141c, inset 0 -6px 0 3px #5a2f28, inset 0 3px 0 3px #d39c60; }
 #setup-link:hover { background: #d39c60; }
 #setup-link:active { padding: 9px 14px 6px; box-shadow: inset 0 0 0 3px #20141c, inset 0 6px 0 3px #5a2f28; }
@@ -615,7 +655,6 @@ const CLOUD_ROWS = ['....oooo....', '..oowwwwo...', '.owwwwwwwoo.', 'owwwwwwwwww
 SPR.cloud = fromRows(CLOUD_ROWS.concat(['............', '............']), { o: '#45425a', w: '#f4f1ea', g: '#c6c4d2' });
 SPR.rainCloud = fromRows(CLOUD_ROWS.concat(['..d..d..d...', '.d..d..d....']), { o: '#26232f', w: '#b4b2c4', g: '#8a889e', d: '#4384c8' });
 SPR.stormCloud = fromRows(CLOUD_ROWS.concat(['.....yy.....', '....yyyy....', '.....y......']), { o: '#16131c', w: '#8a889e', g: '#5c5a72', y: '#e8a020' });
-SPR.fogIcon = fromRows(['............', 'oooooooooo..', '............', '..oooooooooo', '............', 'ooooooooo...', '............'], { o: '#6c6a82' });
 
 /* ---------- sound: everything synthesized with Web Audio, nothing to download ---------- */
 const Sound = (() => {
@@ -793,7 +832,7 @@ const Sound = (() => {
     if (!k && scene === 'farm' && farmer.swim && T > nextStroke) { noise(T, 0.22, 1300, 0.9, 0.1, sfx); noise(T + 0.25, 0.18, 900, 0.9, 0.06, sfx); nextStroke = T + 0.9; }
     if (!k && scene === 'farm' && T > nextAmb) {
       const t = T + 0.05;
-      if (!wet && darkness() < 0.5 && weather.kind !== 'fog') { for (let i = 0; i < 3; i++) tone(2400 + Math.random() * 500, t + i * 0.11, 0.08, 'sine', 0.05, sfx, 3300); nextAmb = T + 4 + Math.random() * 6; }
+      if (!wet && darkness() < 0.5) { for (let i = 0; i < 3; i++) tone(2400 + Math.random() * 500, t + i * 0.11, 0.08, 'sine', 0.05, sfx, 3300); nextAmb = T + 4 + Math.random() * 6; }
       else if (!wet && darkness() >= 0.5) { for (let i = 0; i < 4; i++) tone(4300, t + i * 0.07, 0.04, 'sine', 0.025, sfx); nextAmb = T + 1.4 + Math.random() * 1.6; }
       else nextAmb = T + 3;
     }
@@ -837,6 +876,10 @@ const Sound = (() => {
     unlock() { if (wanted && !on) setOn(true); },
     ding: () => play(t => { tone(midi(84), t, 0.35, 'triangle', 0.3, sfx); tone(midi(79), t + 0.16, 0.5, 'triangle', 0.26, sfx); }),
     water: () => play(t => { noise(t, 0.5, 2600, 0.8, 0.22, sfx); tone(midi(76), t + 0.2, 0.18, 'sine', 0.12, sfx, midi(88)); }),
+    hurt: () => play(t => { tone(220, t, 0.14, 'square', 0.07, sfx, 110); noise(t, 0.1, 900, 1.2, 0.18, sfx); }),
+    whack: () => play(t => { noise(t, 0.06, 1800, 2, 0.22, sfx); tone(330, t, 0.06, 'square', 0.05, sfx, 200); }),
+    faint: () => play(t => { [67, 63, 60, 55].forEach((n, i) => tone(midi(n), t + i * 0.18, 0.3, 'triangle', 0.14, sfx)); }),
+    bank: () => play(t => { [72, 76, 79, 84, 88].forEach((n, i) => tone(midi(n), t + i * 0.07, 0.18, 'square', 0.06, sfx)); bell(midi(96), t + 0.4, 0.8, 0.08, sfxE); }),
     coin: () => play(t => { [83, 88, 95].forEach((n, i) => tone(midi(n), t + i * 0.06, 0.16, 'square', 0.08, sfx)); }),
     buy: () => play(t => { noise(t, 0.05, 3000, 3, 0.2, sfx); tone(midi(96), t + 0.06, 0.4, 'triangle', 0.12, sfxE); tone(midi(100), t + 0.06, 0.4, 'sine', 0.08, sfx); [83, 88].forEach((n, i) => tone(midi(n), t + 0.12 + i * 0.06, 0.12, 'square', 0.05, sfx)); }),
     plant: () => play(t => { tone(midi(67), t, 0.12, 'triangle', 0.22, sfx); tone(midi(74), t + 0.08, 0.2, 'triangle', 0.18, sfx); }),
@@ -888,9 +931,10 @@ SPR.soilWet = makeSoilTile(P.SW);
 /* ---------- world layout: a farm bigger than the screen, in zones with room to breathe; the camera follows the farmer ----------
    home yard (top left) · the road west to the airport · the task field (centre) · the pond (top right) · the barnyard (bottom left) · the mine in the hill (bottom right) · an open meadow for decorations (right) */
 const FW = 800, FH = 464;
-const SCENE = { mine: [680, 362], house: [72, 28], mailbox: [186, 92], bin: [288, 170], coop: [56, 300], lampA: [316, 244], lampB: [138, 150], lampC: [604, 128], pond: [580, 84, 58, 28], cat: [92, 114], well: [52, 140], woodpile: [30, 92] };
-const PETH = { x: 176, y: 138 };
-const SIGN = { x: 210, y: 92, w: 26, h: 28 };
+// the cabin stands against the field's north-west corner (its east wall a step from the fence); the coop sits just below the road
+const SCENE = { mine: [680, 362], house: [244, 60], mailbox: [218, 130], bin: [304, 176], coop: [186, 262], lampA: [316, 244], lampB: [266, 166], pond: [580, 84, 58, 28], cat: [262, 150], well: [146, 146], woodpile: [40, 150] };
+const PETH = { x: 172, y: 168 };
+const SIGN = { x: 186, y: 128, w: 26, h: 28 };
 const FEN = { x0: 344, x1: 616, top: 160, bot: 372, gy0: 206, gy1: 238 };
 const DIRT = { x: 368, y: 184, w: 232, h: 172 };
 // the field: one row per source, eight plots a row, a wooden sign at the head of each
@@ -901,7 +945,7 @@ function freeSlot(src, used) { const r = rowFor(src); for (const row of [r, FROW
 function assignSlots(list) { const used = new Set(); for (const t of list) { t.slot = freeSlot(t.src, used); used.add(t.slot); } }
 const [HX, HY] = SCENE.house, [CX, CY] = SCENE.coop, [MX, MY] = SCENE.mine;
 const BASE_BLOCK = [[HX + 2, HY + 30, 94, 52], [SCENE.bin[0] + 2, SCENE.bin[1] + 10, 32, 16], [CX + 2, CY + 20, 48, 22], [SCENE.mailbox[0] + 4, SCENE.mailbox[1] + 14, 6, 8], [SIGN.x + 10, SIGN.y + 16, 8, 10],
-  [SCENE.woodpile[0], SCENE.woodpile[1] + 8, 28, 12], [SCENE.well[0], SCENE.well[1] + 18, 30, 18], [SCENE.cat[0], SCENE.cat[1], 16, 8], ...[SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 2, y + 34, 6, 10])];
+  [SCENE.woodpile[0], SCENE.woodpile[1] + 8, 28, 12], [SCENE.well[0], SCENE.well[1] + 18, 30, 18], [SCENE.cat[0], SCENE.cat[1], 16, 8], ...[SCENE.lampA, SCENE.lampB].map(([x, y]) => [x + 2, y + 34, 6, 10])];
 const BLOCK = [];
 const FENCE = [[FEN.x0 - 2, FEN.top + 4, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.bot + 2, FEN.x1 - FEN.x0 + 12, 10], [FEN.x0 - 2, FEN.top + 10, 10, FEN.gy0 - FEN.top - 10], [FEN.x0 - 2, FEN.gy1, 10, FEN.bot - FEN.gy1 + 6], [FEN.x1 - 2, FEN.top + 10, 10, FEN.bot - FEN.top]];
 const FIELD = [FEN.x0, FEN.top, FEN.x1 - FEN.x0 + 8, FEN.bot - FEN.top + 14];
@@ -911,17 +955,16 @@ let bg = mk(FW, FH), BGX = 0, BGY = 0;
 let PROPS = [], TUFTS = [], CANOPIES = [];
 let fenceTop = null, fenceBot = null;
 
-const TREES = [[250, -50, 3], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [176, 300, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
-const PINES = [[226, 268, 5], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
-const BUSHES = [[176, 182], [248, 62], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186], [200, 120]];
-const ROCKS = [[214, 252, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
-const MUSH = [[198, 254], [646, 258], [424, 444], [30, 196], [710, 150]];
+const TREES = [[20, 300, 91], [372, -44, 9], [452, -36, 33], [690, -40, 51], [750, 18, 61], [730, 176, 71], [-30, 236, 81], [96, 330, 13], [404, 388, 23], [532, 392, 43], [762, 372, 53], [-34, 40, 63]];
+const PINES = [[130, 250, 37], [650, 196, 7], [770, 116, 11], [764, 236, 13], [0, 118, 17], [612, 300, 19], [10, 400, 29]];
+const BUSHES = [[92, 196], [656, 66], [478, 108], [366, 392], [600, 396], [140, 404], [742, 300], [14, 186]];
+const ROCKS = [[106, 268, 12, 9], [474, 26, 14, 10], [642, 150, 10, 8], [24, 434, 12, 9], [362, 440, 10, 8], [252, 400, 8, 7], [652, 336, 14, 10], [754, 352, 12, 9], [656, 404, 10, 8], [742, 410, 14, 10]];
+const MUSH = [[70, 280], [646, 258], [424, 444], [30, 196], [710, 150]];
 // paths: polylines with a half width; the gravel road runs west off the map toward the airport
 const PATHS = [
-  { pts: [[121, 110], [121, 222]], hw: 7 },
+  { pts: [[293, 140], [293, 222]], hw: 7 },
   { pts: [[-12, 222], [346, 222]], hw: 10, gravel: true },
-  { pts: [[130, 222], [130, 356], [64, 356]], hw: 7 },
-  { pts: [[256, 222], [256, 142], [580, 142], [580, 124]], hw: 7 },
+  { pts: [[212, 222], [212, 316]], hw: 7 },
   { pts: [[300, 222], [300, 420], [MX + 28, 420], [MX + 28, MY + 50]], hw: 7 }
 ];
 
@@ -962,19 +1005,6 @@ function buildWorld() {
     R(g, GR[1], x, y - 1, 1, 2); R(g, pc, x - 1, y - 3); R(g, pc, x + 1, y - 3); R(g, pc, x, y - 4); R(g, pc, x, y - 2); R(g, P.Y[3], x, y - 3);
   }
 
-  // the hill the mine is dug into: a grassy crown, then a face of layered rock that the entrance is cut into
-  { const hx = MX + 29, top = MY - 30, face = MY + 14, base = MY + 50, hw = 92, RK = ['#4a3c32', '#5e4c3e', '#76624e', '#8e7a62', '#a8937a'];
-    for (let x = hx - hw; x <= hx + hw; x++) {
-      const u = (x - hx) / hw, crown = Math.round(top + (1 - Math.sqrt(Math.max(0, 1 - u * u))) * 34 + Math.sin(x / 9) * 2), fy = Math.round(face + Math.abs(u) * 10 + Math.sin(x / 6) * 1.5), by = Math.round(base - Math.abs(u) * 18 + Math.sin(x / 7) * 2);
-      if (by <= crown) continue;
-      for (let y = crown; y < Math.min(fy, by); y++) { const k = (y - crown) / Math.max(1, fy - crown), b2 = bay(x, y); let col = k < 0.12 ? GR[4] : k < 0.7 ? (b2 > 0.75 ? GR[4] : GR[3]) : GR[2]; if (season === 'winter') col = mix(col, '#eef4f8', 0.7); R(g, col, x, y); }
-      R(g, GR[1], x, crown, 1, 1);
-      for (let y = fy; y < by; y++) { const k = (y - fy) / Math.max(1, by - fy), b2 = bay(x * 2, y * 2), band = Math.floor((y + Math.sin(x / 11) * 2) / 4) % 3; let col = RK[Math.max(0, Math.min(4, 3 - Math.round(k * 2.4) + (band === 0 ? 1 : 0) + (b2 > 0.85 ? 1 : b2 < 0.12 ? -1 : 0)))]; if (x % 13 === 0 && b2 > 0.5) col = RK[0]; R(g, col, x, y); }
-      if (fy < by) { R(g, GR[1], x, fy - 1, 1, 1); R(g, RK[4], x, fy, 1, 1); }
-      R(g, RK[0], x, by, 1, 1); R(g, 'rgba(20,30,20,0.35)', x, by + 1, 1, 2);
-    }
-    for (let i = 0; i < 18; i++) { const x = hx - hw + 10 + ((i * 53) % (hw * 2 - 20)), y = top + 10 + ((i * 29) % 30); if ((x - hx) * (x - hx) / (hw * hw) + 0 < 0.8) { R(g, GR[5], x, y, 1, 2); R(g, GR[5], x + 2, y + 1, 1, 2); } }
-  }
   // tilled field
   for (let y = DIRT.y; y < DIRT.y + DIRT.h; y += 16) for (let x = DIRT.x; x < DIRT.x + DIRT.w; x += 16) g.drawImage(SPR.soilDry, x, y);
   R(g, P.SD[4], DIRT.x + 1, DIRT.y - 1, DIRT.w - 2, 1);
@@ -1029,8 +1059,8 @@ function buildWorld() {
   prop(VEH.truck[0], TRUCK_POS.x, TRUCK_POS.y, [40, 5]); BLOCK.push([TRUCK_POS.x + 2, TRUCK_POS.y + 14, 40, 10]);
   prop(makePetHouse(), PETH.x, PETH.y, [28, 5]); BLOCK.push([PETH.x + 2, PETH.y + 14, 26, 12]); prop(makeBowl(), PETH.x + 28, PETH.y + 24, [12, 3]);
   const lamp = makeLamp();
-  for (const [x, y] of [SCENE.lampA, SCENE.lampB, SCENE.lampC]) prop(lamp, x, y, [10, 4]);
-  lampGlass = [SCENE.lampA, SCENE.lampB, SCENE.lampC].map(([x, y]) => [x + 3, y + 6, 4, 4]);
+  for (const [x, y] of [SCENE.lampA, SCENE.lampB]) prop(lamp, x, y, [10, 4]);
+  lampGlass = [SCENE.lampA, SCENE.lampB].map(([x, y]) => [x + 3, y + 6, 4, 4]);
   const leafRamps = LEAF[season];
   TREES.forEach(([x, y, seed], i) => {
     const ramp = season === 'winter' ? null : leafRamps[i % leafRamps.length];
@@ -1054,7 +1084,7 @@ function buildWorld() {
       else { const ramp = season === 'winter' ? null : leafRamps[Math.floor(mr() * leafRamps.length)]; prop(makeTree(Math.floor(mr() * 999) % 24, ramp, season === 'spring' && mr() < 0.5), x, y, [40, 8]); if (ramp) CANOPIES.push({ x: x + 6, y: y + 8, w: 38, h: 44, col: ramp }); }
     }
   }
-  BLOCK.push([MX - 62, MY - 30, 76, 74], [MX + 56, MY - 30, 66, 74], [MX - 6, MY - 30, 72, 32]); prop(makeMineEntrance(), MX, MY, [52, 6]); BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
+  prop(makeMineEntrance(), MX, MY, [52, 6]); // just the stone entrance, standing in the grass BLOCK.push([MX + 2, MY + 22, 18, 22], [MX + 42, MY + 22, 14, 22], [MX + 8, MY + 8, 44, 14]); lights.push([MX + 42, MY + 27, 26]);
   const mush = makeMushrooms(); MUSH.forEach(([x, y]) => prop(mush, x, y));
 
   // tall grass that sways and rustles when you walk through it
@@ -1068,6 +1098,7 @@ function buildWorld() {
   TUFT_IMG = [-1, 0, 1].map(l => makeTuft(l));
 
   fenceTop = mk(FW, FH); fenceBot = mk(FW, FH); drawFence(fenceTop[1], 'top'); drawFence(fenceBot[1], 'bottom');
+  buildOrchard();
   for (const [x, y, w, h] of houseWins.concat(coopWins)) lights.push([x + (w >> 1), y + (h >> 1), 30]);
   for (const [x, y] of lampGlass) lights.push([x + 2, y + 2, 42]);
   g.restore();
@@ -1112,11 +1143,14 @@ const DSPR = {};
 const item = type => SHOP.find(i => i.type === type);
 let coins = 675, decor = [];
 const SAVE_KEY = 'ai-farm-decor-v2';
-function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== 2 && decor.length) decorMoved = true; } } catch (e) { /* storage unavailable: start fresh */ } }
-let decorMoved = false;
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: 2 })); } catch (e) { /* storage unavailable */ } }
-// decorations saved on the old, smaller map get a free spot on the new one, as close to where they were as fits
-function migrateDecor() { if (!decorMoved) return; decorMoved = false; const kept = [], tmp = decor; decor = []; for (const d of tmp) { const sx = Math.round(d.x * FW / W), sy = Math.round(d.y * FH / H); let ok = null; for (let rr = 0; rr < 260 && !ok; rr += 6) for (let a = 0; a < 16 && !ok; a++) { const x = Math.round(sx + Math.cos(a / 16 * Math.PI * 2) * rr), y = Math.round(sy + Math.sin(a / 16 * Math.PI * 2) * rr); if (canPlace(d.type, x, y, -1)) ok = { x, y }; } if (ok) { d.x = ok.x; d.y = ok.y; decor.push(d); } } save(); }
+function loadSave() { try { const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); if (s && Array.isArray(s.decor)) { decor = s.decor.filter(d => item(d.type) && Number.isFinite(d.x) && Number.isFinite(d.y)); if (Number.isFinite(s.coins)) coins = s.coins; if (s.layout !== LAYOUT && decor.length) { decorMoved = true; decorScaled = !(s.layout >= 2); } } } catch (e) { /* storage unavailable: start fresh */ } }
+// layout 2 = the bigger map; layout 3 = the homestead moved next to the field
+const LAYOUT = 4; // 4 = the orchard took the top-left corner
+let decorMoved = false, decorScaled = false;
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ coins, decor, layout: LAYOUT })); } catch (e) { /* storage unavailable */ } }
+// after a layout change, each decoration keeps its spot if it still fits there, otherwise moves to the nearest free one
+// (saves from the old, smaller map are scaled up first)
+function migrateDecor() { if (!decorMoved) return; decorMoved = false; const kept = [], tmp = decor; decor = []; for (const d of tmp) { const sx = decorScaled ? Math.round(d.x * FW / W) : d.x, sy = decorScaled ? Math.round(d.y * FH / H) : d.y; let ok = null; for (let rr = 0; rr < 260 && !ok; rr += 6) for (let a = 0; a < 16 && !ok; a++) { const x = Math.round(sx + Math.cos(a / 16 * Math.PI * 2) * rr), y = Math.round(sy + Math.sin(a / 16 * Math.PI * 2) * rr); if (canPlace(d.type, x, y, -1)) ok = { x, y }; } if (ok) { d.x = ok.x; d.y = ok.y; decor.push(d); } } save(); }
 const hitR = (a, b) => a.x < b[0] + b[2] && a.x + a.w > b[0] && a.y < b[1] + b[3] && a.y + a.h > b[1];
 const inRect = (p, r) => p.x >= r.x && p.y >= r.y && p.x < r.x + r.w && p.y < r.y + r.h;
 function footprint(type, x, y) { const s = DSPR[type]; return item(type).ground ? { x, y, w: 16, h: 16 } : { x, y: y + s.height - 6, w: s.width, h: 6 }; }
@@ -1124,6 +1158,7 @@ function canPlace(type, x, y, skip) {
   const s = DSPR[type], it = item(type), f = footprint(type, x, y);
   if (x < 2 || y < 2 || x + s.width > FW - 2 || y + s.height > FH - 2) return false;
   if (BLOCK.some(b => hitR(f, b)) || FENCE.some(b => hitR(f, b))) return false;
+  if (hitR(f, ORCH_AREA)) return false;
   const inField = hitR(f, FIELD);
   if (inField && !it.field) return false;
   if (inField) for (let i = 0; i < NSLOT; i++) { const p = slotPos(i); if (hitR(f, [p.tx - 2, p.ty - 18, 20, 36])) return false; }
@@ -1167,7 +1202,7 @@ let mouse = { x: -1, y: -1 }, umouse = { x: -1, y: -1 };
 let hover = null, hoverTag = null, coinPop = 0, crowFly = null;
 let uiHits = [], uiPanels = [], shopRects = [], closeRect = null, decorRects = [];
 let boardOpen = true; try { boardOpen = localStorage.getItem('ai-farm-board') !== 'closed'; } catch (e) { /* default open */ }
-const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen || destOpen);
+const modal = () => !!(dialog || shopOpen || panelView || helpOpen || buildOpen || petOpen || wardOpen || destOpen || goalUI.open);
 const toasts = [];
 const TOAST_LIFE = 4500;
 function hint(s) { toasts.push({ s, t0: performance.now() }); while (toasts.length > 6) toasts.shift(); }
@@ -1226,12 +1261,13 @@ function applyFarm(d) {
   live.skew = d.now - Date.now();
   const incoming = new Map(d.tasks.map(s => [s.id, fromServer(s)]));
   if (live.first) { // the first load just lays the field out; no fanfare
-    live.first = false; tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
+    live.first = false; if (Array.isArray(d.goals)) setGoals(d.goals, false); tasks = [...incoming.values()]; shipped = d.shipped.slice(); harvestToday = d.harvestToday; harvestWeek = Math.min(WEEK_GOAL, d.harvestWeek);
     for (const t of tasks) t.since = liveSince(t);
     announce(tasks.length ? '已连上你的农场' : '已连上你的农场，还没有任务');
     if (!tasks.length) setTimeout(() => hint('田里还空着 · 打开右下角「设备与账户」把 Claude Code / Codex 接进来'), 2500);
     return;
   }
+  if (Array.isArray(d.goals)) setGoals(d.goals, true);
   // gone from the field: harvested (the newest entries on today's shipping list say with what quality)
   const fresh = d.shipped.slice(shipped.length);
   for (const t of tasks.slice()) if (!incoming.has(t.id)) { const s = fresh.find(x => x.name === t.name); harvest(t.id, s ? s.q : 'normal'); }
@@ -1269,10 +1305,346 @@ async function goLive() {
   try { const r = await fetch('/api/me', { credentials: 'same-origin', cache: 'no-store' }); if (r.status === 401) { const j = await r.json().catch(() => ({})); if (j.login) { location.replace(j.login); return true; } } if (!r.ok) return false; await r.json(); } catch (e) { return false; }
   live.on = true; tasks = []; shipped = []; harvestToday = 0; harvestWeek = 0;
   // the script sits at the end of <body>, so the body exists; don't wait for DOMContentLoaded, which also waits for any third-party module scripts
-  const a = document.createElement('a'); a.href = 'setup.html'; a.id = 'setup-link'; a.textContent = '设备与账户'; document.body.appendChild(a);
+  const a = document.createElement('a'); a.href = '/setup'; a.id = 'setup-link'; a.textContent = '设备与账户'; document.body.appendChild(a);
+  // open it instantly: Chrome and Edge prerender the page while the pointer is on the button, other browsers fetch it ahead
+  try {
+    if (HTMLScriptElement.supports && HTMLScriptElement.supports('speculationrules')) { const sr = document.createElement('script'); sr.type = 'speculationrules'; sr.textContent = JSON.stringify({ prerender: [{ urls: ['/setup'], eagerness: 'moderate' }] }); document.head.appendChild(sr); }
+    else { const l = document.createElement('link'); l.rel = 'prefetch'; l.href = '/setup'; document.head.appendChild(l); }
+  } catch (e) { /* prefetching is only a speed-up */ }
   document.addEventListener('visibilitychange', () => { if (!document.hidden) pollFarm(); });
   await pollFarm();
   return true;
+}
+
+/* ---------- orchard: long-term goals grow as fruit trees ----------
+   Six plots behind a low fence west of the cabin. Each goal is a tree: planted as a sapling, one fruit hangs on it
+   for every milestone done, and it is full of fruit when all of them are. Picking the fruit marks the goal achieved;
+   the tree then stays in the orchard for good. Goals live with the account on the server (live mode) or in this
+   browser (demo). The field stays the AI tasks' place; nothing here touches it. */
+const ORCH = { x0: 36, x1: 226, top: 6, bot: 116, gx0: 100, gx1: 128 };
+const ORCH_AREA = [ORCH.x0 - 2, ORCH.top, ORCH.x1 - ORCH.x0 + 12, ORCH.bot - ORCH.top + 14];
+const ORCH_N = 6, ORCH_COLS = [74, 131, 188], ORCH_ROWS = [62, 106];
+const plotPos = i => ({ cx: ORCH_COLS[i % 3], base: ORCH_ROWS[Math.floor(i / 3)] });
+const FRUITS = {
+  apple: { name: '苹果', c: ['#6e1a1a', '#c8322a', '#ff7a5a'] }, orange: { name: '橘子', c: ['#8a3a10', '#e8781e', '#ffb860'] },
+  peach: { name: '桃', c: ['#9a4054', '#f08a90', '#ffd2c4'] }, lemon: { name: '柠檬', c: ['#8a7410', '#e8cc30', '#fff6a0'] },
+  cherry: { name: '樱桃', c: ['#44081a', '#a01830', '#e85a6a'] }, pear: { name: '梨', c: ['#5a6a10', '#b8c840', '#eef2a8'] }
+};
+const FRUIT_KEYS = Object.keys(FRUITS);
+const MS_MIN = 2, MS_MAX = 8;
+let goals = [];
+const goalAt = i => goals.find(g => g.slot === i);
+const doneCount = g => g.milestones.filter(m => m.done).length;
+// sapling → young → grown → full, decided only by the share of milestones done
+const goalStage = g => { const n = g.milestones.length, d = doneCount(g); return d === 0 ? 0 : d >= n ? 3 : d / n < 0.5 ? 1 : 2; };
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+const daysTo = iso => Math.round((Date.parse(iso + 'T00:00:00') - Date.parse(todayISO() + 'T00:00:00')) / 864e5);
+
+/* the fence: back part (top rail and sides) sorts behind what stands inside, the front rail (with the gate) in front */
+let orchBack = null, orchFront = null;
+function buildOrchard() {
+  const post = makePost(), F = ORCH, ox = F.x0 - 2, oy = F.top - 2, w = F.x1 - F.x0 + 14, h = F.bot - F.top + 20;
+  const railH = (g, x0, x1, y) => { R(g, P.OL, x0 - ox, y - 1 - oy, x1 - x0, 1); R(g, P.WD[4], x0 - ox, y - oy, x1 - x0, 1); R(g, P.WD[3], x0 - ox, y + 1 - oy, x1 - x0, 1); R(g, P.OL, x0 - ox, y + 2 - oy, x1 - x0, 1); };
+  const railV = (g, x, y0, y1) => { R(g, P.OL, x + 1 - ox, y0 - oy, 4, y1 - y0); R(g, P.WD[4], x + 2 - ox, y0 - oy, 1, y1 - y0); R(g, P.WD[3], x + 3 - ox, y0 - oy, 1, y1 - y0); };
+  orchBack = mk(w, h); orchFront = mk(w, h);
+  const b = orchBack[1], f = orchFront[1];
+  railV(b, F.x0, F.top + 14, F.bot + 4); railV(b, F.x1, F.top + 14, F.bot + 4);
+  for (let y = F.top + 16; y < F.bot; y += 16) { b.drawImage(post, F.x0 - ox, y - oy); b.drawImage(post, F.x1 - ox, y - oy); }
+  railH(b, F.x0 + 2, F.x1 + 8, F.top + 4); railH(b, F.x0 + 2, F.x1 + 8, F.top + 9);
+  for (let x = F.x0; x <= F.x1; x += 16) b.drawImage(post, x - ox, F.top - oy);
+  railH(f, F.x0 + 2, F.gx0, F.bot + 4); railH(f, F.x0 + 2, F.gx0, F.bot + 9); railH(f, F.gx1 + 6, F.x1 + 8, F.bot + 4); railH(f, F.gx1 + 6, F.x1 + 8, F.bot + 9);
+  for (let x = F.x0; x <= F.x1; x += 16) if (x + 6 <= F.gx0 || x >= F.gx1) f.drawImage(post, x - ox, F.bot - oy);
+  f.drawImage(post, F.gx0 - 6 - ox, F.bot - oy); f.drawImage(post, F.gx1 - ox, F.bot - oy);
+  BLOCK.push([F.x0 - 2, F.top + 4, F.x1 - F.x0 + 12, 10], [F.x0 - 2, F.bot + 2, F.gx0 - F.x0 + 2, 10], [F.gx1, F.bot + 2, F.x1 + 10 - F.gx1, 10],
+    [F.x0 - 2, F.top + 10, 10, F.bot - F.top], [F.x1 - 2, F.top + 10, 10, F.bot - F.top]);
+}
+
+/* tree sprites: four sizes, drawn once and shared; paused trees get a washed-out copy */
+const TREE_SPR = {};
+function makeFruitTree(stage) {
+  const [w, h] = [[14, 18], [24, 30], [34, 42], [40, 50]][stage], [c, g] = mk(w, h), mid = Math.floor(w / 2);
+  if (stage === 0) {
+    R(g, P.T[2], mid, 7, 1, h - 7); R(g, P.T[1], mid + 1, 9, 1, h - 9);
+    for (const [x, y, ww] of [[mid - 4, 6, 4], [mid - 5, 7, 5], [mid - 3, 8, 3], [mid + 1, 3, 4], [mid + 1, 4, 5], [mid + 2, 5, 3]]) R(g, y < 6 ? P.T[5] : P.T[4], x, y, ww, 1);
+    R(g, P.T[3], mid - 4, 8, 2, 1); R(g, P.T[3], mid + 4, 5, 2, 1);
+    return { img: outline(c, P.T[0]), cx: mid + 1, cy: 6, r: 4 };
+  }
+  const r = [0, 8, 13, 16][stage], cy = r + 2, tw = [0, 2, 4, 4][stage];
+  for (let y = cy; y < h; y++) for (let x = mid - tw / 2; x < mid + tw / 2; x++) R(g, x === mid - tw / 2 ? P.WD[4] : x >= mid + tw / 2 - 1 ? P.WD[1] : P.WD[3], x, y);
+  if (stage >= 2) { R(g, P.WD[2], mid - 3, h - 2, 2, 2); R(g, P.WD[2], mid + 2, h - 2, 2, 2); }
+  const rr = rng(40 + stage), blobs = [{ x: mid, y: cy, r }];
+  for (let i = 0; i < 6; i++) { const a = rr() * Math.PI * 2; blobs.push({ x: mid + Math.cos(a) * r * 0.55, y: cy + Math.sin(a) * r * 0.5, r: r * (0.45 + rr() * 0.2) }); }
+  for (const k of blobs) for (let y = Math.floor(k.y - k.r); y <= k.y + k.r; y++) for (let x = Math.floor(k.x - k.r); x <= k.x + k.r; x++) {
+    if (x < 0 || y < 0 || x >= w || y >= h - 4) continue;
+    const nx = (x - k.x) / k.r, ny = (y - k.y) / k.r, d2 = nx * nx + ny * ny; if (d2 > 1) continue;
+    let v = 0.58 + 0.38 * -(nx * 0.6 + ny * 0.8) - ((y - cy + r) / (2 * r)) * 0.2;
+    if (bay(x, y) > 0.9) v += 0.1; else if (bay(x + 1, y + 2) > 0.94) v -= 0.1;
+    R(g, P.T[Math.max(1, Math.min(5, Math.round(v * 5)))], x, y);
+  }
+  return { img: outline(c, P.T[0]), cx: mid + 1, cy: cy + 1, r };
+}
+function washed(img) {
+  const [c, g] = mk(img.width, img.height); g.drawImage(img, 0, 0);
+  const id = g.getImageData(0, 0, c.width, c.height), d = id.data;
+  for (let i = 0; i < d.length; i += 4) { const l = d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11; d[i] = Math.round(d[i] * 0.3 + l * 0.7); d[i + 1] = Math.round(d[i + 1] * 0.3 + l * 0.7); d[i + 2] = Math.round(d[i + 2] * 0.3 + l * 0.7 + 6); }
+  g.putImageData(id, 0, 0); return c;
+}
+function treeSprite(stage, paused) {
+  const k = stage + (paused ? 'p' : ''); if (TREE_SPR[k]) return TREE_SPR[k];
+  const base = TREE_SPR[stage] || (TREE_SPR[stage] = makeFruitTree(stage));
+  return paused ? (TREE_SPR[k] = { ...base, img: washed(base.img) }) : base;
+}
+const FRUIT_SPR = {};
+function fruitSprite(type) {
+  if (FRUIT_SPR[type]) return FRUIT_SPR[type];
+  const [dk, b, hi] = (FRUITS[type] || FRUITS.apple).c, [c, g] = mk(4, 5);
+  R(g, P.T[2], 2, 0, 1, 1);
+  const rows = ['.bb.', 'bhbb', 'bbbd', '.dd.'];
+  rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(g, ch === 'h' ? hi : ch === 'd' ? dk : b, x, y + 1); }));
+  return (FRUIT_SPR[type] = outline(c, P.OL)); // a dark rim keeps pale fruit (lemon, pear) readable against the leaves
+}
+// where fruit hangs, as fractions of the canopy radius; the n-th milestone done always lands on the n-th spot
+const FRUIT_SPOTS = [[-0.5, 0.15], [0.45, 0.05], [-0.05, 0.5], [0.15, -0.4], [-0.6, -0.3], [0.62, 0.45], [0.3, 0.62], [-0.35, -0.62]];
+const PLAQUE = (() => { const [c, g] = mk(8, 7); R(g, P.WD[1], 3, 4, 2, 3); R(g, P.OL, 0, 0, 8, 5); R(g, P.WD[4], 1, 1, 6, 3); R(g, P.Y[2], 3, 1, 2, 3); R(g, P.Y[3], 3, 1, 1, 1); return c; })();
+
+function drawOrchardGround() {
+  for (let i = 0; i < ORCH_N; i++) {
+    const { cx, base } = plotPos(i), g = goalAt(i);
+    // a ring of turned earth round every plot; empty ones also get a little marker stake
+    R(ctx, P.SW[2], cx - 8, base - 3, 16, 4); R(ctx, P.SW[3], cx - 6, base - 4, 12, 1); R(ctx, P.SW[1], cx - 7, base + 1, 14, 1);
+    if (!g) { R(ctx, P.WD[3], cx + 7, base - 9, 2, 9); R(ctx, P.WD[4], cx + 7, base - 9, 1, 9); R(ctx, P.OL, cx + 6, base - 10, 4, 1); }
+  }
+}
+const fruitPop = {}; // goal id → [time each fruit appeared], for the little grow-in
+function orchardEnts(ents, now, anim) {
+  ents.push({ y: ORCH.top + 14, draw: () => ctx.drawImage(orchBack[0], ORCH.x0 - 2, ORCH.top - 2) });
+  ents.push({ y: ORCH.bot + 14, draw: () => ctx.drawImage(orchFront[0], ORCH.x0 - 2, ORCH.top - 2) });
+  for (const g of goals) {
+    if (g.slot < 0 || g.slot >= ORCH_N) continue;
+    const { cx, base } = plotPos(g.slot), harvested = !!g.harvestedAt, stage = harvested ? 3 : goalStage(g), t = treeSprite(stage, g.status === 'paused' && !harvested);
+    ents.push({ y: base, draw: () => {
+      const x0 = cx - t.cx, y0 = base - t.img.height + 1;
+      const sway = anim && stage > 0 && Math.sin(now / 900 + g.slot) > 0.8 ? 1 : 0;
+      ctx.drawImage(t.img, 0, 0, t.img.width, t.img.height - 10, x0 + sway, y0, t.img.width, t.img.height - 10);
+      ctx.drawImage(t.img, 0, t.img.height - 10, t.img.width, 10, x0, y0 + t.img.height - 10, t.img.width, 10);
+      if (!harvested && stage > 0) {
+        const n = Math.min(doneCount(g), FRUIT_SPOTS.length), fs = fruitSprite(g.fruit), pops = fruitPop[g.id] || [];
+        for (let i = 0; i < n; i++) {
+          const [fx_, fy_] = FRUIT_SPOTS[i], px = Math.round(x0 + t.cx + fx_ * t.r - 3) + sway, py = Math.round(y0 + t.cy + fy_ * t.r - 3);
+          const age = pops[i] ? now - pops[i] : 1e9;
+          if (age < 260) R(ctx, (FRUITS[g.fruit] || FRUITS.apple).c[1], px + 1, py + 2, 2, 2); else ctx.drawImage(fs, px, py);
+        }
+        if (stage === 3 && anim) for (let i = 0; i < 4; i++) { if ((Math.floor(now / 260) + i * 3) % 5) continue; const a = i * 1.7 + g.slot; R(ctx, P.Y[3], Math.round(x0 + t.cx + Math.cos(a) * (t.r + 3)), Math.round(y0 + t.cy + Math.sin(a) * (t.r + 1)), 1, 1); }
+      }
+      if (harvested) ctx.drawImage(PLAQUE, cx + 5, base - 6);
+    } });
+  }
+}
+function orchardTarget(i) {
+  const { cx, base } = plotPos(i), g = goalAt(i);
+  if (!g) return { kind: 'orchard', slot: i, name: '空地 · 种一棵目标树', rect: { x: cx - 10, y: base - 12, w: 20, h: 16 }, spot: { x: cx, y: base + 8 }, top: base - 14 };
+  const n = g.milestones.length, d = doneCount(g);
+  const name = g.harvestedAt ? `${g.title} · 已达成` : d >= n ? `${g.title} · 满树了，去摘果` : `${g.title} · ${d}/${n}`;
+  return { kind: 'orchard', slot: i, name, rect: { x: cx - 18, y: base - 50, w: 36, h: 54 }, spot: { x: cx, y: base + 8 }, top: base - 52 };
+}
+
+/* ---------- goals: one store, two back ends (the account's server in live mode, this browser in the demo) ---------- */
+const GOALS_KEY = 'ai-farm-goals-v1';
+const newId = () => (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)).replace(/-/g, '').slice(0, 20);
+function setGoals(next, animate) {
+  const now = performance.now();
+  for (const g of next) {
+    const before = goals.find(x => x.id === g.id), was = before ? doneCount(before) : 0, is = doneCount(g);
+    const pops = (fruitPop[g.id] || []).slice(0, is);
+    if (animate && is > was) for (let i = was; i < is; i++) {
+      pops[i] = now + (i - was) * 140;
+      if (g.slot >= 0 && g.slot < ORCH_N) { const { cx, base } = plotPos(g.slot); for (let k = 0; k < 6; k++) fx.push({ kind: 'spark', x: cx + (Math.random() - 0.5) * 16, y: base - 30 + (Math.random() - 0.5) * 12, vx: (Math.random() - 0.5) * 1.4, vy: -Math.random() * 1.4, life: 24 }); }
+    }
+    fruitPop[g.id] = pops;
+  }
+  goals = next;
+}
+function saveLocalGoals() { try { localStorage.setItem(GOALS_KEY, JSON.stringify(goals)); } catch (e) { /* storage unavailable */ } }
+function loadLocalGoals() {
+  let list = null; try { list = JSON.parse(localStorage.getItem(GOALS_KEY) || 'null'); } catch (e) { /* ignore */ }
+  if (!Array.isArray(list)) { // the demo starts with two trees so the orchard has something in it
+    const d = n => { const t = new Date(Date.now() + n * 864e5); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+    const ms = (titles, done) => titles.map((title, i) => ({ id: newId(), title, done: i < done }));
+    list = [
+      { id: newId(), slot: 0, title: '跑完一次半程马拉松', why: '想要更好的体能', fruit: 'peach', due: d(120), status: 'growing', createdAt: Date.now() - 30 * 864e5, lastProgressAt: Date.now() - 3 * 864e5, milestones: ms(['连续跑 5 公里', '连续跑 10 公里', '报名比赛', '跑 15 公里', '完赛'], 2) },
+      { id: newId(), slot: 1, title: 'Agent Farm 上线', why: '', fruit: 'apple', due: d(20), status: 'growing', createdAt: Date.now() - 12 * 864e5, lastProgressAt: Date.now() - 864e5, milestones: ms(['做出像素农场', '接入 Claude Code', '接入 Codex', '部署上线'], 3) }
+    ];
+  }
+  setGoals(list.filter(g => g && Array.isArray(g.milestones)), false);
+}
+function localGoalOp(op) {
+  const g = op.id ? goals.find(x => x.id === op.id) : null, now = Date.now();
+  const recheck = gg => { gg.doneAt = gg.milestones.length && gg.milestones.every(m => m.done) ? (gg.doneAt || now) : null; };
+  if (op.kind === 'plant') goals = goals.concat([{ id: newId(), slot: op.slot, title: op.title, why: op.why, fruit: op.fruit, due: op.due, status: 'growing', createdAt: now, lastProgressAt: now, doneAt: null, harvestedAt: null, milestones: op.milestones.map(title => ({ id: newId(), title, done: false })) }]);
+  else if (!g) return;
+  else if (op.kind === 'edit') Object.assign(g, op.patch);
+  else if (op.kind === 'addMs') { g.milestones.push({ id: newId(), title: op.title, done: false }); recheck(g); }
+  else if (op.kind === 'ms') { const m = g.milestones.find(x => x.id === op.mid); if (!m) return; if ('done' in op) { m.done = op.done; if (op.done) g.lastProgressAt = now; } if (op.title) m.title = op.title; recheck(g); }
+  else if (op.kind === 'delMs') { g.milestones = g.milestones.filter(x => x.id !== op.mid); recheck(g); }
+  else if (op.kind === 'harvest') g.harvestedAt = now;
+  else if (op.kind === 'remove') goals = goals.filter(x => x !== g);
+  saveLocalGoals();
+}
+// one entry point for every change: applied here at once (so the tree reacts immediately), then saved where goals live
+async function goalOp(op) {
+  const before = JSON.parse(JSON.stringify(goals));
+  const copy = JSON.parse(JSON.stringify(goals)); goals = copy; localGoalOp(op); const next = goals; goals = before; setGoals(next, true);
+  if (!live.on) { saveLocalGoals(); return true; }
+  const route = {
+    plant: ['POST', '/api/goals', { slot: op.slot, title: op.title, why: op.why, fruit: op.fruit, due: op.due, milestones: op.milestones }],
+    edit: ['PATCH', `/api/goals/${op.id}`, op.patch], addMs: ['POST', `/api/goals/${op.id}/milestones`, { title: op.title }],
+    ms: ['PATCH', `/api/milestones/${op.mid}`, { done: op.done, title: op.title }], delMs: ['DELETE', `/api/milestones/${op.mid}`],
+    harvest: ['POST', `/api/goals/${op.id}/harvest`, {}], remove: ['DELETE', `/api/goals/${op.id}`]
+  }[op.kind];
+  try {
+    const r = await fetch(route[1], { method: route[0], headers: { 'Content-Type': 'application/json', 'X-Agent-Farm': '1' }, body: route[2] ? JSON.stringify(route[2]) : undefined, credentials: 'same-origin' });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || r.status);
+    if (Array.isArray(j.goals)) setGoals(j.goals, false);
+    if (j.version) live.version = j.version;
+    return true;
+  } catch (e) {
+    setGoals(before, false); live.version = 0; hint('没保存上，已恢复原样，稍后再试'); return false;
+  }
+}
+
+/* ---------- the goal window: a pixel-style form over the game for planting a tree and looking after it ---------- */
+const goalUI = { open: false, el: null, slot: -1, mode: '' };
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+function closeGoalUI() { if (!goalUI.open) return; goalUI.open = false; goalUI.el.remove(); goalUI.el = null; Sound.wood(); ucv.focus({ preventScroll: true }); }
+function goalShell(title) {
+  if (goalUI.el) goalUI.el.remove();
+  const back = el('div', 'gu-back'); back.setAttribute('role', 'dialog'); back.setAttribute('aria-modal', 'true'); back.setAttribute('aria-label', title);
+  back.addEventListener('mousedown', e => { if (e.target === back) closeGoalUI(); });
+  const card = el('div', 'gu-card'), head = el('div', 'gu-head'), h = el('h2', 'gu-title', title), x = el('button', 'gu-x', '×');
+  x.type = 'button'; x.setAttribute('aria-label', '关闭'); x.onclick = closeGoalUI;
+  head.append(h, x); card.append(head); back.append(card); document.body.append(back);
+  goalUI.el = back; goalUI.open = true; return card;
+}
+function fruitPicker(value) {
+  const wrap = el('div', 'gu-fruits'); wrap.setAttribute('role', 'radiogroup'); wrap.setAttribute('aria-label', '果树');
+  let cur = value;
+  const btns = FRUIT_KEYS.map(k => {
+    const b = el('button', 'gu-fruit'); b.type = 'button'; b.setAttribute('role', 'radio');
+    const dot = el('i'); dot.style.background = FRUITS[k].c[1]; dot.style.boxShadow = `inset -2px -2px 0 ${FRUITS[k].c[0]}, inset 2px 2px 0 ${FRUITS[k].c[2]}`;
+    b.append(dot, el('span', null, FRUITS[k].name));
+    b.onclick = () => { cur = k; btns.forEach((x, i) => x.setAttribute('aria-checked', FRUIT_KEYS[i] === k)); };
+    b.setAttribute('aria-checked', k === value); return b;
+  });
+  wrap.append(...btns); wrap.value = () => cur; return wrap;
+}
+function field(label, input, note) { const f = el('label', 'gu-field'); f.append(el('span', 'gu-label', label), input); if (note) f.append(el('span', 'gu-note', note)); return f; }
+function textInput(value, max, placeholder) { const i = el('input', 'gu-input'); i.type = 'text'; i.maxLength = max; i.value = value || ''; if (placeholder) i.placeholder = placeholder; return i; }
+
+function openGoalUI(slot) {
+  const g = goalAt(slot); Sound.paper();
+  if (!g) return openPlantForm(slot);
+  return openGoalCard(g.id);
+}
+function openPlantForm(slot) {
+  const card = goalShell('种一棵目标树'); goalUI.slot = slot; goalUI.mode = 'plant';
+  const title = textInput('', 20, '比如：跑完一次半程马拉松'), why = textInput('', 60, '一句话，写给以后的自己');
+  const due = el('input', 'gu-input'); due.type = 'date'; due.min = todayISO();
+  const fruit = fruitPicker(FRUIT_KEYS[slot % FRUIT_KEYS.length]);
+  const list = el('ol', 'gu-ms-edit'), err = el('p', 'gu-err'); err.setAttribute('role', 'alert');
+  const addRow = (v = '') => { if (list.children.length >= MS_MAX) return; const li = el('li'), i = textInput(v, 40, `里程碑 ${list.children.length + 1}`), rm = el('button', 'gu-mini', '删'); rm.type = 'button'; rm.setAttribute('aria-label', '删掉这个里程碑'); rm.onclick = () => { if (list.children.length > MS_MIN) li.remove(); }; li.append(i, rm); list.append(li); return i; };
+  addRow(); addRow(); addRow();
+  const add = el('button', 'gu-btn gu-wood', '+ 再加一个'); add.type = 'button'; add.onclick = () => { const i = addRow(); if (i) i.focus(); else err.textContent = `最多 ${MS_MAX} 个里程碑`; };
+  const plant = el('button', 'gu-btn', '种下'); plant.type = 'submit';
+  const form = el('form', 'gu-body'); form.noValidate = true;
+  form.append(field('目标', title), field('为什么（可选）', why), field('截止日期', due), field('果树', fruit), el('span', 'gu-label', `里程碑（${MS_MIN}–${MS_MAX} 个，每完成一个挂一颗果）`), list, add, err, el('div', 'gu-actions'));
+  form.lastChild.append(plant);
+  form.onsubmit = async e => {
+    e.preventDefault(); err.textContent = '';
+    const ms = [...list.querySelectorAll('input')].map(i => i.value.trim()).filter(Boolean);
+    if (!title.value.trim()) { err.textContent = '先写下目标'; title.focus(); return; }
+    if (!due.value) { err.textContent = '选一个截止日期'; due.focus(); return; }
+    if (due.value < todayISO()) { err.textContent = '截止日期不能早于今天'; due.focus(); return; }
+    if (ms.length < MS_MIN) { err.textContent = `至少写 ${MS_MIN} 个里程碑`; return; }
+    plant.disabled = true;
+    const ok = await goalOp({ kind: 'plant', slot, title: title.value.trim(), why: why.value.trim(), due: due.value, fruit: fruit.value(), milestones: ms });
+    if (!ok) { plant.disabled = false; return; }
+    closeGoalUI(); Sound.plant();
+    const { cx, base } = plotPos(slot); for (let i = 0; i < 12; i++) fx.push({ kind: 'spark', x: cx, y: base - 6, vx: (Math.random() - 0.5) * 1.8, vy: -Math.random() * 1.8, life: 30 });
+    say(`种下了「${title.value.trim()}」，完成第一个里程碑就会挂果`);
+  };
+  card.append(form); title.focus();
+}
+function openGoalCard(id) {
+  const g = goals.find(x => x.id === id); if (!g) return closeGoalUI();
+  const card = goalShell(g.title); goalUI.mode = 'card'; goalUI.slot = g.slot;
+  const n = g.milestones.length, d = doneCount(g), left = daysTo(g.due), harvested = !!g.harvestedAt;
+  const body = el('div', 'gu-body');
+  if (g.why) body.append(el('p', 'gu-why', `「${g.why}」`));
+  const meta = el('p', 'gu-meta');
+  meta.textContent = harvested ? `${new Date(g.harvestedAt).toLocaleDateString()} 摘果 · 用时 ${Math.max(1, Math.round((g.harvestedAt - g.createdAt) / 864e5))} 天 · ${FRUITS[g.fruit] ? FRUITS[g.fruit].name : ''}树`
+    : `截止 ${g.due} · ${left > 0 ? `还有 ${left} 天` : left === 0 ? '就是今天' : `已过 ${-left} 天`} · ${FRUITS[g.fruit] ? FRUITS[g.fruit].name : ''}树${g.status === 'paused' ? ' · 休眠中' : ''}`;
+  if (!harvested && left < 0) meta.classList.add('gu-late');
+  const bar = el('div', 'gu-bar'); bar.setAttribute('role', 'progressbar'); bar.setAttribute('aria-valuemin', 0); bar.setAttribute('aria-valuemax', n); bar.setAttribute('aria-valuenow', d);
+  const fill = el('i'); fill.style.width = `${n ? (d / n) * 100 : 0}%`; bar.append(fill);
+  body.append(meta, el('p', 'gu-label', `里程碑 ${d} / ${n}`), bar);
+  const list = el('ul', 'gu-ms');
+  for (const m of g.milestones) {
+    const li = el('li'), lab = el('label'), cb = el('input');
+    cb.type = 'checkbox'; cb.checked = m.done; cb.disabled = harvested;
+    cb.onchange = async () => {
+      cb.disabled = true; const ok = await goalOp({ kind: 'ms', id: g.id, mid: m.id, done: cb.checked });
+      if (ok) { if (cb.checked) { coins += 20; coinPop = performance.now(); save(); Sound.ding(); } else { coins = Math.max(0, coins - 20); save(); } }
+      openGoalCard(g.id);
+      const gg = goals.find(x => x.id === g.id);
+      if (ok && cb.checked && gg && doneCount(gg) === gg.milestones.length) { Sound.coin(); say(`「${gg.title}」结满了果，去树下摘果吧`); }
+    };
+    lab.append(cb, el('span', m.done ? 'gu-done' : null, m.title)); li.append(lab);
+    if (!harvested && g.milestones.length > 1) { const rm = el('button', 'gu-mini', '删'); rm.type = 'button'; rm.setAttribute('aria-label', `删掉「${m.title}」`); rm.onclick = async () => { await goalOp({ kind: 'delMs', id: g.id, mid: m.id }); openGoalCard(g.id); }; li.append(rm); }
+    list.append(li);
+  }
+  body.append(list);
+  if (!harvested && n < MS_MAX) {
+    const row = el('form', 'gu-add'), i = textInput('', 40, '再加一个里程碑'), b = el('button', 'gu-btn gu-wood', '加'); b.type = 'submit';
+    row.onsubmit = async e => { e.preventDefault(); const v = i.value.trim(); if (!v) return; await goalOp({ kind: 'addMs', id: g.id, title: v }); openGoalCard(g.id); };
+    row.append(i, b); body.append(row);
+  }
+  const acts = el('div', 'gu-actions');
+  if (!harvested && d >= n) { const pick = el('button', 'gu-btn gu-gold', '摘果'); pick.type = 'button'; pick.onclick = () => harvestGoal(g.id); acts.append(pick); }
+  const edit = el('button', 'gu-btn gu-wood', '修改'); edit.type = 'button'; edit.onclick = () => openEditForm(g.id); acts.append(edit);
+  if (!harvested) { const pz = el('button', 'gu-btn gu-wood', g.status === 'paused' ? '唤醒' : '暂停'); pz.type = 'button'; pz.onclick = async () => { await goalOp({ kind: 'edit', id: g.id, patch: { status: g.status === 'paused' ? 'growing' : 'paused' } }); openGoalCard(g.id); }; acts.append(pz); }
+  const rm = el('button', 'gu-btn gu-danger', '移除这棵树'); rm.type = 'button';
+  rm.onclick = async () => { if (rm.dataset.sure !== '1') { rm.dataset.sure = '1'; rm.textContent = '确定移除？不能恢复'; return; } await goalOp({ kind: 'remove', id: g.id }); closeGoalUI(); say(`移除了「${g.title}」，那块地空出来了`); };
+  acts.append(rm);
+  body.append(acts); card.append(body);
+}
+function openEditForm(id) {
+  const g = goals.find(x => x.id === id); if (!g) return closeGoalUI();
+  const card = goalShell('修改目标'); goalUI.mode = 'edit';
+  const title = textInput(g.title, 20), why = textInput(g.why, 60), due = el('input', 'gu-input'); due.type = 'date'; due.value = g.due;
+  const fruit = fruitPicker(g.fruit), err = el('p', 'gu-err'), saveBtn = el('button', 'gu-btn', '保存'), back = el('button', 'gu-btn gu-wood', '返回');
+  saveBtn.type = 'submit'; back.type = 'button'; back.onclick = () => openGoalCard(id);
+  const form = el('form', 'gu-body'); form.noValidate = true;
+  form.append(field('目标', title), field('为什么（可选）', why), field('截止日期', due), field('果树', fruit), err, el('div', 'gu-actions'));
+  form.lastChild.append(back, saveBtn);
+  form.onsubmit = async e => {
+    e.preventDefault();
+    if (!title.value.trim()) { err.textContent = '目标不能为空'; return; }
+    if (!due.value) { err.textContent = '选一个截止日期'; return; }
+    await goalOp({ kind: 'edit', id, patch: { title: title.value.trim(), why: why.value.trim(), due: due.value, fruit: fruit.value() } }); openGoalCard(id);
+  };
+  card.append(form); title.focus();
+}
+async function harvestGoal(id) {
+  const g = goals.find(x => x.id === id); if (!g || g.harvestedAt) return;
+  closeGoalUI();
+  const { cx, base } = plotPos(g.slot), t = treeSprite(3, false), fs = fruitSprite(g.fruit), now = performance.now();
+  const n = Math.min(doneCount(g), FRUIT_SPOTS.length);
+  for (let i = 0; i < n; i++) { const [a, b] = FRUIT_SPOTS[i]; flights.push({ x0: cx + a * t.r, y0: base - t.img.height + t.cy + b * t.r, x1: SCENE.bin[0] + 12, y1: SCENE.bin[1] - 2, t0: now + i * 120, dur: 1000, img: fs }); }
+  const ok = await goalOp({ kind: 'harvest', id });
+  if (!ok) return;
+  coins += 200; coinPop = performance.now(); save(); Sound.coin();
+  say(`「${g.title}」达成了！果子装进了出货箱，+200 金币。这棵树会一直留在果园里`);
 }
 
 /* ---------- accessibility mirror ---------- */
@@ -1287,17 +1659,17 @@ function darkness() {
   const d = new Date(), h = d.getHours() + d.getMinutes() / 60;
   if (h >= 19 || h < 5) return 1; if (h >= 17) return (h - 17) / 2; if (h < 6.5) return 1 - (h - 5) / 1.5; return 0;
 }
-const WNAME = { sunny: '晴', cloudy: '多云', rain: '小雨', storm: '雷雨', fog: '起雾' };
-const WCYCLE = ['sunny', 'cloudy', 'rain', 'storm', 'fog'];
-const WDIM = { sunny: '#ffffff', cloudy: '#e2e4ee', rain: '#b4bdd6', storm: '#8e97b8', fog: '#f0f1f5' };
+const WNAME = { sunny: '晴', cloudy: '多云', rain: '小雨', storm: '雷雨' };
+const WCYCLE = ['sunny', 'cloudy', 'rain', 'storm'];
+const WDIM = { sunny: '#ffffff', cloudy: '#e2e4ee', rain: '#b4bdd6', storm: '#8e97b8' };
 let weatherOverride = null;
 const weather = { kind: 'sunny', amt: 1, since: -1e9 };
 function scheduledWeather() {
   const d = new Date(), r = rng(d.getFullYear() * 1000 + d.getMonth() * 40 + d.getDate()); let k = 'sunny';
-  for (let i = 0; i <= Math.floor(d.getHours() / 6); i++) { const v = r(); k = v < 0.36 ? 'sunny' : v < 0.6 ? 'cloudy' : v < 0.82 ? 'rain' : v < 0.9 ? 'storm' : 'fog'; }
+  for (let i = 0; i <= Math.floor(d.getHours() / 6); i++) { const v = r(); k = v < 0.36 ? 'sunny' : v < 0.6 ? 'cloudy' : v < 0.82 ? 'rain' : v < 0.9 ? 'storm' : 'cloudy'; }
   return k;
 }
-const W_MSG = { sunny: '天晴了', cloudy: '云多了起来', rain: '下起了小雨，小鸡躲进了鸡舍', storm: '雷雨来了，小鸡躲进了鸡舍', fog: '起雾了' };
+const W_MSG = { sunny: '天晴了', cloudy: '云多了起来', rain: '下起了小雨，小鸡躲进了鸡舍', storm: '雷雨来了，小鸡躲进了鸡舍' };
 function updateWeather(now, quiet) {
   const target = weatherOverride || scheduledWeather();
   if (target !== weather.kind) { weather.kind = target; weather.since = quiet ? -1e9 : now; if (!quiet) { hint(W_MSG[target]); announce(W_MSG[target]); } }
@@ -1322,7 +1694,7 @@ function makeFogBand() {
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = (1 - Math.abs(y - h / 2) / (h / 2)) * (0.45 + nz(x / 30, y / 8) * 0.55); if (bay(x, y) < v * 0.75) R(g, '#e9edf3', x, y); }
   return c;
 }
-let cloudShadow = null, fogBand = null;
+let cloudShadow = null;
 const wIconCache = new Map();
 function weatherIcon(kind, night) {
   const key = kind + (night ? 'n' : 'd'); let c = wIconCache.get(key); if (c) return c;
@@ -1331,7 +1703,6 @@ function weatherIcon(kind, night) {
   else if (kind === 'cloudy') { if (night) g.drawImage(SPR.moon, 7, 0); g.drawImage(SPR.cloud, 1, 4); }
   else if (kind === 'rain') g.drawImage(SPR.rainCloud, 1, 2);
   else if (kind === 'storm') g.drawImage(SPR.stormCloud, 1, 1);
-  else g.drawImage(SPR.fogIcon, 1, 4);
   wIconCache.set(key, cc); return cc;
 }
 
@@ -1345,13 +1716,13 @@ const today = () => { const d = new Date(); return `${d.getFullYear()}-${d.getMo
 let daily = { date: today(), mail: false, egg: false, pets: 0 };
 function loadDaily() { try { const s = JSON.parse(localStorage.getItem(DAILY_KEY) || 'null'); if (s && s.date === today()) daily = Object.assign(daily, s); } catch (e) { /* storage unavailable */ } }
 function saveDaily() { try { localStorage.setItem(DAILY_KEY, JSON.stringify(daily)); } catch (e) { /* storage unavailable */ } }
-const CHICK_AREA = { x: 22, y: 366, w: 86, h: 26 };
-const chickens = [{ x: 30, y: 370, tx: 70, ty: 380, dir: 1, wait: 0, t: 0 }, { x: 80, y: 384, tx: 40, ty: 372, dir: -1, wait: 80, t: 5 }, { x: 56, y: 376, tx: 30, ty: 388, dir: -1, wait: 160, t: 9 }, { x: 96, y: 372, tx: 60, ty: 368, dir: -1, wait: 40, t: 3 }];
+const CHICK_AREA = { x: 150, y: 326, w: 92, h: 26 };
+const chickens = [{ x: 158, y: 330, tx: 198, ty: 340, dir: 1, wait: 0, t: 0 }, { x: 208, y: 344, tx: 168, ty: 332, dir: -1, wait: 80, t: 5 }, { x: 184, y: 336, tx: 158, ty: 348, dir: -1, wait: 160, t: 9 }, { x: 224, y: 332, tx: 188, ty: 328, dir: -1, wait: 40, t: 3 }];
 const ducks = [{ a: 0, sp: 0.003, rx: 42, ry: 14 }, { a: 2.6, sp: 0.0024, rx: 30, ry: 9 }, { a: 4.4, sp: 0.0026, rx: 34, ry: 11 }];
 const flies = Array.from({ length: 30 }, (_, i) => ({ x: (i * 197) % (FW - 20) + 10, y: (i * 61) % (FH - 24) + 12, p: i * 1.7 }));
 const smoke = [], hearts = [], eggs = [], leaves = [], snow = [];
 let birds = null, nextBirds = 600;
-const farmer = { x: 121, y: 150, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
+const farmer = { x: 293, y: 172, dir: 'down', path: [], pending: null, moving: false, lastStep: 0, anim: 0 };
 const keys = new Set();
 
 const CELL = 8, GC = Math.ceil(Math.max(W, FW) / CELL), GR = Math.ceil(Math.max(H, FH) / CELL), walk = new Uint8Array(GC * GR);
@@ -1470,6 +1841,7 @@ function interactables() {
   const list = [];
   list.push({ kind: 'door', room: 'house', name: '小屋 · 进屋', rect: { x: HX + 40, y: HY + 46, w: 18, h: 34 }, spot: { x: HX + 49, y: HY + 90 }, top: HY + 44 });
   list.push({ kind: 'mine', name: '矿洞 · 进去挖矿', rect: { x: MX + 18, y: MY + 16, w: 22, h: 30 }, spot: { x: MX + 28, y: MY + 54 }, top: MY + 12 });
+  for (let i = 0; i < ORCH_N; i++) list.push(orchardTarget(i));
   list.push({ kind: 'truck', name: '小货车 · 开去机场', rect: { x: TRUCK_POS.x, y: TRUCK_POS.y, w: 44, h: 26 }, spot: { x: TRUCK_POS.x + 20, y: TRUCK_POS.y + 36 }, top: TRUCK_POS.y - 2 });
   list.push({ kind: 'pethouse', name: pet ? `${pet.name}的小屋` : '宠物屋 · 领养宠物', rect: { x: PETH.x, y: PETH.y, w: 32, h: 28 }, spot: { x: PETH.x + 16, y: PETH.y + 36 }, top: PETH.y - 2 });
   list.push({ kind: 'door', room: 'coop', name: '鸡舍 · 进去看看', rect: { x: CX + 19, y: CY + 24, w: 16, h: 18 }, spot: { x: CX + 26, y: CY + 50 }, top: CY + 22 });
@@ -1495,6 +1867,7 @@ function cropDialog(t) {
 function interact(p) {
   if (roomInteract(p)) return;
   const now = performance.now();
+  if (p.kind === 'orchard') { openGoalUI(p.slot); return; }
   if (p.kind === 'crop') { const t = find(p.id); if (!t) return; if (t.state === 'stalled') { t.crowHop = now; Sound.caw(); } openDialog(cropDialog(t)); }
   else if (p.kind === 'bin') { panelView = 'ship'; hover = null; Sound.paper(); }
   else if (p.kind === 'mail') {
@@ -1597,6 +1970,7 @@ function renderFarm(now) {
     if (item(d.type).ground) ctx.drawImage(s, d.x, d.y);
   });
   for (const t of tasks) if (t.state === 'working') { const { tx, ty } = slotPos(t.slot); ctx.drawImage(SPR.soilWet, tx, ty); }
+  drawOrchardGround();
 
   // pond life sits on the water, under everything else
   const [px, py] = SCENE.pond;
@@ -1616,6 +1990,7 @@ function renderFarm(now) {
   for (const p of PROPS) ents.push({ y: p.base, draw: () => ctx.drawImage(p.img, p.x, p.y) });
   ents.push({ y: FEN.top + 14, draw: () => ctx.drawImage(fenceTop[0], 0, 0) });
   ents.push({ y: FEN.bot + 14, draw: () => ctx.drawImage(fenceBot[0], 0, 0) });
+  orchardEnts(ents, now, anim);
   for (const t of TUFTS) ents.push({ y: t.y + 11, draw: () => {
     let lean = anim ? (Math.sin(now / 900 + t.p) > 0.6 ? 1 : 0) + (weather.kind === 'storm' ? 1 : 0) : 0;
     if (t.shake > 0) lean = Math.floor(t.shake / 4) % 2 ? -1 : 1;
@@ -1695,9 +2070,9 @@ function renderFarm(now) {
     else R(ctx, p.water ? (Math.floor(p.life) % 4 < 2 ? P.WT[5] : P.WT[4]) : (Math.floor(p.life) % 4 < 2 ? P.Y[4] : P.Y[2]), p.x, p.y, 1, 1);
   }
   for (let i = flights.length - 1; i >= 0; i--) {
-    const f = flights[i], k = Math.min(1, (now - f.t0) / f.dur);
+    const f = flights[i], k = Math.max(0, Math.min(1, (now - f.t0) / f.dur));
     const x = f.x0 + (f.x1 - f.x0) * k, y = f.y0 + (f.y1 - f.y0) * k - Math.sin(k * Math.PI) * 40;
-    ctx.drawImage(SPR.pumpkin, Math.round(x), Math.round(y));
+    ctx.drawImage(f.img || SPR.pumpkin, Math.round(x), Math.round(y));
     if (k >= 1) { flights.splice(i, 1); for (let j = 0; j < 8; j++) fx.push({ kind: 'spark', x: f.x1 + 6, y: f.y1, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.8, life: 26 }); }
   }
   for (const h of hearts) if (Math.floor(h.life) % 20 < 18) ctx.drawImage(SPR.heart, Math.round(h.x), Math.round(h.y));
@@ -1719,11 +2094,6 @@ function renderFarm(now) {
       ctx.globalAlpha = 1;
     }
     ctx.globalCompositeOperation = 'source-over';
-    if (wk === 'fog') {
-      ctx.globalAlpha = 0.85 * wa;
-      for (let i = 0; i < Math.ceil(VH / 64); i++) { const x = Math.round(((now / 120 + i * 190) % 520) - 520) - OX, y = -OY + 24 + i * 64; for (let k = 0; k * 520 < VW + 520; k++) ctx.drawImage(fogBand, x + k * 520, y); }
-      ctx.globalAlpha = 1;
-    }
   }
   // night: a lightmap with soft warm pools around windows and lamps, multiplied over the scene
   const dk = darkness();
@@ -1749,7 +2119,7 @@ function renderFarm(now) {
     ctx.globalCompositeOperation = 'source-over';
     for (const [x, y, w, h] of houseWins.concat(coopWins)) { R(ctx, P.Y[3], x, y, w, h); R(ctx, P.Y[4], x, y, Math.ceil(w / 2), 2); R(ctx, P.WD[1], x + (w >> 1) - 1, y, 2, h); R(ctx, P.WD[1], x, y + (h >> 1) - 1, w, 2); }
     for (const [x, y, w, h] of lampGlass.concat(decorLamps)) { R(ctx, P.Y[3], x, y, w, h); R(ctx, P.Y[4], x, y, 2, 1); }
-    if (anim && !isWet() && wk !== 'fog' && season !== 'winter') for (const f of flies) {
+    if (anim && !isWet() && season !== 'winter') for (const f of flies) {
       const b = (Math.sin(now / 600 + f.p) + 1) / 2; if (b < 0.35) continue;
       const x = Math.round(f.x + Math.sin(now / 2100 + f.p) * 10), y = Math.round(f.y + Math.cos(now / 1700 + f.p) * 6);
       R(ctx, b > 0.8 ? P.Y[4] : P.Y[3], x, y, 1, 1); if (b > 0.8) { R(ctx, P.Y[1], x - 1, y); R(ctx, P.Y[1], x + 1, y); R(ctx, P.Y[1], x, y - 1); R(ctx, P.Y[1], x, y + 1); }
@@ -2128,6 +2498,7 @@ ucv.addEventListener('click', e => {
   if (scene === 'mine' && !dialog && !helpOpen && !panelView && !shopOpen) {
     const h = uiHitAt();
     if (h && h.kind === 'auto') { toggleAuto(); return; }
+    if (h && h.kind === 'peace') { togglePeace(); return; }
     if (h) { if (h.kind === 'slot') { if (h.i === 5) deployLadder(); else { mine.sel = h.i; Sound.blip(); } } else if (h.kind === 'help') { helpOpen = true; Sound.paper(); } else if (h.kind === 'clock') cycleWeather(); else if (h.kind === 'board') toggleBoard(); else if (h.kind === 'coins') hint('回到农场再逛商店'); else if (h.kind === 'quest') { const t = find(h.id); if (t) { const { tx, ty } = slotPos(t.slot); leaveMine(() => walkTo(tx + 8, ty + 22, { kind: 'crop', id: t.id })); } } }
     return;
   }
@@ -2180,6 +2551,7 @@ const MOVE_KEYS = { ArrowLeft: 'left', a: 'left', A: 'left', ArrowRight: 'right'
 window.addEventListener('keyup', e => { const k = MOVE_KEYS[e.key]; if (k) keys.delete(k); if (scene === 'mine') mineKey(e, false); });
 window.addEventListener('blur', () => keys.clear());
 window.addEventListener('keydown', e => {
+  if (goalUI.open) { if (e.key === 'Escape') { e.preventDefault(); closeGoalUI(); } return; } // typing in the goal form must not drive the game
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (sleep) { e.preventDefault(); wake(); return; }
   if (scene === 'cut') { if (e.key === ' ' || e.key === 'Enter' || e.key === 'Escape') { e.preventDefault(); endCut(); } return; }
@@ -2923,6 +3295,7 @@ function genMine() {
   }
   for (let n = 0, tries = 0; n < 5 && tries < 400; tries++) { const x = 6 + Math.floor(r() * (MC - 12)), y = 22 + Math.floor(r() * (MR - 30)); let open = true; for (let dy = -2; dy <= 2 && open; dy++) for (let dx = -3; dx <= 3; dx++) if (t[mi(x + dx, y + dy)]) { open = false; break; } if (open) { mine.bats.push({ hx: x * MT, hy: y * MT, p: r() * 6, x: x * MT, y: y * MT }); n++; } }
   for (const [x, y] of [[6, 14], [12, 14]]) { mine.deco[mi(x, y)] = D_TORCH; mine.torches.add(mi(x, y)); }
+  placeTreasureRooms(r);
   mine.p.x = 40; mine.p.y = 15 * MT - 28;
 }
 
@@ -2946,6 +3319,7 @@ function drawTileAt(c, r) {
     else if (dd === D_MUSH) { R(g, '#d8e8f0', x + 2, y + 5, 1, 3); R(g, '#3ac8d8', x, y + 3, 5, 2); R(g, '#a0f0f8', x + 1, y + 3, 2, 1); if (v & 1) { R(g, '#d8e8f0', x + 6, y + 6, 1, 2); R(g, '#3ac8d8', x + 5, y + 5, 3, 1); } }
     else if (dd === D_POT) { R(g, '#2a1410', x + 2, y, 4, 2); R(g, '#2a1410', x + 1, y + 2, 6, 6); R(g, '#2a1410', x, y + 3, 8, 4); R(g, '#c87850', x + 3, y + 1, 2, 1); R(g, '#a8583a', x + 2, y + 2, 4, 5); R(g, '#a8583a', x + 1, y + 3, 6, 3); R(g, '#d89060', x + 2, y + 3, 1, 2); R(g, '#e8b070', x + 2, y + 4, 4, 1); R(g, '#7a3a24', x + 2, y + 6, 4, 1); }
     else if (dd === D_TORCH) { R(g, '#5a3424', x + 3, y + 3, 2, 5); R(g, '#7a4a30', x + 3, y + 3, 1, 5); }
+    else if (dd === 7 || dd === 8) { const op = dd === 8; R(g, '#2a1410', x, y + (op ? 3 : 1), 8, op ? 5 : 7); R(g, '#9a6038', x + 1, y + (op ? 4 : 2), 6, op ? 3 : 5); R(g, '#c8843a', x + 1, y + (op ? 4 : 2), 6, 1); R(g, '#f0c840', x + 1, y + 4, 6, 1); if (!op) { R(g, '#f0c840', x + 3, y + 4, 2, 2); R(g, '#2a1410', x + 4, y + 5, 1, 1); } else { R(g, '#5a3424', x + 1, y + 1, 6, 2); R(g, '#14101a', x + 2, y + 4, 4, 1); } }
     return;
   }
   const tx = mine.tex[t]; g.drawImage(tx[v], x, y);
@@ -3073,12 +3447,16 @@ function paintWall(c, r) {
 const MINE_KEY = 'ai-farm-mine-v1';
 const enc = a => { let s = ''; for (let i = 0; i < a.length; i += 8192) s += String.fromCharCode.apply(null, a.subarray(i, i + 8192)); return btoa(s); };
 const dec = (b, a) => { const s = atob(b); if (s.length !== a.length) return false; for (let i = 0; i < s.length; i++) a[i] = s.charCodeAt(i); return true; };
-function saveMine() { if (!mine.built) return; try { localStorage.setItem(MINE_KEY, JSON.stringify({ t: enc(mine.tiles), w: enc(mine.wall), d: enc(mine.deco), f: mine.furn, inv: mine.inv })); } catch (e) { /* storage full or unavailable */ } }
+function saveMine() { if (!mine.built) return; try { localStorage.setItem(MINE_KEY, JSON.stringify({ t: enc(mine.tiles), w: enc(mine.wall), d: enc(mine.deco), f: mine.furn, inv: mine.inv, rooms: mine.rooms, bag: mine.bag, lost: mine.lost })); } catch (e) { /* storage full or unavailable */ } }
 function loadMine() {
   try {
     const s = JSON.parse(localStorage.getItem(MINE_KEY) || 'null'); if (!s) return false;
     if (!dec(s.t, mine.tiles) || !dec(s.w, mine.wall) || !dec(s.d, mine.deco)) return false;
-    mine.furn = Array.isArray(s.f) ? s.f.filter(f => FDEF[f.type]) : []; Object.assign(mine.inv, s.inv || {}); return true;
+    mine.furn = Array.isArray(s.f) ? s.f.filter(f => FDEF[f.type]) : []; Object.assign(mine.inv, s.inv || {});
+    if (s.bag && Array.isArray(s.bag.relics)) mine.bag = { relics: s.bag.relics.filter(k => RELIC[k]), coins: +s.bag.coins || 0 };
+    if (s.lost && Number.isFinite(s.lost.x) && Number.isFinite(s.lost.y)) mine.lost = { x: s.lost.x, y: s.lost.y, ores: s.lost.ores || {}, relics: (s.lost.relics || []).filter(k => RELIC[k]), coins: +s.lost.coins || 0 };
+    if (!s.rooms) placeTreasureRooms(rng(777)); // older saves get the treasure rooms dug into untouched rock
+    return true;
   } catch (e) { return false; }
 }
 function scanAmbient() {
@@ -3129,18 +3507,17 @@ function autoThink() {
 /* ---- entering and leaving ---- */
 function enterMine() {
   if (!mine.built) { buildMineTex(); if (!loadMine()) genMine(); scanAmbient(); buildFurnSprites(); bakeMine(); mineIcons(); mine.built = true; }
+  ICON.mush = mushIcon();
   Sound.cave();
-  startFade(() => { scene = 'mine'; const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.dir = 1; hover = null; hoverTag = null; placing = null; farmer.path = []; mine.hold = null; hint('进了矿洞 · 按住左键挖，B 建造家具，X 让农夫自己探索'); });
+  startFade(() => { scene = 'mine'; const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.dir = 1; mine.hp = HP_MAX; mine.iT = 60; mine.mobs = []; mine.faint = false; mine.airTop = null; mine.tier = -1; mine.banked = true; hover = null; hoverTag = null; placing = null; farmer.path = []; mine.hold = null; hint(mine.peace ? '进了矿洞 · 按住左键挖，B 建造家具，X 让农夫自己探索' : '进了矿洞 · 深处有怪物和宝箱，宝物要带回洞口才算你的'); });
 }
-function mineValue() { return ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0); }
+function mineValue() { return bagValue(); }
 function leaveMine(then) {
   Sound.cave(); mine.auto.on = false;
   startFade(() => {
     saveMine();
     scene = 'farm'; farmer.x = MX + 28; farmer.y = MY + 52; farmer.dir = 'down'; farmer.path = []; farmer.pending = null; mine.hold = null; rebuildWalk();
-    const v = mineValue();
-    if (v > 0) { const n = ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0); ORE_KEYS.forEach(k => { mine.inv[k] = 0; }); coins += v; coinPop = performance.now(); save(); Sound.coin(); hint(`卖掉 ${n} 块矿石，+${v} 金币`); }
-    else hint('回到了地面');
+    if (!bankBag(true)) hint('回到了地面');
     if (then) then();
   });
 }
@@ -3161,7 +3538,7 @@ function breakTile(c, r) {
   if (key) mine.drops.push({ k: key, x: cx - 3, y: cy - 3, vx: (Math.random() - 0.5) * 1.2, vy: -1.4, age: 0 });
   // things resting on or hanging from it go too
   const above = mi(c, r - 1), below = mi(c, r + 1);
-  if (r > 0 && [D_PEBBLE, D_MUSH].includes(mine.deco[above])) mine.deco[above] = 0;
+  if (r > 0 && mine.deco[above] === D_MUSH) pickMush(c, r - 1); else if (r > 0 && mine.deco[above] === D_PEBBLE) mine.deco[above] = 0;
   if (r > 0 && mine.deco[above] === D_POT) breakPot(c, r - 1);
   if (mine.deco[below] === D_ROOT) mine.deco[below] = 0;
   redrawAround(c, r); redrawAround(c, r - 1);
@@ -3169,9 +3546,9 @@ function breakTile(c, r) {
 }
 function breakPot(c, r) {
   const i = mi(c, r); mine.deco[i] = 0; drawTileAt(c, r);
-  const v = 4 + Math.floor(Math.random() * 10); coins += v; coinPop = performance.now(); save();
+  const v = 4 + Math.floor(Math.random() * 10); mine.bag.coins += v;
   for (let k = 0; k < 8; k++) mine.debris.push({ x: c * MT + 4, y: r * MT + 4, vx: (Math.random() - 0.5) * 1.8, vy: -Math.random() * 2, life: 30, c: k % 2 ? '#a8583a' : '#e8b070' });
-  popText(`+${v} 金币`, c * MT + 4, r * MT - 2, '#f0c840'); Sound.coin();
+  popText(`+${v} 金币（背包）`, c * MT + 4, r * MT - 2, '#f0c840'); Sound.coin();
   if (Math.random() < 0.4) { mine.inv.torch += 3; popText('+3 火把', c * MT + 4, r * MT - 12, '#ffd860'); }
 }
 function lightOkFor(c, r) { return tileAt(c, r) === 0 && (mine.wall[mi(c, r)] || isSolid(tileAt(c, r + 1)) || isSolid(tileAt(c - 1, r)) || isSolid(tileAt(c + 1, r))); }
@@ -3190,6 +3567,358 @@ function placeBlock(c, r) {
   const t = mine.inv.dirt > 0 ? 1 : 2; mine.inv[t === 1 ? 'dirt' : 'stone']--; mine.tiles[i] = r > 70 && t === 2 ? 3 : t; if (mine.deco[i]) mine.deco[i] = 0; redrawAround(c, r); Sound.place();
 }
 const REACH = 46;
+/* ---- adventure: health, monsters, the backpack, treasure rooms ----
+   Down here the farmer has 5 hearts (10 half-hearts). Monsters come out of the dark: never near the entrance, never in
+   lit spots or in rooms with painted walls. Ores, gems, relics, mushrooms and coins found in the mine ride in the
+   backpack (20 items, coins free) and only become yours in the entrance chamber; faint and the backpack stays where
+   you fell until you fetch it (only the newest lost backpack is kept). Blocks, torches and the ladder never drop. */
+const HP_MAX = 10, BAG_CAP = 20, ENTRY = { c1: 18, r0: 7, r1: 15 };
+const D_CHEST = 7, D_CHEST_OPEN = 8;
+const inEntry = (x, y) => x < (ENTRY.c1 + 1) * MT && y >= ENTRY.r0 * MT && y < (ENTRY.r1 + 1) * MT;
+const RELICS = [
+  { k: 'watch', name: '生锈的怀表', tier: 0, v: 30, pal: { a: '#6a4a14', b: '#c8a040', c: '#f4ead0', d: '#3a2420' }, rows: ['...aa...', '..abba..', '.abccba.', '.bccdcb.', '.bcdccb.', '.abccba.', '..abba..', '...aa...'] },
+  { k: 'lantern', name: '旧矿灯', tier: 0, v: 30, pal: { a: '#3a3640', b: '#7a7484', c: '#ffd860', d: '#fff0a0' }, rows: ['..aaaa..', '...aa...', '..abba..', '.abccba.', '.abcdba.', '.abccba.', '..abba..', '.aaaaaa.'] },
+  { k: 'fossil', name: '三叶虫化石', tier: 0, v: 30, pal: { a: '#5a5048', b: '#a89a88', c: '#6e6458', d: '#d8ccb8' }, rows: ['..aaaa..', '.abbbba.', 'abcbcbba', 'abdbdbba', 'abcbcbba', '.abbbba.', '..abba..', '...aa...'] },
+  { k: 'pouch', name: '古钱袋', tier: 0, v: 30, pal: { a: '#4a2a18', b: '#9a6038', c: '#f0c840', d: '#fff0a0' }, rows: ['...aa...', '..abba..', '...aa...', '..abba..', '.abbbba.', 'abbccbba', 'abbcdbba', '.aaaaaa.'] },
+  { k: 'helmet', name: '矮人头盔', tier: 1, v: 80, pal: { a: '#3a3846', b: '#8a8698', c: '#d0ccdc', d: '#c8a040' }, rows: ['a......a', 'ab....ba', '.abbbba.', 'abccccba', 'abccccba', 'dddddddd', 'a.a..a.a', '........'] },
+  { k: 'goblet', name: '银酒杯', tier: 1, v: 80, pal: { a: '#5a6270', b: '#c8d0dc', c: '#ffffff', d: '#a01830' }, rows: ['aaaaaaaa', 'abddddba', '.abcbba.', '..abba..', '...bb...', '...bb...', '..abba..', '.aaaaaa.'] },
+  { k: 'frog', name: '翡翠青蛙', tier: 1, v: 80, pal: { a: '#0e4a2a', b: '#3aa860', c: '#a0f0b8', d: '#14101a' }, rows: ['........', '.aa..aa.', 'adba.adb', 'abbbbbba', 'abcbbcba', 'abbbbbba', '.abbbba.', '.bb..bb.'] },
+  { k: 'starmap', name: '星图卷轴', tier: 1, v: 80, pal: { a: '#6a5030', b: '#e8d8b0', c: '#3a5aa0', d: '#f0c840' }, rows: ['.aaaaaa.', 'abbbbbba', 'abcbbdba', 'abbbcbba', 'abdbbbca', 'abbcbbba', 'abbbbbba', '.aaaaaa.'] },
+  { k: 'skull', name: '水晶骷髅', tier: 2, v: 200, pal: { a: '#3a6a88', b: '#a8e0f8', c: '#14202a', d: '#ffffff' }, rows: ['..aaaa..', '.abbbba.', 'abdbbdba', 'abccbcca', 'abbbbbba', '.abcbca.', '..abba..', '...aa...'] },
+  { k: 'crown', name: '黄金王冠', tier: 2, v: 200, pal: { a: '#8a5a10', b: '#f0c840', c: '#c8322a', d: '#fff0a0' }, rows: ['........', 'a..a..a.', 'ab.ab.ab', 'abdabdab', 'abbbbbba', 'acbcbcba', 'abbbbbba', 'aaaaaaaa'] },
+  { k: 'egg', name: '龙蛋', tier: 2, v: 200, pal: { a: '#3a1a5a', b: '#8a50c0', c: '#d8a0ff', d: '#f0c840' }, rows: ['...aa...', '..abba..', '.abcbba.', '.abbbda.', 'abdbbbba', 'abbbcbba', '.abbbba.', '..aaaa..'] },
+  { k: 'shard', name: '星辰碎片', tier: 2, v: 200, pal: { a: '#8a7a20', b: '#fff0a0', c: '#ffffff', d: '#f0c840' }, rows: ['...a....', '...ab...', '..abba..', 'aabbcbaa', '.abccba.', '..abda..', '.ab..ba.', 'a......a'] }
+];
+const RELIC = Object.fromEntries(RELICS.map(r => [r.k, r]));
+const RELIC_SPR = {};
+function relicSprite(k) {
+  if (RELIC_SPR[k]) return RELIC_SPR[k];
+  const d = RELIC[k], [c, g] = mk(8, 8);
+  d.rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.') R(g, d.pal[ch], x, y); }));
+  return (RELIC_SPR[k] = outline(c, P.OL));
+}
+const RELIC_KEY = 'ai-farm-relics', PEACE_KEY = 'ai-farm-mine-peace';
+let relicBook = {}; try { relicBook = JSON.parse(localStorage.getItem(RELIC_KEY) || '{}') || {}; } catch (e) { relicBook = {}; }
+const saveRelics = () => { try { localStorage.setItem(RELIC_KEY, JSON.stringify(relicBook)); } catch (e) { /* storage unavailable */ } };
+Object.assign(mine, { hp: HP_MAX, iT: 0, lastHurt: -1e9, hurtAt: -1e9, mobs: [], lost: null, bag: { relics: [], coins: 0 }, faint: false, airTop: null, tier: -1, rooms: false, fullHint: -1e9, banked: false });
+try { mine.peace = localStorage.getItem(PEACE_KEY) === '1'; } catch (e) { mine.peace = false; }
+if (mine.inv.mush === undefined) mine.inv.mush = 0;
+ITEM_NAME.mush = '蘑菇';
+
+const bagCount = () => ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0) + (mine.inv.mush || 0) + mine.bag.relics.length;
+const bagValue = () => ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0) + mine.bag.relics.reduce((s, k) => s + (RELIC[k] ? RELIC[k].v : 0), 0) + mine.bag.coins;
+const BAG_KINDS = new Set([...ORE_KEYS, 'mush', 'relic']);
+const bagFull = d => BAG_KINDS.has(d.k) && bagCount() >= BAG_CAP;
+function takeDrop(d) {
+  if (d.k === 'coin') { mine.bag.coins += d.n || 1; return true; }
+  if (!BAG_KINDS.has(d.k)) { mine.inv[d.k] = (mine.inv[d.k] || 0) + 1; return true; }
+  if (bagCount() >= BAG_CAP) return false;
+  if (d.k === 'relic') mine.bag.relics.push(d.r); else mine.inv[d.k] = (mine.inv[d.k] || 0) + 1;
+  return true;
+}
+function dropImg(d) { return d.k === 'relic' ? relicSprite(d.r) : d.k === 'coin' ? SPR.coin : d.k === 'dirt' || d.k === 'stone' ? ICON.block : ICON[d.k]; }
+function dropLabel(d) { return d.k === 'relic' ? `宝物 · ${RELIC[d.r].name}` : d.k === 'coin' ? `+${d.n} 金币（在背包里）` : `+1 ${ITEM_NAME[d.k]}`; }
+
+/* light and safety: monsters never appear near light, in the entrance or inside painted-wall rooms */
+function nearLight(c, r, rad) {
+  for (const i of mine.torches) { const dc = (i % MC) - c, dr = Math.floor(i / MC) - r; if (dc * dc + dr * dr <= rad * rad) return true; }
+  for (const f of mine.furn) { const d = FDEF[f.type]; if (!d.light || f.off) continue; const dc = f.c + d.w / 2 - c, dr = f.r - d.h / 2 - r; if (dc * dc + dr * dr <= (rad + 1) * (rad + 1)) return true; }
+  return false;
+}
+const spawnSafe = (c, r) => (c <= ENTRY.c1 + 12 && r <= ENTRY.r1 + 5) || mine.wall[mi(c, r)] === 4 || nearLight(c, r, 6);
+
+/* monsters */
+const MOB = {
+  slime: { name: '洞穴史莱姆', w: 8, h: 6, hp: 3, dmg: 2, from: 16, gold: [2, 6] },
+  bat: { name: '吸血蝙蝠', w: 8, h: 5, hp: 2, dmg: 2, from: 40, gold: [3, 9], fly: true },
+  skel: { name: '骷髅矿工', w: 8, h: 24, hp: 6, dmg: 3, from: 55, gold: [10, 22] }
+};
+const mobBlocked = (m, x, y) => boxHits(x, y, m.w, m.h) || (x < (ENTRY.c1 + 1) * MT && y + m.h > ENTRY.r0 * MT && y < (ENTRY.r1 + 1) * MT) || x < 0 || y < 0 || x + m.w > MW || y + m.h > MH;
+function moveMob(m, ax, ay) {
+  // move one pixel at a time so a monster can never end up inside rock
+  let n = Math.ceil(Math.abs(ax)), s = n ? ax / n : 0, hitX = false, hitY = false;
+  for (let k = 0; k < n; k++) { if (mobBlocked(m, m.x + s, m.y)) { hitX = true; break; } m.x += s; }
+  n = Math.ceil(Math.abs(ay)); s = n ? ay / n : 0;
+  for (let k = 0; k < n; k++) { if (mobBlocked(m, m.x, m.y + s)) { hitY = true; break; } m.y += s; }
+  return { hitX, hitY };
+}
+function spawnMobs(p) {
+  if (mine.peace || tick % 40 !== 0 || Math.random() > 0.7) return;
+  const pc = Math.floor((p.x + p.w / 2) / MT), pr = Math.floor((p.y + p.h / 2) / MT);
+  if (pr < 16 && pc <= ENTRY.c1 + 4) return;
+  const tier = pr < 40 ? 0 : pr < 70 ? 1 : 2, cap = [4, 6, 8][tier];
+  if (mine.mobs.length >= cap) return;
+  for (let tries = 0; tries < 14; tries++) {
+    const a = Math.random() * Math.PI * 2, d = 8 + Math.random() * 12, c = Math.round(pc + Math.cos(a) * d), r = Math.round(pr + Math.sin(a) * d * 0.7);
+    if (c < 2 || r < 16 || c >= MC - 2 || r >= MR - 2 || spawnSafe(c, r)) continue;
+    const roll = Math.random(), type = r >= 55 && roll < [0, 0.2, 0.42][tier] ? 'skel' : r >= 40 && roll < [0, 0.6, 0.78][tier] ? 'bat' : 'slime', def = MOB[type];
+    const m = { type, w: def.w, h: def.h, hp: def.hp, x: c * MT, y: 0, vx: 0, vy: 0, dir: Math.random() < 0.5 ? -1 : 1, ground: false, t: Math.floor(Math.random() * 100), cd: 30, hurt: 0 };
+    if (def.fly) { m.y = r * MT + 1; if (mobBlocked(m, m.x, m.y)) continue; }
+    else { m.y = (r + 1) * MT - m.h - 0.01; if (mobBlocked(m, m.x, m.y) || !isSolid(tileAt(c, r + 1))) continue; }
+    mine.mobs.push(m); return;
+  }
+}
+function stepMob(m, p) {
+  const def = MOB[m.type], pcx = p.x + p.w / 2, pcy = p.y + p.h / 2, dx = pcx - (m.x + m.w / 2), dy = pcy - (m.y + m.h / 2), dist = Math.hypot(dx, dy);
+  m.t++; if (m.hurt > 0) m.hurt--;
+  if (def.fly) {
+    const aggro = dist < 22 * MT && !mine.faint;
+    const tx = aggro ? dx : Math.cos(m.t / 40) * 20, ty = aggro ? dy - 6 + Math.sin(m.t / 9) * 7 : Math.sin(m.t / 30) * 10;
+    const sp = aggro ? (dist < 48 ? 1.75 : 1.2) : 0.4, n = Math.hypot(tx, ty) || 1;
+    m.vx += (tx / n * sp - m.vx) * 0.09; m.vy += (ty / n * sp - m.vy) * 0.09;
+    const h = moveMob(m, m.vx, m.vy); if (h.hitX) m.vx *= -0.6; if (h.hitY) m.vy *= -0.6;
+    if (Math.abs(m.vx) > 0.1) m.dir = Math.sign(m.vx);
+  } else {
+    m.vy = Math.min(5, m.vy + 0.25);
+    const chase = dist < 24 * MT && Math.abs(dy) < 9 * MT && !mine.faint;
+    if (m.type === 'slime') {
+      if (m.ground) { m.vx *= 0.6; if (--m.cd <= 0 && chase) { m.dir = Math.sign(dx) || 1; m.vx = m.dir * 1.5; m.vy = -3 - Math.random() * 0.9; m.cd = 34 + Math.random() * 30; m.ground = false; } }
+    } else {
+      if (chase) { m.dir = Math.sign(dx) || m.dir; m.vx = m.dir * 0.85; }
+      else { if (m.t % 140 === 0) m.dir = Math.random() < 0.5 ? -1 : 1; m.vx = m.dir * 0.3; }
+    }
+    const h = moveMob(m, m.vx, 0);
+    if (h.hitX) {
+      if (m.type === 'skel' && m.ground && !mobBlocked(m, m.x + m.dir * 1.5, m.y - MT - 0.5)) { m.y -= MT + 0.5; moveMob(m, m.dir * 1.5, 0); }
+      else if (m.type === 'skel' && m.ground) { m.vy = -3.4; }
+      else m.vx = 0;
+    }
+    const v = moveMob(m, 0, m.vy); m.ground = v.hitY && m.vy > 0; if (v.hitY) m.vy = 0;
+    if (m.ground && m.type === 'slime' && m.cd > 30) m.vx = 0;
+  }
+  // touching the farmer hurts him
+  if (!mine.faint && m.x < p.x + p.w - 1 && m.x + m.w > p.x + 1 && m.y < p.y + p.h - 1 && m.y + m.h > p.y + 1) hurtPlayer(def.dmg, m.x + m.w / 2);
+  return dist < 40 * MT;
+}
+function hurtPlayer(n, fromX) {
+  const p = mine.p;
+  if (mine.peace || mine.iT > 0 || mine.faint || n <= 0) return;
+  mine.hp = Math.max(0, mine.hp - n); mine.iT = 50; mine.lastHurt = tick; mine.hurtAt = performance.now();
+  const away = Math.sign(p.x + p.w / 2 - fromX) || -p.dir; p.vx = away * 2.2; p.vy = Math.min(p.vy, -2); p.climb = false; p.sit = null;
+  Sound.hurt(); for (let k = 0; k < 6; k++) mine.debris.push({ x: p.x + p.w / 2, y: p.y + 10, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 1.6, life: 18, c: '#e0483c' });
+  popText(`-${n % 2 ? (n / 2).toFixed(1) : n / 2} 心`, p.x + p.w / 2, p.y - 4, '#ff7060');
+  if (mine.hp <= 0) faint();
+}
+function faint() {
+  const p = mine.p;
+  mine.faint = true; mine.auto.on = false; keys.clear(); mine.hold = null; mine.jHeld = false; mine.spaceHeld = false;
+  const carried = bagCount() + (mine.bag.coins ? 1 : 0);
+  if (carried) {
+    const ores = {}; for (const k of [...ORE_KEYS, 'mush']) { ores[k] = mine.inv[k] || 0; mine.inv[k] = 0; }
+    if (mine.lost) hint('上一只遗落的背包没捡回来，已经找不到了');
+    mine.lost = { x: p.x + p.w / 2, y: p.y + p.h - 4, ores, relics: mine.bag.relics.slice(), coins: mine.bag.coins };
+    mine.bag = { relics: [], coins: 0 };
+  }
+  Sound.faint();
+  const depth = Math.max(0, Math.floor((p.y + p.h) / MT) - 15);
+  say(carried ? `农夫晕倒了……背包掉在深 ${depth} 米处，回去捡回来` : '农夫晕倒了……身上没带值钱的东西');
+  setTimeout(() => startFade(() => {
+    p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.climb = false; p.sit = null; p.dir = 1;
+    mine.hp = HP_MAX; mine.iT = 90; mine.faint = false; mine.mobs = []; mine.airTop = null; saveMine();
+  }), 900);
+}
+function pickLost(p) {
+  const L = mine.lost; if (!L) return;
+  if (Math.hypot(p.x + p.w / 2 - L.x, p.y + p.h - 4 - L.y) > 12) return;
+  mine.bag.coins += L.coins; L.coins = 0;
+  for (const k of [...ORE_KEYS, 'mush']) while (L.ores[k] > 0 && bagCount() < BAG_CAP) { L.ores[k]--; mine.inv[k] = (mine.inv[k] || 0) + 1; }
+  while (L.relics.length && bagCount() < BAG_CAP) mine.bag.relics.push(L.relics.shift());
+  const left = L.relics.length + Object.values(L.ores).reduce((a, b) => a + b, 0);
+  Sound.gem();
+  if (!left) { mine.lost = null; popText('捡回了背包', p.x + p.w / 2, p.y - 6, '#fff0a0'); }
+  else if (performance.now() - mine.fullHint > 4000) { mine.fullHint = performance.now(); hint(`背包装满了，遗落的背包里还剩 ${left} 件`); }
+}
+// the entrance chamber is where things become yours: ores and gems sell, coins count, relics join the collection
+function bankBag(quiet) {
+  const n = ORE_KEYS.reduce((s, k) => s + mine.inv[k], 0), oreV = ORE_KEYS.reduce((s, k) => s + mine.inv[k] * PRICE[k], 0), rel = mine.bag.relics.slice(), found = mine.bag.coins;
+  if (!n && !rel.length && !found) return false;
+  ORE_KEYS.forEach(k => { mine.inv[k] = 0; }); mine.bag = { relics: [], coins: 0 };
+  let dup = 0; const fresh = [];
+  for (const k of rel) { if (!relicBook[k]) fresh.push(RELIC[k].name); else dup += RELIC[k].v; relicBook[k] = (relicBook[k] || 0) + 1; }
+  const total = oreV + found + dup; coins += total; coinPop = performance.now(); save(); saveRelics(); saveMine();
+  Sound.bank();
+  const parts = []; if (n) parts.push(`${n} 块矿石`); if (found) parts.push(`${found} 金币`); if (rel.length) parts.push(`${rel.length} 件宝物`);
+  const owned = Object.keys(relicBook).filter(k => RELIC[k]).length;
+  say(`存入了${parts.join('、')}，共 +${total} 金币${fresh.length ? ` · 新收藏：${fresh.join('、')}（${owned}/${RELICS.length}）` : ''}`);
+  if (!quiet) popText(`+${total} 金币`, mine.p.x + mine.p.w / 2, mine.p.y - 6, '#f0c840');
+  return true;
+}
+
+/* treasure rooms: plank-and-stone chambers sealed in the rock, a chest inside; dig your way in */
+function placeTreasureRooms(r) {
+  const rooms = [], W = 9, H = 6;
+  const furnAt = (c, rr) => mine.furn.some(f => { const d = FDEF[f.type]; return c >= f.c - 1 && c <= f.c + d.w && rr >= f.r - d.h && rr <= f.r + 1; });
+  for (let tries = 0; rooms.length < 7 && tries < 3000; tries++) {
+    const c0 = 22 + Math.floor(r() * (MC - 34)), r0 = 30 + Math.floor(r() * (MR - 40));
+    if (rooms.some(q => Math.abs(q.c - c0) < W + 6 && Math.abs(q.r - r0) < H + 6)) continue;
+    let ok = true;
+    for (let y = r0 - 1; y <= r0 + H && ok; y++) for (let x = c0 - 1; x <= c0 + W && ok; x++) if (!mine.tiles[mi(x, y)] || mine.tiles[mi(x, y)] === 11 || furnAt(x, y) || mine.deco[mi(x, y)] === D_TORCH) ok = false;
+    if (!ok) continue;
+    for (let y = r0; y < r0 + H; y++) for (let x = c0; x < c0 + W; x++) {
+      const i = mi(x, y), edgeY = y === r0 || y === r0 + H - 1, edgeX = x === c0 || x === c0 + W - 1;
+      if (edgeY) mine.tiles[i] = 11; else if (edgeX) mine.tiles[i] = y > 70 ? 3 : 2; else { mine.tiles[i] = 0; mine.wall[i] = 4; }
+      mine.deco[i] = 0;
+    }
+    const cc = c0 + 2 + Math.floor(r() * (W - 4)); mine.deco[mi(cc, r0 + H - 2)] = D_CHEST;
+    if (r() < 0.6) { const c2 = cc + (cc < c0 + W / 2 ? 2 : -2); mine.deco[mi(c2, r0 + H - 2)] = D_CHEST; }
+    rooms.push({ c: c0, r: r0 });
+  }
+  mine.rooms = true; return rooms;
+}
+function openChest(c, r) {
+  const i = mi(c, r); mine.deco[i] = D_CHEST_OPEN; drawTileAt(c, r);
+  const w = r < 55 ? [0.72, 0.25, 0.03] : r < 75 ? [0.48, 0.4, 0.12] : [0.28, 0.45, 0.27];
+  const n = 1 + (Math.random() < 0.35 ? 1 : 0), cx = c * MT + 4, cy = r * MT;
+  for (let k = 0; k < n; k++) {
+    const q = Math.random(), tier = q < w[0] ? 0 : q < w[0] + w[1] ? 1 : 2, pool = RELICS.filter(x => x.tier === tier), rel = pool[Math.floor(Math.random() * pool.length)];
+    mine.drops.push({ k: 'relic', r: rel.k, x: cx - 3, y: cy - 4, vx: (Math.random() - 0.5) * 1.4, vy: -2.2, age: 0 });
+  }
+  mine.drops.push({ k: 'coin', n: 10 + Math.floor(r / 2 + Math.random() * 30), x: cx - 3, y: cy - 4, vx: (Math.random() - 0.5) * 1.4, vy: -1.8, age: 0 });
+  for (let k = 0; k < 14; k++) mine.debris.push({ x: cx, y: cy + 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2.2, life: 30, c: k % 2 ? '#f0c840' : '#fff0a0' });
+  popText('宝箱！', cx, cy - 6, '#f0c840'); Sound.gem(); Sound.coin();
+}
+
+/* combat: the same button digs and swings at monsters; a monster in reach takes the swing first */
+function foeInReach(p) {
+  if (!mine.mobs.length) return null;
+  const pcx = p.x + p.w / 2, pcy = p.y + p.h / 2;
+  let dir = p.dir;
+  if (!mine.jHeld && mouse.x !== -1) {
+    const wx = mouse.x + OX + mine.camX, wy = mouse.y + OY + mine.camY;
+    const hitM = mine.mobs.find(m => wx >= m.x - 3 && wx <= m.x + m.w + 3 && wy >= m.y - 3 && wy <= m.y + m.h + 3 && Math.hypot(m.x + m.w / 2 - pcx, m.y + m.h / 2 - pcy) <= REACH);
+    if (hitM) return hitM;
+    dir = wx >= pcx ? 1 : -1;
+  }
+  let best = null, bd = 1e9;
+  for (const m of mine.mobs) {
+    const dx = m.x + m.w / 2 - pcx, ov = Math.min(p.y + p.h, m.y + m.h) - Math.max(p.y, m.y);
+    if (dx * dir < -4 || Math.abs(dx) > 22 || ov < -6) continue;
+    if (Math.abs(dx) < bd) { bd = Math.abs(dx); best = m; }
+  }
+  return best;
+}
+function strikeFoe(m, p) {
+  if (!mine.mobs.includes(m)) return;
+  if (Math.hypot(m.x + m.w / 2 - (p.x + p.w / 2), m.y + m.h / 2 - (p.y + p.h / 2)) > REACH + 6) return;
+  m.hp--; m.hurt = 10; m.vx = p.dir * 1.7; m.vy = MOB[m.type].fly ? -1 : -2;
+  Sound.whack();
+  for (let k = 0; k < 4; k++) mine.debris.push({ x: m.x + m.w / 2, y: m.y + m.h / 2, vx: p.dir * Math.random() * 1.6, vy: -Math.random() * 1.4, life: 14, c: m.type === 'slime' ? '#8ae090' : m.type === 'bat' ? '#8a5ab0' : '#e8e4d0' });
+  if (m.hp <= 0) killMob(m);
+}
+function killMob(m) {
+  mine.mobs = mine.mobs.filter(x => x !== m);
+  const def = MOB[m.type], cx = m.x + m.w / 2 - 3, cy = m.y + m.h / 2 - 3;
+  mine.drops.push({ k: 'coin', n: def.gold[0] + Math.floor(Math.random() * (def.gold[1] - def.gold[0] + 1)), x: cx, y: cy, vx: (Math.random() - 0.5), vy: -1.6, age: 0 });
+  if (m.type === 'slime' && Math.random() < 0.25) mine.drops.push({ k: 'mush', x: cx, y: cy, vx: 0.4, vy: -1.4, age: 0 });
+  if (m.type === 'skel' && Math.random() < 0.35) mine.drops.push({ k: Math.random() < 0.6 ? 'iron' : 'silver', x: cx, y: cy, vx: -0.4, vy: -1.4, age: 0 });
+  for (let k = 0; k < 12; k++) mine.debris.push({ x: m.x + m.w / 2, y: m.y + m.h / 2, vx: (Math.random() - 0.5) * 2, vy: -Math.random() * 2, life: 24, c: m.type === 'slime' ? '#4ab05a' : m.type === 'bat' ? '#5a3a7a' : '#d8d4c4' });
+  Sound.pop();
+}
+function eatMushroom() {
+  if (!mine.inv.mush) { Sound.nope(); hint('背包里没有蘑菇 · 矿洞深处的蓝蘑菇可以采'); return; }
+  if (mine.hp >= HP_MAX) { Sound.nope(); hint('现在是满血'); return; }
+  mine.inv.mush--; mine.hp = Math.min(HP_MAX, mine.hp + 3); Sound.pop(); popText('+1.5 心', mine.p.x + mine.p.w / 2, mine.p.y - 6, '#a0f0b8');
+}
+function togglePeace() {
+  mine.peace = !mine.peace; mine.mobs = mine.peace ? [] : mine.mobs; if (mine.peace) mine.hp = HP_MAX;
+  try { localStorage.setItem(PEACE_KEY, mine.peace ? '1' : '0'); } catch (e) { /* ignore */ }
+  Sound.blip(); hint(mine.peace ? '和平模式：矿洞里不会出现怪物，也不会受伤' : '冒险模式：小心黑暗里的怪物');
+}
+
+// once per frame, after the farmer has moved
+function stepAdventure(p, was) {
+  if (mine.iT > 0) mine.iT--;
+  // falls: measured from the highest point since leaving the ground
+  if (p.ground || p.climb || p.sit) {
+    if (p.ground && !was && mine.airTop !== null) { const tiles = (p.y - mine.airTop) / MT; if (tiles > 10 && !mine.peace) hurtPlayer(2 + Math.floor((tiles - 10) / 3), p.x + p.w / 2 - p.dir); }
+    mine.airTop = null;
+  } else mine.airTop = mine.airTop === null ? p.y : Math.min(mine.airTop, p.y);
+  const pc = Math.floor((p.x + p.w / 2) / MT), pr = Math.floor((p.y + p.h / 2) / MT), home = inEntry(p.x + p.w / 2, p.y + p.h / 2);
+  // healing: quickly in the entrance chamber, slowly in the light once you have not been hit for a while
+  if (mine.hp < HP_MAX && !mine.faint) {
+    if (home ? tick % 60 === 0 : (nearLight(pc, pr, 6) && tick - mine.lastHurt > 480 && tick % 240 === 0)) mine.hp++;
+  }
+  if (home) { if (!mine.banked) mine.banked = bankBag(); } else mine.banked = false;
+  pickLost(p);
+  // depth layers
+  const tier = pr < 16 ? -1 : pr < 40 ? 0 : pr < 70 ? 1 : 2;
+  if (tier !== mine.tier) { if (tier > mine.tier && tier >= 0) hint(['浅层 · 史莱姆出没，带好火把', '中层 · 吸血蝙蝠和骷髅矿工，越往下越危险', '深层 · 宝藏最多的地方，也最危险'][tier]); mine.tier = tier; }
+  if (mine.auto.on && mine.hp <= 4 && !mine.peace) { toggleAuto(); hint('血量低，自动探索先停下了 · 回洞口或亮处休息一下'); }
+  if (mine.peace) { mine.mobs.length = 0; return; }
+  spawnMobs(p);
+  mine.mobs = mine.mobs.filter(m => stepMob(m, p));
+}
+
+/* drawing */
+function drawMobs(now, anim) {
+  for (const m of mine.mobs) {
+    const x = Math.round(m.x), y = Math.round(m.y), f = anim ? Math.floor((now + m.t * 7) / 120) % 2 : 0, fl = m.hurt > 0 && m.hurt % 4 < 2;
+    if (m.type === 'slime') {
+      const sq = !m.ground ? 1 : 0, c = fl ? ['#fff', '#fff', '#fff'] : ['#1e4a26', '#4ab05a', '#8ae090'];
+      R(ctx, c[0], x, y + 1 + sq, 8, 5 - sq); R(ctx, c[1], x + 1, y + sq, 6, 5 - sq); R(ctx, c[2], x + 2, y + 1 + sq, 2, 1);
+      R(ctx, '#14101a', x + (m.dir > 0 ? 4 : 2), y + 2 + sq, 1, 1); R(ctx, '#14101a', x + (m.dir > 0 ? 6 : 4), y + 2 + sq, 1, 1);
+    } else if (m.type === 'bat') {
+      const c = fl ? '#fff' : '#3a2450', w = fl ? '#fff' : '#5a3a7a';
+      R(ctx, c, x + 3, y + 1, 3, 3);
+      if (f) { R(ctx, w, x, y, 3, 1); R(ctx, w, x + 6, y, 3, 1); R(ctx, w, x + 1, y + 1, 2, 1); R(ctx, w, x + 6, y + 1, 2, 1); }
+      else { R(ctx, w, x, y + 3, 3, 1); R(ctx, w, x + 6, y + 3, 3, 1); R(ctx, w, x + 1, y + 2, 2, 1); R(ctx, w, x + 6, y + 2, 2, 1); }
+    } else {
+      const b = fl ? '#fff' : '#e8e4d0', s = fl ? '#fff' : '#9a968a', step = anim && Math.abs(m.vx) > 0.2 ? Math.floor((now + m.t) / 160) % 2 : 0;
+      R(ctx, s, x + 1, y, 6, 6); R(ctx, b, x + 1, y, 5, 5); R(ctx, '#14101a', x + (m.dir > 0 ? 3 : 2), y + 2, 1, 1); R(ctx, '#14101a', x + (m.dir > 0 ? 5 : 1), y + 2, 1, 1); R(ctx, s, x + 2, y + 5, 3, 1);
+      R(ctx, b, x + 3, y + 6, 2, 9); for (let k = 0; k < 3; k++) R(ctx, b, x + 1, y + 8 + k * 2, 6, 1);
+      R(ctx, s, x + 2, y + 15, 4, 1); R(ctx, b, x + 2 + step, y + 16, 1, 8); R(ctx, b, x + 5 - step, y + 16, 1, 8);
+      R(ctx, b, x + (m.dir > 0 ? 6 : 0), y + 8, 2, 1); R(ctx, '#7a4a30', x + (m.dir > 0 ? 7 : 0), y + 4, 1, 6); R(ctx, '#9e9aaa', x + (m.dir > 0 ? 5 : -1), y + 4, 4, 1);
+    }
+  }
+  const L = mine.lost;
+  if (L) { const x = Math.round(L.x) - 4, y = Math.round(L.y) - 6; R(ctx, P.OL, x, y, 9, 8); R(ctx, '#8a5a30', x + 1, y + 1, 7, 6); R(ctx, '#b07a40', x + 2, y + 1, 5, 2); R(ctx, '#f0c840', x + 4, y + 3, 1, 2); }
+}
+// after the light pass: eyes glint in the dark, the lost backpack glows so you can find it
+function drawMobGlints(now, anim) {
+  for (const m of mine.mobs) {
+    const x = Math.round(m.x), y = Math.round(m.y), col = m.type === 'slime' ? '#c8ff90' : '#ff4a30';
+    if (m.type === 'slime') { R(ctx, col, x + (m.dir > 0 ? 4 : 2), y + 2 + (m.ground ? 0 : 1), 1, 1); R(ctx, col, x + (m.dir > 0 ? 6 : 4), y + 2 + (m.ground ? 0 : 1), 1, 1); }
+    else if (m.type === 'bat') { R(ctx, col, x + 3, y + 2, 1, 1); R(ctx, col, x + 5, y + 2, 1, 1); }
+    else { R(ctx, col, x + (m.dir > 0 ? 3 : 2), y + 2, 1, 1); R(ctx, col, x + (m.dir > 0 ? 5 : 1), y + 2, 1, 1); }
+  }
+  const L = mine.lost;
+  if (L) { const a = anim ? 0.35 + 0.25 * Math.sin(now / 300) : 0.45; ctx.globalAlpha = a; R(ctx, '#fff0a0', Math.round(L.x) - 5, Math.round(L.y) - 7, 11, 10); ctx.globalAlpha = 1; R(ctx, '#f0c840', Math.round(L.x), Math.round(L.y) - 3, 1, 2); }
+}
+const HEART = ['.aa.aa.', 'abbabba', 'abbbbba', '.abbba.', '..aba..', '...a...'];
+function drawHearts(now) {
+  const k = 3, shake = now - mine.hurtAt < 300 ? Math.round(Math.sin(now / 25) * 2) : 0, low = mine.hp <= 2 && Math.floor(now / 300) % 2;
+  for (let h = 0; h < HP_MAX / 2; h++) {
+    const x0 = 104 + h * 25 + shake, y0 = 14, full = mine.hp >= (h + 1) * 2, half = !full && mine.hp === h * 2 + 1;
+    HEART.forEach((row, y) => [...row].forEach((ch, x) => {
+      if (ch === '.') return;
+      const red = full || (half && x < 4), col = ch === 'a' ? P.OL : red ? (low ? '#ff9a8a' : '#e0483c') : '#5a4a54';
+      UR(col, x0 + x * k, y0 + y * k, k, k);
+    }));
+  }
+  if (mine.peace) text('和平模式', 104 + 5 * 25 + 8, 18, 12, P.CREAM, { shadow: P.OL });
+}
+// arrows at the edge of the screen toward the entrance and the lost backpack, with the distance in tiles
+function edgeArrow(wx, wy, col, label) {
+  // kept inside the open middle of the screen, clear of the panels on the left and right and the hotbar
+  const ux = (wx - mine.camX) * UW / VW, uy = (wy - mine.camY) * UH / VH, L = 290, Rr = UW - 240, T = 56, B = UH - 90;
+  if (ux > L && ux < Rr && uy > T && uy < B) return;
+  const cx = (L + Rr) / 2, cy = (T + B) / 2, a = Math.atan2(uy - cy, ux - cx), s = Math.min((Rr - L) / 2 / Math.abs(Math.cos(a) || 1e-6), (B - T) / 2 / Math.abs(Math.sin(a) || 1e-6));
+  const ax = cx + Math.cos(a) * s, ay = cy + Math.sin(a) * s;
+  uctx.save(); uctx.translate(Math.round(ax), Math.round(ay)); uctx.rotate(a);
+  uctx.fillStyle = P.OL; uctx.beginPath(); uctx.moveTo(14, 0); uctx.lineTo(-8, -10); uctx.lineTo(-8, 10); uctx.closePath(); uctx.fill();
+  uctx.fillStyle = col; uctx.beginPath(); uctx.moveTo(10, 0); uctx.lineTo(-5, -6); uctx.lineTo(-5, 6); uctx.closePath(); uctx.fill(); uctx.restore();
+  text(label, ax - Math.cos(a) * 30, ay - Math.sin(a) * 26 - 6, 12, P.CREAM, { align: 'center', shadow: P.OL });
+}
+function drawAdventureHUD(now) {
+  drawHearts(now);
+  const p = mine.p, pcx = p.x + p.w / 2, pcy = p.y + p.h / 2, tiles = (x, y) => Math.round(Math.hypot(x - pcx, y - pcy) / MT);
+  if (mine.lost) edgeArrow(mine.lost.x, mine.lost.y, '#ffd860', `背包 ${tiles(mine.lost.x, mine.lost.y)} 格`);
+  if (mine.faint) { uctx.globalAlpha = 0.55; UR('#140a14', 0, 0, UW, UH); uctx.globalAlpha = 1; text('农夫晕倒了……', UW / 2, UH / 2 - 20, 24, P.CREAM, { align: 'center', shadow: P.OL }); text(mine.lost ? '背包掉在了原地，醒来后回去捡' : '醒来就回到洞口了', UW / 2, UH / 2 + 16, 12, P.CREAM, { align: 'center', shadow: P.OL }); }
+}
+function mushIcon() { const [c, g] = mk(8, 8); R(g, '#d8e8f0', 3, 4, 2, 4); R(g, '#3ac8d8', 0, 1, 8, 3); R(g, '#3ac8d8', 1, 0, 6, 1); R(g, '#a0f0f8', 2, 1, 2, 1); R(g, '#1a8898', 0, 3, 8, 1); return outline(c, P.OL); }
+function pickMush(c, r) { mine.deco[mi(c, r)] = 0; drawTileAt(c, r); mine.drops.push({ k: 'mush', x: c * MT + 1, y: r * MT, vx: (Math.random() - 0.5) * 0.8, vy: -1.4, age: 0 }); Sound.pop(); }
+const m_dir = (m, p) => (m.x + m.w / 2 >= p.x + p.w / 2 ? 1 : -1);
+
 function mineTarget() {
   const p = mine.p, pcx = p.x + p.w / 2, pcy = p.y + p.h / 2;
   let c, r;
@@ -3205,9 +3934,31 @@ function mineTarget() {
   const d = Math.hypot(c * MT + 4 - pcx, r * MT + 4 - pcy);
   return { c, r, ok: d <= REACH && c >= 0 && r >= 0 && c < MC && r < MR };
 }
+// the farmer's box must never sit inside rock: everything above that moves it checks first, and if it ever happens
+// anyway (blocks placed over the entrance, an old save) the farmer is lifted to the nearest open spot instead of being
+// shoved a tile per frame, which used to fling him through the walls and leave him hanging in mid-air
+function keepInMine(p) {
+  if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) { p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }
+  p.x = Math.max(0, Math.min(MC * MT - p.w - 0.001, p.x)); p.y = Math.max(0, Math.min(MR * MT - p.h - 0.001, p.y));
+}
+function unstick(p) {
+  keepInMine(p);
+  if (!boxHits(p.x, p.y, p.w, p.h)) return;
+  for (let d = 1; d <= 3 * MT; d++) for (const [dx, dy] of [[0, -d], [d, 0], [-d, 0], [0, d], [d, -d], [-d, -d], [d, d], [-d, d]]) {
+    const x = p.x + dx, y = p.y + dy;
+    if (x < 0 || y < 0 || x + p.w > MC * MT || y + p.h > MR * MT || boxHits(x, y, p.w, p.h)) continue;
+    p.x = x; p.y = y; p.vx = 0; p.vy = 0; return;
+  }
+  // nowhere near: back to the entrance, clearing it if something was built over it
+  p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; p.climb = false;
+  const c0 = Math.floor(p.x / MT), c1 = Math.floor((p.x + p.w - 0.01) / MT), r0 = Math.floor(p.y / MT), r1 = Math.floor((p.y + p.h - 0.01) / MT);
+  for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) if (isSolid(tileAt(c, r))) { mine.tiles[mi(c, r)] = 0; redrawAround(c, r); }
+}
 function stepMine() {
   const p = mine.p, now = performance.now();
+  if (mine.faint) { p.vx = 0; p.climb = false; p.vy = Math.max(0, Math.min(6, p.vy + 0.28)); for (let k = 0, n = Math.ceil(p.vy); k < n; k++) { const dy = Math.min(1, p.vy - k); if (boxHits(p.x, p.y + dy, p.w, p.h)) { p.vy = 0; break; } p.y += dy; } keepInMine(p); for (let k = mine.pops.length - 1; k >= 0; k--) if (now - mine.pops[k].t0 > 1100) mine.pops.splice(k, 1); return; }
   if (p.sit) { if (keys.size || mine.spaceHeld || mine.jHeld || mine.hold === 'main' || !mine.furn.some(f => f.type === 'chair' && f.c * MT + 4 === p.sit.x)) p.sit = null; else { p.vx = p.vy = 0; return; } }
+  unstick(p);
   mine.target = null;
   const A = mine.auto;
   if (keys.size || mine.hold || mine.jHeld || mine.spaceHeld) A.manualT = tick;
@@ -3229,20 +3980,32 @@ function stepMine() {
   if (!climbing) p.vy = Math.min(6, p.vy + 0.28);
   // horizontal, with a one-tile auto step like Terraria
   let nx = p.x + p.vx;
-  if (boxHits(nx, p.y, p.w, p.h)) {
+  if (p.vx !== 0 && boxHits(nx, p.y, p.w, p.h)) {
     if (p.ground && !boxHits(nx, p.y - MT, p.w, p.h) && boxHits(nx, p.y + p.h - MT, p.w, MT - 0.01) ) { p.y -= MT; p.off += MT; p.x = nx; }
-    else { nx = p.vx > 0 ? Math.floor((nx + p.w) / MT) * MT - p.w - 0.001 : Math.floor(nx / MT) * MT + MT + 0.001; p.x = nx; p.vx = 0; }
-  } else p.x = nx;
+    else {
+      // stop flush against the wall, on the side we came from; never jump past it
+      const snap = p.vx > 0 ? Math.floor((nx + p.w) / MT) * MT - p.w - 0.001 : Math.floor(nx / MT) * MT + MT + 0.001;
+      if (Math.abs(snap - p.x) <= Math.abs(p.vx) + 0.01 && !boxHits(snap, p.y, p.w, p.h)) p.x = snap;
+      p.vx = 0;
+    }
+  } else if (p.vx !== 0) p.x = nx;
   let ny = p.y + p.vy; const was = p.ground; p.ground = false;
   if (boxHits(p.x, ny, p.w, p.h)) {
-    if (p.vy > 0) { ny = Math.floor((ny + p.h) / MT) * MT - p.h - 0.001; p.ground = true; if (!was && p.vy > 3) { for (let k = 0; k < 4; k++) mine.debris.push({ x: p.x + p.w / 2, y: ny + p.h, vx: (k - 1.5) * 0.4, vy: -0.4, life: 16, c: '#8a7a6a' }); Sound.land(); } }
-    else { ny = Math.floor(ny / MT) * MT + MT + 0.001; p.jumpHold = 0; }
+    if (p.vy > 0) { ny = Math.min(ny, Math.max(p.y, Math.floor((ny + p.h) / MT) * MT - p.h - 0.001)); p.ground = true; if (!was && p.vy > 3) { for (let k = 0; k < 4; k++) mine.debris.push({ x: p.x + p.w / 2, y: ny + p.h, vx: (k - 1.5) * 0.4, vy: -0.4, life: 16, c: '#8a7a6a' }); Sound.land(); } }
+    else { ny = Math.max(ny, Math.min(p.y, Math.floor(ny / MT) * MT + MT + 0.001)); p.jumpHold = 0; }
     p.vy = 0;
+    if (boxHits(p.x, ny, p.w, p.h)) ny = p.y; // the snap would still be inside rock: stay put this frame
   }
   p.y = ny;
+  keepInMine(p);
+  stepAdventure(p, was);
+  if (mine.faint) return;
   if (p.ground && !p.climb && !keys.has('left') && !keys.has('right')) {
     const fy = Math.floor((p.y + p.h + 1) / MT), cl = Math.floor(p.x / MT), cr = Math.floor((p.x + p.w - 0.01) / MT);
-    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support < 3.5) p.x += sl ? 0.5 : -0.5; } }
+    // standing half over a gap: if no more than half of him is on rock, he slides in, lined up exactly with the hole
+    // (he is one tile wide, so a one-tile hole fits him only when aligned; the old half-pixel nudge could rock back
+    // and forth over a hole, leaving him hanging on a sliver of rock)
+    if (cl !== cr) { const sl = isSolid(tileAt(cl, fy)), sr = isSolid(tileAt(cr, fy)); if (sl !== sr) { const support = sl ? (cl + 1) * MT - p.x : p.x + p.w - cr * MT; if (support <= p.w / 2 + 0.01) { const tx = sl ? cr * MT : cl * MT + MT - p.w, step = Math.max(-1, Math.min(1, tx - p.x)); if (!boxHits(p.x + step, p.y, p.w, p.h)) p.x += step; } } }
   }
   if (p.ground) p.coyote = 6; else if (p.coyote > 0) p.coyote--;
   if (p.off > 0) p.off = Math.max(0, p.off - 1.2);
@@ -3254,10 +4017,13 @@ function stepMine() {
   if (ai && ai.dig) { const d = Math.hypot(ai.dig.c * MT + 4 - (p.x + p.w / 2), ai.dig.r * MT + 4 - (p.y + p.h / 2)); tg = { c: ai.dig.c, r: ai.dig.r, ok: d <= REACH + 6 }; }
   mine.target = tg;
   const digging = (mine.hold === 'main' && mine.sel === 0) || mine.jHeld || !!(ai && ai.dig);
-  if (p.swing > 0) { p.swing--; if (p.swing === 9 && p.swingT) hitTile(p.swingT); }
-  if (digging && tg && tg.ok && p.swing === 0) {
+  if (p.swing > 0) { p.swing--; if (p.swing === 9 && p.swingFoe) strikeFoe(p.swingFoe, p); else if (p.swing === 9 && p.swingT) hitTile(p.swingT); }
+  const foe = p.swing === 0 && (digging || (A.on && ai)) ? foeInReach(p) : null;
+  if (foe) { p.swing = 16; p.swingT = null; p.swingFoe = foe; p.dir = m_dir(foe, p); }
+  else if (digging && tg && tg.ok && p.swing === 0) {
+    p.swingFoe = null;
     const i = mi(tg.c, tg.r);
-    if (isSolid(mine.tiles[i]) || mine.deco[i] === D_POT || mine.deco[i] === D_TORCH || (mine.occ[i] && !ai)) { p.swing = 18; p.swingT = { c: tg.c, r: tg.r }; p.dir = (tg.c * MT + 4) >= p.x + p.w / 2 ? 1 : -1; }
+    if (isSolid(mine.tiles[i]) || mine.deco[i] === D_POT || mine.deco[i] === D_TORCH || mine.deco[i] === D_CHEST || mine.deco[i] === D_MUSH || (mine.occ[i] && !ai)) { p.swing = 18; p.swingT = { c: tg.c, r: tg.r }; p.dir = (tg.c * MT + 4) >= p.x + p.w / 2 ? 1 : -1; }
   }
   if (mine.hold === 'main' && tg && tg.ok && mine.sel === 2 && tick % 8 === 0) placeBlock(tg.c, tg.r);
   if (mine.hold === 'main' && tg && tg.ok && mine.sel === 3) paintWall(tg.c, tg.r);
@@ -3267,10 +4033,13 @@ function stepMine() {
   for (let k = mine.drops.length - 1; k >= 0; k--) {
     const d = mine.drops[k]; d.age++;
     const dx = pcx - (d.x + 3), dy = pcy - (d.y + 3), dist = Math.hypot(dx, dy);
-    if (d.age > 20 && dist < 44) { d.vx += dx / dist * 0.35; d.vy += dy / dist * 0.35; d.vx *= 0.9; d.vy *= 0.9; }
+    const room = !bagFull(d);
+    if (d.age > 20 && dist < 44 && room) { d.vx += dx / dist * 0.35; d.vy += dy / dist * 0.35; d.vx *= 0.9; d.vy *= 0.9; }
     else { d.vy = Math.min(4, d.vy + 0.2); d.vx *= 0.95; if (boxHits(d.x, d.y + d.vy, 6, 6)) { d.vy = 0; d.vx *= 0.7; } if (boxHits(d.x + d.vx, d.y, 6, 6)) d.vx = 0; }
     d.x += d.vx; d.y += d.vy;
-    if (d.age > 20 && dist < 9) { mine.inv[d.k]++; mine.drops.splice(k, 1); if (ORE_KEYS.includes(d.k)) Sound.gem(); else Sound.pop(); popText(`+1 ${ITEM_NAME[d.k]}`, pcx, p.y - 4, ORE_KEYS.includes(d.k) ? '#fff0a0' : '#fbefd2'); }
+    if (d.age > 20 && dist < 9) {
+      if (takeDrop(d)) { mine.drops.splice(k, 1); const shiny = ORE_KEYS.includes(d.k) || d.k === 'relic'; if (shiny) Sound.gem(); else if (d.k === 'coin') Sound.coin(); else Sound.pop(); popText(dropLabel(d), pcx, p.y - 4, d.k === 'relic' ? '#ffd860' : shiny ? '#fff0a0' : '#fbefd2'); }
+    } else if (!room && dist < 14 && now - mine.fullHint > 4000) { mine.fullHint = now; hint(`背包满了（${BAG_CAP} 件）· 先回洞口存起来`); }
   }
   for (let k = mine.debris.length - 1; k >= 0; k--) { const d = mine.debris[k]; d.life--; d.vy += 0.15; d.x += d.vx; d.y += d.vy; if (isSolid(tileAt(Math.floor(d.x / MT), Math.floor(d.y / MT)))) { d.vy *= -0.3; d.vx *= 0.6; d.y -= 1; } if (d.life <= 0) mine.debris.splice(k, 1); }
   for (const s of mine.dripSrc) if (++s.t > 420) { s.t = Math.floor(Math.random() * 120); if (!tileAt(s.c, s.r)) mine.drips.push({ x: s.c * MT + 3 + (s.c % 3), y: s.r * MT, vy: 0, hang: 40 }); }
@@ -3282,7 +4051,7 @@ function hitTile(tg) {
   const { c, r } = tg, i = mi(c, r), t = mine.tiles[i];
   if (!t && mine.occ[i]) { removeFurn(mine.occ[i] - 1); return; }
   if (t && mine.occ[mi(c, r - 1)] && !FDEF[mine.furn[mine.occ[mi(c, r - 1)] - 1].type].wall) { Sound.nope(); if (!mine.auto.on) hint('上面放着家具，先把家具拆掉'); return; }
-  if (!t) { if (mine.deco[i] === D_POT) breakPot(c, r); else if (mine.deco[i] === D_TORCH) { mine.deco[i] = 0; mine.torches.delete(i); mine.inv.torch++; drawTileAt(c, r); Sound.pop(); } return; }
+  if (!t) { if (mine.deco[i] === D_CHEST) openChest(c, r); else if (mine.deco[i] === D_MUSH) pickMush(c, r); else if (mine.deco[i] === D_POT) breakPot(c, r); else if (mine.deco[i] === D_TORCH) { mine.deco[i] = 0; mine.torches.delete(i); mine.inv.torch++; drawTileAt(c, r); Sound.pop(); } return; }
   const hp = ORE[t] ? ORE[t].hp : TILE_HP[t] || 100, d = (mine.dmg.get(i) || 0) + 35;
   const ramp = ORE[t] ? ORE[t].c : rampFor(t, r);
   for (let k = 0; k < 3; k++) mine.debris.push({ x: c * MT + 4, y: r * MT + 4, vx: (Math.random() - 0.5) * 1.4, vy: -Math.random() * 1.4, life: 18, c: ramp[1 + (k % 3)] });
@@ -3350,13 +4119,15 @@ function renderMine(now) {
   for (const [i, d] of mine.dmg) { const c = i % MC, r = Math.floor(i / MC), t = mine.tiles[i]; if (!t) continue; const hp = ORE[t] ? ORE[t].hp : TILE_HP[t] || 100, s = Math.min(3, Math.floor(d / hp * 4)), x = c * MT, y = r * MT; ctx.fillStyle = 'rgba(0, 0, 0, 0.55)';
     ctx.fillRect(x + 3, y + 2, 1, 3); if (s >= 1) { ctx.fillRect(x + 4, y + 4, 2, 1); ctx.fillRect(x + 1, y + 5, 2, 1); } if (s >= 2) { ctx.fillRect(x + 5, y + 1, 1, 3); ctx.fillRect(x + 2, y + 6, 1, 2); ctx.fillRect(x + 6, y + 5, 1, 2); } if (s >= 3) { ctx.fillRect(x + 1, y + 1, 1, 2); ctx.fillRect(x + 6, y + 7, 2, 1); } }
   for (const b of mine.bats) { const x = Math.round(b.x), y = Math.round(b.y), f = anim && Math.floor(now / 110 + b.p) % 2; R(ctx, '#2a1c34', x + 3, y + 1, 3, 3); R(ctx, '#e04a40', x + 3, y + 2, 1, 1); R(ctx, '#e04a40', x + 5, y + 2, 1, 1); if (f) { R(ctx, '#2a1c34', x, y, 3, 1); R(ctx, '#2a1c34', x + 6, y, 3, 1); R(ctx, '#2a1c34', x + 1, y + 1, 2, 1); R(ctx, '#2a1c34', x + 6, y + 1, 2, 1); } else { R(ctx, '#2a1c34', x, y + 3, 3, 1); R(ctx, '#2a1c34', x + 6, y + 3, 3, 1); R(ctx, '#2a1c34', x + 1, y + 2, 2, 1); R(ctx, '#2a1c34', x + 6, y + 2, 2, 1); } }
-  for (const d of mine.drops) { const bob = d.age > 20 ? 0 : 0; ctx.drawImage(ICON[d.k === 'dirt' || d.k === 'stone' ? 'block' : d.k], Math.round(d.x) - 2, Math.round(d.y) - 2 + bob, 10, 10); }
+  for (const d of mine.drops) { const img = dropImg(d); if (img) ctx.drawImage(img, Math.round(d.x) - 2, Math.round(d.y) - 2, 10, 10); }
+  drawMobs(now, anim);
   for (const d of mine.debris) R(ctx, d.c, Math.round(d.x), Math.round(d.y), 1, 1);
   // the farmer, side view: walk cycle on the ground, a stretched frame in the air, pickaxe swing in front
   const px = Math.round(p.x + p.w / 2), py = Math.round(p.y + p.h + p.off), dir = p.dir > 0 ? 'right' : 'left';
   const fr = !p.ground ? 2 : Math.abs(p.vx) > 0.2 ? Math.floor(p.anim / 7) % 4 : 4;
   drawLadder(now); drawPetMine(now);
-  if (p.sit) ctx.drawImage(SITF.right, p.sit.x - 9, Math.round(p.sit.hip) - 28); else if (p.climb) ctx.drawImage(FARMER.up[Math.floor((p.climbAnim || 0) / 6) % 4], px - 9, py - 33); else ctx.drawImage(FARMER[dir][fr], px - 9, py - 33);
+  const blinkOff = mine.iT > 0 && mine.lastHurt > 0 && tick - mine.lastHurt < 50 && Math.floor(mine.iT / 4) % 2;
+  if (blinkOff) { /* flickers while invulnerable after a hit */ } else if (p.sit) ctx.drawImage(SITF.right, p.sit.x - 9, Math.round(p.sit.hip) - 28); else if (p.climb) ctx.drawImage(FARMER.up[Math.floor((p.climbAnim || 0) / 6) % 4], px - 9, py - 33); else ctx.drawImage(FARMER[dir][fr], px - 9, py - 33);
   if (p.swing > 0) { const k = Math.min(8, Math.floor((18 - p.swing) / 18 * 9)), img = PICK_FRAMES[k][p.dir > 0 ? 0 : 1]; ctx.drawImage(img, px + (p.dir > 0 ? 4 : -4) - 13, py - 21 - 13); }
   if (mine.target && !modal() && mine.sel !== 4) { const t = mine.target, x = t.c * MT, y = t.r * MT, col = t.ok ? '#fbefd2' : '#e0483c', blink = Math.floor(now / 300) % 2 ? 1 : 0; ctx.globalAlpha = t.ok ? 0.85 : 0.5; R(ctx, col, x - 1, y - 1, 3, 1); R(ctx, col, x - 1, y - 1, 1, 3); R(ctx, col, x + MT - 2, y - 1, 3, 1); R(ctx, col, x + MT, y - 1, 1, 3); R(ctx, col, x - 1, y + MT, 3, 1); R(ctx, col, x - 1, y + MT - 2, 1, 3); R(ctx, col, x + MT - 2, y + MT, 3, 1); R(ctx, col, x + MT, y + MT - 2, 1, 3); ctx.globalAlpha = 1; void blink; }
   // light pass
@@ -3368,11 +4139,16 @@ function renderMine(now) {
   for (const i of mine.torches) glow((i % MC) * MT + 4, Math.floor(i / MC) * MT + 2, 12, 0.5);
   glow(75, 72, 12, 0.5);
   for (const f of mine.furn) { const d = FDEF[f.type]; if (d.light && !f.off) glow((f.c + d.w / 2) * MT, (f.r - d.h + 1) * MT + 4, 14, 0.4); }
-  ctx.globalCompositeOperation = 'source-over'; ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.globalCompositeOperation = 'source-over';
+  drawMobGlints(now, anim);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // a brief red flash when hurt
+  const hurtAgo = performance.now() - mine.hurtAt;
+  if (hurtAgo < 220) { ctx.globalAlpha = 0.28 * (1 - hurtAgo / 220); R(ctx, '#c01818', 0, 0, VW, VH); ctx.globalAlpha = 1; }
 }
 function drawMineHUD(now) {
   // hotbar: pickaxe, torches, blocks, then ores carried
-  const slots = [{ ic: 'pick', n: null, sel: 0 }, { ic: 'torch', n: mine.inv.torch, sel: 1 }, { ic: 'block', n: mine.inv.dirt + mine.inv.stone, sel: 2 }, { ic: 'wall', n: null, sel: 3 }, { ic: 'furn', n: null, sel: 4 }, { ic: 'ladder', n: null, sel: 5 }].concat(ORE_KEYS.map(k => ({ ic: k, n: mine.inv[k] })));
+  const slots = [{ ic: 'pick', n: null, sel: 0 }, { ic: 'torch', n: mine.inv.torch, sel: 1 }, { ic: 'block', n: mine.inv.dirt + mine.inv.stone, sel: 2 }, { ic: 'wall', n: null, sel: 3 }, { ic: 'furn', n: null, sel: 4 }, { ic: 'ladder', n: null, sel: 5 }].concat(ORE_KEYS.map(k => ({ ic: k, n: mine.inv[k] })), [{ ic: 'mush', n: mine.inv.mush || 0 }]);
   const sw = 44, gap = 4, tw = slots.length * (sw + gap) - gap, x0 = Math.round((UW - tw) / 2), y0 = UH - sw - 10;
   slots.forEach((s, i) => {
     const x = x0 + i * (sw + gap), sel = s.sel === mine.sel && s.sel !== undefined;
@@ -3384,16 +4160,22 @@ function drawMineHUD(now) {
   });
   uiPanels.push({ x: x0, y: y0, w: tw, h: sw });
   // depth and carry value
-  const depth = Math.max(0, Math.floor((mine.p.y + mine.p.h) / MT) - 15), v = mineValue(), w = 250, x = 8, y = 52, h = 108;
+  const depth = Math.max(0, Math.floor((mine.p.y + mine.p.h) / MT) - 15), v = bagValue(), w = 250, x = 8, y = 52, h = 162;
   panel(x, y, w, h);
   text(`矿洞 · 深 ${depth} 米`, x + 14, y + 12, 12, P.INK); icon(SPR.coin, x + w - 80, y + 13, 2); text(String(v), x + w - 14, y + 12, 12, P.INK, { align: 'right' });
-  text('L 伸缩梯爬上去 · R 魔镜回入口', x + 14, y + 32, 12, P.INK_MUTED);
-  text('B 建造家具 · 4 刷木墙 · 5 放家具', x + 14, y + 50, 12, P.INK_MUTED);
-  const ar = { x: x + 8, y: y + 68, w: w - 16, h: 28 }, hov = inRect(umouse, ar);
+  const n = bagCount(); text(`背包 ${n}/${BAG_CAP}${mine.bag.relics.length ? ` · 宝物 ${mine.bag.relics.length}` : ''}`, x + 14, y + 32, 12, n >= BAG_CAP ? P.ALERT : P.INK);
+  text('L 梯子 · R 魔镜回入口 · E 吃蘑菇', x + 14, y + 50, 12, P.INK_MUTED);
+  text('B 建造家具 · 4 刷木墙 · 5 放家具', x + 14, y + 68, 12, P.INK_MUTED);
+  const ar = { x: x + 8, y: y + 86, w: w - 16, h: 28 }, hov = inRect(umouse, ar);
   UR(hov ? P.PAPER_LO : P.PAPER_HI, ar.x, ar.y, ar.w, ar.h); UR(mine.auto.on ? '#3f6e33' : P.INK_MUTED, ar.x + 6, ar.y + 9, 10, 10);
   text(mine.auto.on ? `自动探索中${mine.ai && mine.ai.dig ? ' · 挖掘' : ''}（X 停止）` : '让农夫自己挖掘探索（X）', ar.x + 24, ar.y + 7, 12, mine.auto.on ? '#3f6e33' : P.INK);
   uiHits.push({ ...ar, kind: 'auto' });
+  const pr = { x: x + 8, y: y + 120, w: w - 16, h: 28 }, phov = inRect(umouse, pr);
+  UR(phov ? P.PAPER_LO : P.PAPER_HI, pr.x, pr.y, pr.w, pr.h); UR(mine.peace ? '#3f6e33' : P.INK_MUTED, pr.x + 6, pr.y + 9, 10, 10);
+  text(mine.peace ? '和平模式：没有怪物（P）' : '冒险模式 · 点这里换成和平（P）', pr.x + 24, pr.y + 7, 12, mine.peace ? '#3f6e33' : P.INK);
+  uiHits.push({ ...pr, kind: 'peace' });
   uiPanels.push({ x, y, w, h });
+  drawAdventureHUD(now);
   if (buildOpen) drawBuild();
   // floating pickup text
   for (const q of mine.pops) { const a = (now - q.t0) / 1100, ux = (q.x - mine.camX) * UW / VW, uy = (q.y - mine.camY) * UH / VH - a * 26; uctx.globalAlpha = Math.max(0, 1 - Math.max(0, a - 0.6) / 0.4); text(q.s, ux, uy - 14, 12, q.col, { align: 'center', shadow: P.OL }); uctx.globalAlpha = 1; }
@@ -3422,8 +4204,10 @@ function mineKey(e, down) {
   if (k >= '1' && k <= '5' && k.length === 1) { mine.sel = +k - 1; Sound.blip(); return true; }
   if (k === '6' || k === 'l' || k === 'L') { deployLadder(); return true; }
   if (k === 'x' || k === 'X') { toggleAuto(); return true; }
+  if (k === 'e' || k === 'E') { eatMushroom(); return true; }
+  if (k === 'p' || k === 'P') { togglePeace(); return true; }
   if (k === 'b' || k === 'B') { buildOpen = true; Sound.wood(); return true; }
-  if (k === 'r' || k === 'R') { if (performance.now() - mine.recallT < 800) return true; mine.recallT = performance.now(); startFade(() => { const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }); Sound.ding(); hint('魔镜一闪，回到了入口'); return true; }
+  if (k === 'r' || k === 'R') { if (performance.now() - mine.recallT < 800) return true; if (!mine.peace && tick - mine.lastHurt < 180) { Sound.nope(); hint('刚被打中，魔镜还聚不起光 · 先躲开怪物 3 秒'); return true; } mine.recallT = performance.now(); startFade(() => { const p = mine.p; p.x = 40; p.y = 15 * MT - p.h; p.vx = p.vy = 0; }); Sound.ding(); hint('魔镜一闪，回到了入口'); return true; }
   if (k === 'f' || k === 'F') { const p = mine.p; placeTorch(Math.floor((p.x + p.w / 2) / MT), Math.floor((p.y + 10) / MT)); return true; }
   if (k === 'Enter') return true;
   return false;
@@ -3500,7 +4284,7 @@ function climbStep(p) {
   const fr = Math.floor((p.y + p.h - 0.01) / MT);
   const canExit = d => { for (let k = 1; k <= 2; k++) { const c = L.c + d * k; for (let q = fr - 3; q <= fr; q++) if (isSolid(tileAt(c, q))) return false; if (isSolid(tileAt(c, fr + 1))) return true; } return false; };
   if (side && canExit(side)) { p.climb = false; L.auto = false; p.push = { dir: side, t: 26 }; p.vx = side * 1.5; p.vy = -2.2; p.dir = side; return false; }
-  if (p.y <= L.top * MT + 0.5 && vy < 0) { vy = 0; p.y = L.top * MT;
+  if (p.y <= L.top * MT + 0.5 && vy < 0) { vy = 0; if (!boxHits(p.x, L.top * MT, p.w, p.h)) p.y = L.top * MT;
     if (L.auto) { const d = canExit(p.dir) ? p.dir : canExit(-p.dir) ? -p.dir : 0; if (d) { p.climb = false; L.auto = false; p.push = { dir: d, t: 26 }; p.vx = d * 1.5; p.vy = -2.2; p.dir = d; return false; } if (!L.told) { L.told = true; hint('爬到顶了 · 两边是岩层，挖开一条路再走'); } } }
   if (vy > 0 && p.y + p.h >= (L.bottom + 1) * MT - 0.5) { p.climb = false; return false; }
   // look for a side exit on the way up, so the ladder drops you at the first tunnel
@@ -6188,7 +6972,7 @@ async function start() {
   introStep(0.3, '给作物浇水……'); await nextFrame();
   loadSave(); loadDaily(); loadOutfit(); buildFarmer(); loadPet();
   SPR.mailboxUp = makeMailbox(true); SPR.mailboxDown = makeMailbox(false);
-  cloudShadow = makeCloudShadow(); fogBand = makeFogBand();
+  cloudShadow = makeCloudShadow();
   updateWeather(performance.now(), true);
   introStep(0.5, '铺草地、种树……'); await nextFrame();
   buildVehicles(); try { lpresent = localStorage.getItem('ai-farm-xmas'); } catch (e) { /* ignore */ }
@@ -6204,7 +6988,7 @@ async function start() {
   announce('农场已载入');
   prebuildRooms();
   setTimeout(() => hint('点地面让农夫走过去 · 按 H 看图例和操作'), 1100);
-  if (!(await liveP)) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
+  if (!(await liveP)) { loadLocalGoals(); } if (!live.on) setInterval(() => { EVENTS[ev % EVENTS.length](); ev++; }, 6500);
 }
 const fontsReady = document.fonts ? Promise.all([document.fonts.load(`12px ${FONT_CJK}`, '农场委托0123456789'), document.fonts.load(`24px ${FONT_CJK}`, '0123456789:?')]) : Promise.resolve();
 let started = false;
