@@ -3,6 +3,7 @@
   "name": "agent-farm",
   "main": "src/worker.js",
   "compatibility_date": "2026-06-01",
+  "placement": { "region": "aws:ap-southeast-1" },
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
